@@ -1,0 +1,156 @@
+<div class="container-fluid" [class.mobile]="isMobile">
+
+  <div class="filter-container" [class.mobile-layout]="isMobile">
+    <mat-form-field appearance="outline">
+      <mat-label>Selecione um Grupo</mat-label>
+      <mat-select [(ngModel)]="grupoSelecionado" (selectionChange)="changeGrupo($event.value)" name="grupo">
+        <mat-option>Nenhum</mat-option>
+        <mat-option *ngFor="let grupo of listGrupo" [value]="grupo">
+          {{grupo.dsGrupo}}
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Valor Pesquisa</mat-label>
+      <input #filterValue matInput name="vlPesquisar">
+    </mat-form-field>
+
+    <div class="search-button-wrapper">
+      <button aria-label="Pesquisar" mat-fab color="primary" (click)="searchFiltro(filterValue)">
+        <mat-icon>search</mat-icon>
+      </button>
+    </div>
+  </div>
+
+  <mat-card>
+    <mat-card-content>
+
+      <div class="section-title">
+        <h3>Servidores</h3>
+        <button mat-icon-button [matMenuTriggerFor]="menu1" aria-label="Ações do servidor">
+          <mat-icon>more_vert</mat-icon>
+        </button>
+        <mat-menu #menu1="matMenu">
+          <button mat-menu-item (click)="openAddDialogAdicionar()">
+            <mat-icon>add</mat-icon>
+            <span>Adicionar</span>
+          </button>
+          <button [disabled]="!servidorSelecionado.codServidor" mat-menu-item (click)="openEditDialog()">
+            <mat-icon>edit</mat-icon>
+            <span>Editar</span>
+          </button>
+          <button [disabled]="!servidorSelecionado.codServidor" mat-menu-item (click)="openDeleteDialog()">
+            <mat-icon>delete</mat-icon>
+            <span>Excluir</span>
+          </button>
+        </mat-menu>
+      </div>
+
+      <div class="grid-wrapper">
+        <mtx-grid [data]="list"
+                  [columns]="isMobile ? columnsServidorMobile : columnsServidorDesktop"
+                  [rowStriped]="true"
+                  [showPaginator]="true"
+                  [pageSize]="10"
+                  [noResultText]="noResult"
+                  (rowClick)="onRowClick($event, 'servidor')"
+                  [cellTemplate]="{ snAtivo: statusAtivoTpl, snMonitorado: statusMonitoramentoTpl }" />
+      </div>
+
+      <div class="responsive-layout" [class.mobile-columns]="isMobile">
+
+        <div class="responsive-column" [class.main-column]="!isMobile">
+          <div class="section-title">
+            <h3>Processos</h3>
+            <button mat-icon-button [matMenuTriggerFor]="menu2" aria-label="Ações do processo">
+              <mat-icon>more_vert</mat-icon>
+            </button>
+            <mat-menu #menu2="matMenu">
+              <button [disabled]="!servidorSelecionado.codServidor" mat-menu-item (click)="openAddProcessoDialog()">
+                <mat-icon>add</mat-icon>
+                <span>Adicionar</span>
+              </button>
+              <button [disabled]="!processoSelecionado.codProcesso" mat-menu-item (click)="openEditProcessoDialog()">
+                <mat-icon>edit</mat-icon>
+                <span>Editar</span>
+              </button>
+              <button [disabled]="!processoSelecionado.codProcesso" mat-menu-item (click)="openDeleteProcessoDialog()">
+                <mat-icon>delete</mat-icon>
+                <span>Excluir</span>
+              </button>
+            </mat-menu>
+          </div>
+
+          <div class="grid-wrapper">
+            <mtx-grid [data]="listProcesso"
+                      [columns]="isMobile ? columnsProcessoMobile : columnsProcessoDesktop"
+                      [rowStriped]="true"
+                      [showPaginator]="true"
+                      [pageSize]="10"
+                      [noResultText]="noResult"
+                      (rowClick)="onRowClick($event, 'processo')"
+                      [cellTemplate]="{ dsStatus: statusProcessoTpl, snMonitorado: statusMonitoramentoTpl }" />
+          </div>
+        </div>
+
+        <div class="responsive-column" [class.sidebar-column]="!isMobile">
+          <div class="section-title">
+            <h3>Parâmetros</h3>
+            <button mat-icon-button [matMenuTriggerFor]="menu3" aria-label="Ações do parâmetro">
+              <mat-icon>more_vert</mat-icon>
+            </button>
+            <mat-menu #menu3="matMenu">
+              <button [disabled]="!processoSelecionado.codProcesso" mat-menu-item (click)="openAddParametroDialog()">
+                <mat-icon>add</mat-icon>
+                <span>Adicionar</span>
+              </button>
+              <button [disabled]="!paramentroSelecionado.codParametro" mat-menu-item (click)="openEditParametroDialog()">
+                <mat-icon>edit</mat-icon>
+                <span>Editar</span>
+              </button>
+              <button [disabled]="!paramentroSelecionado.codParametro" mat-menu-item (click)="openDeleteParametroDialog()">
+                <mat-icon>delete</mat-icon>
+                <span>Excluir</span>
+              </button>
+            </mat-menu>
+          </div>
+
+          <div class="grid-wrapper">
+            <mtx-grid [data]="listParamentro"
+                      [columns]="isMobile ? columnsParamentroMobile : columnsParamentroDesktop"
+                      [rowStriped]="true"
+                      [showPaginator]="true"
+                      [pageSize]="10"
+                      [noResultText]="noResult"
+                      (rowClick)="onRowClick($event, 'parametro')"
+                      [cellTemplate]="{ snMonitorado: statusMonitoramentoTpl }" />
+          </div>
+        </div>
+      </div>
+    </mat-card-content>
+  </mat-card>
+</div>
+
+<!-- TEMPLATES -->
+<ng-template #statusAtivoTpl let-row>
+  <div class="center_item">
+    <mat-icon *ngIf="row.snAtivo" color="primary">power</mat-icon>
+    <mat-icon *ngIf="!row.snAtivo" color="warn">power_off</mat-icon>
+  </div>
+</ng-template>
+
+<ng-template #statusProcessoTpl let-row>
+  <div class="center_item">
+    <mat-icon *ngIf="row.dsStatus == 'INICIADO'" color="primary">cloud_queue</mat-icon>
+    <mat-icon *ngIf="row.dsStatus == 'PARADO'" color="warn">cloud_off</mat-icon>
+    <mat-icon *ngIf="!row.dsStatus">cloud</mat-icon>
+  </div>
+</ng-template>
+
+<ng-template #statusMonitoramentoTpl let-row>
+  <div class="center_item">
+    <mat-icon *ngIf="row.snMonitorado" color="primary">toggle_on</mat-icon>
+    <mat-icon *ngIf="!row.snMonitorado">toggle_off</mat-icon>
+  </div>
+</ng-template>

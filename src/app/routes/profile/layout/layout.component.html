@@ -1,0 +1,23 @@
+<page-header class="bg-dark text-light" title="{{ 'profile' | translate }}" />
+<div class="row">
+  <div class="col-sm-4 col-md-4 col-lg-3">
+    <mat-card>
+      <mat-card-content>
+        <div class="text-center">
+          <img class="m-b-8 r-full" [src]="user.foto" alt="" width="80">
+          <h2 class="m-t-0 m-b-8 f-w-400">{{ user.nome }}</h2>
+        </div>
+        <mat-divider class="m-t-16 m-b-8" />
+        <mat-nav-list>
+          <a mat-list-item (click)="emitEventToChild($event)" (keydown.enter)="emitEventToChild($event)" tabindex="4">
+            <mat-icon matListItemIcon>settings</mat-icon> {{ 'settings' | translate }}
+          </a>
+          <app-customizer-settings [eventEmitter]="parentEmitter" [snButtonVisible]="false" (optionsChange)="updateOptions($event)" />
+        </mat-nav-list>
+      </mat-card-content>
+    </mat-card>
+  </div>
+  <div class="col-sm-8 col-md-8 col-lg-9">
+    <app-profile-settings></app-profile-settings>
+  </div>
+</div>

@@ -1,0 +1,115 @@
+// Estilos para o datepicker
+::ng-deep .custom-datepicker {
+  .mat-calendar-body-selected {
+    background-color: #3b82f6;
+    color: white;
+  }
+
+  .mat-calendar-body-today {
+    border-color: #3b82f6;
+  }
+
+  .has-preference {
+    background-color: #fef3c7;
+    border-radius: 50%;
+  }
+
+  .mat-calendar-body-cell.has-preference .mat-calendar-body-cell-content {
+    background-color: #fef3c7;
+    border-radius: 50%;
+  }
+}
+
+// Estilos para a tabela responsiva
+@media (max-width: 768px) {
+  .mat-table {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+
+    .mat-header-row,
+    .mat-row {
+      display: flex;
+      flex-direction: row;
+      min-height: 48px;
+      align-items: center;
+      padding: 0 8px;
+    }
+
+    .mat-cell,
+    .mat-header-cell {
+      flex: 1;
+      overflow: hidden;
+      word-wrap: break-word;
+      min-width: 120px;
+    }
+
+    .mat-column-acoes {
+      min-width: 80px;
+      flex: 0 0 80px;
+    }
+  }
+}
+
+// Estilos para o campo de data
+::ng-deep .mat-datepicker-content {
+  .mat-calendar {
+    width: 300px;
+    height: auto;
+  }
+
+  .mat-calendar-header {
+    background-color: #f3f4f6;
+  }
+
+  .mat-calendar-body-label {
+    color: #374151;
+    font-weight: 600;
+  }
+}
+
+// Estilos para mensagens de erro
+.mat-error {
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+// Estilos para hints
+.mat-hint {
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+// Estilos para tooltips
+.mat-tooltip {
+  font-size: 12px;
+  padding: 8px 12px;
+  background-color: #374151;
+  color: white;
+  border-radius: 4px;
+}
+
+// Estilos para diálogos de confirmação
+.confirm-dialog-container {
+  padding: 20px;
+
+  .dialog-title {
+    color: #374151;
+    font-weight: 600;
+    font-size: 18px;
+    margin-bottom: 16px;
+  }
+
+  .dialog-message {
+    color: #6b7280;
+    font-size: 14px;
+    line-height: 1.5;
+    margin-bottom: 24px;
+  }
+
+  .dialog-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+  }
+}

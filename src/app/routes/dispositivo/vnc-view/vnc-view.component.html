@@ -1,0 +1,48 @@
+<!--The content below is only a placeholder and can be replaced.-->
+<div style="text-align: left;">
+
+  <form class="m-x--4">
+    <mat-form-field class="m-x-4" appearance="outline">
+      <!--<input matInput name="host" placeholder="Host" id="hostInput" [disabled]="vncAtivo" (change)="getHostValue($event)"> -->
+      <input matInput name="host" placeholder="Host" id="hostInput" [disabled]="vncAtivo" [(ngModel)]="host">
+    </mat-form-field>
+<!--    <button id="btnStart" [disabled]="(vncAtivo || (host.length <= 0))" type="submit" (click)="startClient()" class="m-x-4" mat-flat-button><b>{{'connect' | translate}}</b>
+    </button>&nbsp;
+    -->
+    <button #btnStart mat-icon-button="" title="{{'connect' | translate}}"  [disabled]="(vncAtivo || (host.length <= 0))" (click)="startClient()">
+      <mat-icon role="img" class="mat-icon notranslate material-icons mat-ligature-font mat-icon-no-color" aria-hidden="true" data-mat-icon-type="font">visibility</mat-icon>
+    </button>
+
+    <button mat-icon-button="" title="{{'disconect' | translate}}" [disabled]="!vncAtivo" (click)="stopClient()">
+      <mat-icon role="img" class="mat-icon notranslate material-icons mat-ligature-font mat-icon-no-color" aria-hidden="true" data-mat-icon-type="font">visibility_off</mat-icon>
+    </button>
+
+  <!--<button id="btnStop" [disabled]="!vncAtivo" type="submit" (click)="stopClient()" class="m-x-4" mat-flat-button><b>{{'disconect' | translate}}</b></button>&nbsp;
+  -->
+    <button mat-icon-button="" title="{{'fullscreen' | translate}}"  [disabled]="!vncAtivo" (click)="makeFullScreen()">
+      <mat-icon role="img" class="mat-icon notranslate material-icons mat-ligature-font mat-icon-no-color" aria-hidden="true" data-mat-icon-type="font">fullscreen</mat-icon>
+    </button>
+    <span id="status"> {{status}} {{desktopName}} </span>
+    <span id="status_exe" style="color:blue"> {{statusExecutaveis}}</span>
+  </form>
+
+ <!--
+  <span>host: </span>
+  <input id="hostInput" [disabled]="vncAtivo" (change)="getHostValue($event)" type="text" pInputText />&nbsp;
+  <button id="btnStart" [disabled]="(vncAtivo || (host.length <= 0))" type="submit" (click)="startClient()" class="m-x-4" mat-flat-button><b>{{'connect' | translate}}</b></button>&nbsp;
+  <button id="btnStop" [disabled]="!vncAtivo" type="submit" (click)="stopClient()" class="m-x-4" mat-flat-button><b>{{'disconect' | translate}}</b></button>&nbsp;
+  <!--<button id="btnFullScreen" [disabled]="!vncAtivo" (click)="makeFullScreen()" class="m-x-4" mat-flat-button><b>{{'fullscreen' | translate}}</b></button> -->
+  <!--<button mat-icon-button="" title="{{'fullscreen' | translate}}"  [disabled]="!vncAtivo" (click)="makeFullScreen()">
+    <mat-icon role="img" class="mat-icon notranslate material-icons mat-ligature-font mat-icon-no-color" aria-hidden="true" data-mat-icon-type="font">fullscreen</mat-icon>
+  </button>
+  <span id="status"> {{status}} {{desktopName}} </span>
+  <span id="status_exe" style="color:blue"> {{statusExecutaveis}}</span>
+  <br><br>
+-->
+</div>
+
+<div id="vncView" [hidden]="!vncAtivo">
+  <div id="screen">
+    <!-- This is where the remote screen will appear -->
+  </div>
+</div>

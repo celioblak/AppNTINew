@@ -1,0 +1,76 @@
+/* code-editor.styles.scss */
+/* Importa estilos do CodeMirror */
+@import 'codemirror/lib/codemirror.css';
+@import 'codemirror/addon/hint/show-hint.css';
+@import 'codemirror/theme/material.css';
+
+/* Estilos personalizados para o editor SQL */
+.cm-sql .cm-keyword { color: #569cd6; font-weight: bold; }
+.cm-sql .cm-builtin { color: #4ec9b0; }
+.cm-sql .cm-string { color: #ce9178; }
+.cm-sql .cm-number { color: #b5cea8; }
+.cm-sql .cm-comment { color: #6a9955; font-style: italic; }
+.cm-sql .cm-variable { color: #9cdcfe; }
+.cm-sql .cm-def { color: #dcdcaa; }
+.cm-sql .cm-operator { color: #d4d4d4; }
+.cm-sql .cm-property { color: #9cdcfe; }
+
+/* Ajustes para o container do editor */
+.code-editor-container {
+  height: 100%;
+  width: 100%;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+/* Ajustes para o editor dentro do container */
+.code-editor-container .cm-editor {
+  height: 100%;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', monospace;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* Ajusta a altura das linhas */
+.code-editor-container .cm-line {
+  min-height: 1.5em;
+  padding: 0 4px;
+}
+
+/* Remove padding do scroll */
+.code-editor-container .cm-scroller {
+  padding: 8px 0;
+}
+
+/* Linha ativa */
+.code-editor-container .cm-activeLine {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+/* Gutter (números das linhas) */
+.code-editor-container .cm-gutters {
+  background-color: #f5f5f5;
+  border-right: 1px solid #ddd;
+  color: #999;
+}
+
+/* Tema escuro */
+.code-editor-container.dark {
+  border-color: #444;
+}
+
+.code-editor-container.dark .cm-editor {
+  background-color: #1e1e1e;
+  color: #d4d4d4;
+}
+
+.code-editor-container.dark .cm-gutters {
+  background-color: #2d2d2d;
+  border-right-color: #444;
+  color: #858585;
+}
+
+.code-editor-container.dark .cm-activeLine {
+  background-color: rgba(255, 255, 255, 0.05);
+}

@@ -1,0 +1,20 @@
+<!-- dialog-servidor.html - VERIFIQUE se está assim -->
+<mat-card>
+  <mat-card-header>
+    <mat-card-title>{{ data.modo === 'editar' ? 'Editar Servidor' : 'Adicionar Servidor' }}</mat-card-title>
+  </mat-card-header>
+
+  <mat-card-content>
+    <!-- APENAS UM FORM aqui -->
+    <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+      <formly-form [model]="model" [fields]="fields" [form]="form"></formly-form>
+
+      <div class="d-flex justify-content-center m-t-8">
+        <button mat-button class="m-x-8" type="button" (click)="cancelar()">Cancelar</button>
+        <button mat-flat-button color="primary" type="submit" [disabled]="!form.valid">
+          {{ data.modo === 'adicionar' ? 'Salvar' : 'Atualizar' }}
+        </button>
+      </div>
+    </form>
+  </mat-card-content>
+</mat-card>

@@ -1,0 +1,27 @@
+<!-- dialog-processo.html -->
+<mat-card>
+  <mat-card-header>
+    <div mat-card-avatar>
+      <mat-icon>settings</mat-icon>
+    </div>
+    <mat-card-title>{{ data.modo === 'editar' ? 'Editar Processo' : 'Adicionar Processo' }}</mat-card-title>
+    <mat-card-subtitle *ngIf="data.servidor">
+      Servidor: {{ data.servidor.dsServidor }}
+    </mat-card-subtitle>
+  </mat-card-header>
+
+  <mat-divider></mat-divider>
+
+  <mat-card-content>
+    <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+      <formly-form [model]="model" [fields]="fields" [form]="form"></formly-form>
+
+      <div class="d-flex justify-content-center m-t-8">
+        <button mat-button class="m-x-8" type="button" (click)="cancelar()">Cancelar</button>
+        <button mat-flat-button color="primary" type="submit" [disabled]="!form.valid">
+          {{ data.modo === 'adicionar' ? 'Salvar' : 'Atualizar' }}
+        </button>
+      </div>
+    </form>
+  </mat-card-content>
+</mat-card>

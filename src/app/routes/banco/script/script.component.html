@@ -1,0 +1,98 @@
+<div class="row">
+  <div class="col-sm-12">
+    <mat-card>
+      <mat-card-content>
+        <form>
+          <mat-form-field class="m-r-8" appearance="outline">
+            <mat-label>Valor Pesquisa</mat-label>
+            <input #filterValue matInput name="vlPesquisar">
+          </mat-form-field>
+          <button aria-label="Activate floating action style google search link" mat-fab (click)="filterBy(filterValue)">
+            <mat-icon role="img" class="mat-icon notranslate material-icons mat-ligature-font mat-icon-no-color" aria-hidden="true" data-mat-icon-type="font">
+              search
+            </mat-icon>
+          </button>
+        </form>
+      </mat-card-content>
+    </mat-card>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-sm-6" style="height: calc(100vh - 320px);">
+    <div>
+      <button mat-raised-button (click)="openAddDialogAdicionar()">
+        Adicionar
+      </button>
+    </div>
+    <mtx-grid id="dtgrid"
+      [data]="list"
+      [columns]="columns"
+      [rowStriped]="true"
+      [showPaginator]="true"
+      [pageSize]="50"
+      [noResultText]="noResult"
+      [rowSelectable]="!snEdicao"
+      [multiSelectable]="false"
+      [hideRowSelectionCheckbox]="true"
+      (rowSelectedChange)="changeSelect($event)"
+      style="height: calc(100vh - 240px);"
+    />
+  </div>
+  <div class="col-sm-6" style="height: calc(100vh - 285px);">
+    <!-- Nosso Editor SQL Personalizado -->
+    <!--<div style="height: calc(100vh - 393px); width: 100%;">
+      <app-sql-text-editor
+        [value]="dados.sql || ''"
+        (valueChange)="dados.sql = $event"
+        [readonly]="!snEdicao"
+        style="height: 100%; width: 100%;"
+      ></app-sql-text-editor>
+    </div>-->
+    <div style="height: calc(100vh - 393px); width: 100%; position: relative;">
+      <div style="height: 100%;">
+        <app-sql-professional-editor
+          [value]="dados.sql || ''"
+          (valueChange)="dados.sql = $event"
+          [readonly]="!snEdicao">
+        </app-sql-professional-editor>
+      </div>
+    </div>
+    <br>
+
+    <!-- Descrição da Função -->
+    <textarea
+      readonly
+      [(ngModel)]="dados.funcao"
+      rows="6"
+      style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; background-color: #f5f5f5; resize: vertical;"
+    >
+    </textarea>
+
+    <div>
+      <br>
+      <div *ngIf="!snEdicao && sql != null">
+        <button mat-raised-button (click)="copysql()">
+          Copiar
+        </button>
+        <label>&#160;&#160;&#160;&#160;</label>
+        <button mat-raised-button (click)="habilitarEdicao()">
+          Editar
+        </button>
+        <label>&#160;&#160;&#160;&#160;</label>
+        <button mat-raised-button (click)="openAddDialogConfirDelecao()">
+          Excluir
+        </button>
+      </div>
+      <div *ngIf="snEdicao">
+        <button mat-raised-button (click)="salvarEdicao()">
+          Salvar
+        </button>
+        <label>&#160;&#160;&#160;&#160;</label>
+        <button mat-raised-button (click)="cancelaEditar()">
+          Cancelar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

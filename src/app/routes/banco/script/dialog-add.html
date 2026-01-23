@@ -1,0 +1,52 @@
+<h2 mat-dialog-title>{{ dataDialog?.nome ? 'Editar Script' : 'Adicionar Script' }}</h2>
+<mat-dialog-content>
+  <form [formGroup]="reactiveForm">
+    <div class="row">
+      <div class="col-sm-12">
+        <mat-form-field appearance="outline" style="width: 100%;">
+          <mat-label>Nome</mat-label>
+          <input matInput formControlName="nome" placeholder="Nome do script">
+          <mat-error *ngIf="getFc['nome'].hasError('required')">
+            Nome é obrigatório
+          </mat-error>
+        </mat-form-field>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col-sm-12">
+        <mat-form-field appearance="outline" style="width: 100%;">
+          <mat-label>Função</mat-label>
+          <textarea matInput formControlName="funcao" rows="3" placeholder="Descrição da função"></textarea>
+          <mat-error *ngIf="getFc['funcao'].hasError('required')">
+            Função é obrigatória
+          </mat-error>
+        </mat-form-field>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col-sm-12">
+        <label style="display: block; margin-bottom: 8px; font-weight: 500;">Script SQL *</label>
+        <!-- Nosso Editor SQL Personalizado -->
+        <div style="height: 400px; width: 100%;">
+          <app-sql-professional-editor
+            [value]="reactiveForm.get('script')?.value || ''"
+            (valueChange)="reactiveForm.get('script')?.setValue($event)"
+            style="height: 100%; width: 100%;">
+          </app-sql-professional-editor>
+        </div>
+        <mat-error *ngIf="getFc['script'].hasError('required') && getFc['script'].touched" style="color: #f44336; font-size: 12px; display: block; margin-top: 4px;">
+          Script é obrigatório
+        </mat-error>
+      </div>
+    </div>
+  </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-raised-button (click)="closeDialog()">Cancelar</button>
+  <button mat-raised-button color="primary" (click)="salvar()" [disabled]="reactiveForm.invalid">
+    Salvar
+  </button>
+</mat-dialog-actions>

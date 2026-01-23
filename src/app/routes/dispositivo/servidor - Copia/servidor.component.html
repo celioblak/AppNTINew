@@ -1,0 +1,165 @@
+<div class="row">
+  <div class="col-sm-12">
+    <mat-card>
+      <mat-card-content>
+        <form>
+          <mat-form-field appearance="outline">
+            <mat-label>Selecione um Grupo</mat-label>
+            <mtx-select [items]="(listGrupo)!" (change) ="changeGrupo($event)" appearance="outline" bindLabel="dsGrupo" bindValue="codGrupoServidor" autofocus
+               />
+          </mat-form-field>
+          &#160;&#160;&#160;
+          <mat-form-field appearance="outline">
+            <mat-label>Valor Pesquisa</mat-label>
+            <input #filterValue matInput name="vlPesquisar">
+          </mat-form-field>
+          &#160;&#160;&#160;
+          <button aria-label="Activate floating action style google search link" mat-fab (click)="searchFiltro(filterValue)">
+            <mat-icon role="img" class="mat-icon notranslate material-icons mat-ligature-font mat-icon-no-color" aria-hidden="true" data-mat-icon-type="font">
+              search
+            </mat-icon>
+          </button>
+        </form>
+        <div class="row">
+          <div class="col-sm-12" >
+            <div>
+              <label><b>Servidores</b></label>
+              <button style="float: right;" mat-icon-button [matMenuTriggerFor]="menu1" aria-label="Open Menu">
+                <mat-icon>more_vert</mat-icon>
+              </button>
+              <mat-menu #menu1="matMenu">
+                <button mat-menu-item>
+                  <mat-icon>add</mat-icon>
+                  <span (click)="openAddDialogAdicionar()">Adicionar</span>
+                </button>
+                <button [disabled]="servidorSelecionado.codServidor ==null" mat-menu-item>
+                  <mat-icon>edit</mat-icon>
+                  <span>Editar</span>
+                </button>
+                <button [disabled]="servidorSelecionado.codServidor ==null" mat-menu-item>
+                  <mat-icon>remove</mat-icon>
+                  <span>Excluir</span>
+                </button>
+              </mat-menu>
+          </div>
+              <mtx-grid id="dtgridServidor"
+                    [data]="list"
+                    [columns]="columnsServidor"
+                    [rowStriped]="true"
+                    [showPaginator]="true"
+                    [pageSize]="10"
+                    [noResultText]="noResult"
+                    [rowSelectable]="true"
+                    [cellSelectable]="true"
+                    [multiSelectable]="false"
+                    [hideRowSelectionCheckbox]="true"
+                    (rowSelectedChange)="changeSelectServidor($event)"
+                    (cellSelectionChange)="changeSelectServidorCell($event)"
+                    [cellTemplate]="{ snAtivo: statusAtivoTpl , snMonitorado: statusMonitoramentoTpl }"
+                    style="height: calc(100vh - 620px);"
+                />
+          </div>
+        </div>
+        <div class="row">
+          <div class="col-sm-9">
+            <div>
+              <label class="m-r-8"><b>Processos</b></label>
+              <button style="float: right;" mat-icon-button [matMenuTriggerFor]="menu2" aria-label="Open Menu">
+                <mat-icon>more_vert</mat-icon>
+              </button>
+              <mat-menu #menu2="matMenu">
+                <button [disabled]="servidorSelecionado.codServidor == null" mat-menu-item>
+                  <mat-icon>add</mat-icon>
+                  <span>Adicionar</span>
+                </button>
+                <button [disabled]="processoSelecionado.codProcesso == null" mat-menu-item>
+                  <mat-icon>edit</mat-icon>
+                  <span>Editar</span>
+                </button>
+                <button [disabled]="processoSelecionado.codProcesso == null" mat-menu-item>
+                  <mat-icon>remove</mat-icon>
+                  <span>Excluir</span>
+                </button>
+              </mat-menu>
+            </div>
+              <mtx-grid id="dtgridServidorProcesso"
+                    [data]="listProcesso"
+                    [columns]="columnsProcesso"
+                    [rowStriped]="true"
+                    [showPaginator]="true"
+                    [pageSize]= "10"
+                    [noResultText]="noResult"
+                    [rowSelectable]="true"
+                    [multiSelectable]="false"
+                    [hideRowSelectionCheckbox]="true"
+                    (rowSelectedChange)="changeSelectProcesso($event)"
+                    [cellTemplate]="{ dsStatus: statusProcessoTpl, snMonitorado: statusMonitoramentoTpl }"
+                    style="height: calc(100vh - 620px);"
+                />
+          </div>
+          <div class="col-sm-3" >
+            <div>
+              <label><b>Paramentro</b></label>
+              <button style="float: right;" mat-icon-button [matMenuTriggerFor]="menu3" aria-label="Open Menu">
+                <mat-icon>more_vert</mat-icon>
+              </button>
+              <mat-menu #menu3="matMenu">
+                <button [disabled]="processoSelecionado.codProcesso == null" mat-menu-item>
+                  <mat-icon>add</mat-icon>
+                  <span>Adicionar</span>
+                </button>
+                <button [disabled]="paramentroSelecionado.codParametro == null" mat-menu-item>
+                  <mat-icon>edit</mat-icon>
+                  <span>Editar</span>
+                </button>
+                <button [disabled]="paramentroSelecionado.codParametro == null" mat-menu-item>
+                  <mat-icon>remove</mat-icon>
+                  <span>Excluir</span>
+                </button>
+              </mat-menu>
+            </div>
+            <mtx-grid id="dtgridServidorProcessoParametros"
+                  [data]="listParamentro"
+                  [columns]="columnsParamentro"
+                  [rowStriped]="true"
+                  [showPaginator]="true"
+                  [pageSize]= "10"
+                  [noResultText]="noResult"
+                  [rowSelectable]="true"
+                  [multiSelectable]="false"
+                  [hideRowSelectionCheckbox]="true"
+                  (rowSelectedChange)="changeSelectParamentro($event)"
+                  [cellTemplate]="{ snMonitorado: statusMonitoramentoTpl }"
+                  style="height: calc(100vh - 620px);"
+              />
+        </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+</div>
+<ng-template #statusTpl let-row let-index="0" let-col="colDef">
+  <mat-slide-toggle [checked]="row.snAtivo" [disabled]="true"></mat-slide-toggle>
+</ng-template>
+
+<ng-template #statusAtivoTpl let-row let-index="0" let-col="colDef">
+  <div class="center_item">
+    <mat-icon *ngIf="row.snAtivo" matTooltip="Ativo" color="primary">power</mat-icon>
+    <mat-icon *ngIf="!row.snAtivo" matTooltip="Inativo" color="warn">power_off</mat-icon>
+  </div>
+</ng-template>
+
+<ng-template #statusProcessoTpl let-row let-index="0" let-col="colDef">
+  <div class="center_item">
+    <mat-icon *ngIf="row.dsStatus == 'INICIADO'" matTooltip="{{row.dsStatus}}" color="primary">cloud_queue</mat-icon>
+    <mat-icon *ngIf="row.dsStatus == 'PARADO'" matTooltip="{{row.dsStatus}}" color="warn">cloud_off</mat-icon>
+    <mat-icon *ngIf="row.dsStatus == null" matTooltip="NÂO IDENTIFICADO" >cloud</mat-icon>
+  </div>
+</ng-template>
+
+<ng-template #statusMonitoramentoTpl let-row let-index="0" let-col="colDef">
+<div class="center_item">
+  <mat-icon *ngIf="row.snMonitorado"  matTooltip="Ativo" color="primary">toggle_on</mat-icon>
+  <mat-icon *ngIf="!row.snMonitorado" matTooltip="Inativo" >toggle_off</mat-icon>
+</div>
+</ng-template>

@@ -1,0 +1,293 @@
+<div class="escala-container">
+  <!-- Cabeçalho -->
+  <div class="escala-header">
+    <div class="header-title">
+      <h2>Escala de Plantão - {{ getNomeMes() }}/{{ ano }}</h2>
+      <p class="subtitle">Controle de escala mensal de plantões</p>
+
+      <!-- Status da Escala - Só mostra quando a escala existe ////
+      <div *ngIf="escala && !escalaNaoExiste" class="escala-status">
+        <span class="status-badge" [class.publicada]="escala.publicado" [class.rascunho]="!escala.publicado">
+          {{ escala.publicado ? '📢 PUBLICADA' : '📝 RASCUNHO' }}
+        </span>
+        <span *ngIf="!escalaNaoExiste && isEscalaPublicada()" class="status-publicada">
+          ✅ Publicada (visível para todos)
+        </span>
+        <span *ngIf="escala.criadoEm" class="criacao-info">
+          Criada em: {{ escala.criadoEm | date:'dd/MM/yyyy HH:mm' }}
+        </span>
+      </div>-->
+    </div>
+    <div class="header-controls">
+      <button (click)="mesAnterior()" class="btn-nav">‹ Anterior</button>
+      <button (click)="proximoMes()" class="btn-nav">Próximo ›</button>
+
+      <!-- Total de plantões - Só mostra quando a escala existe -->
+      <span *ngIf="!escalaNaoExiste" class="total-plantones">Total: {{ getTotalPlantoes() }} plantões</span>
+
+      <!-- Controles de Publicação - Só mostra quando a escala existe -->
+      <button *ngIf="!escalaNaoExiste && podeCriar() && !isEscalaPublicada()"
+        (click)="publicarEscala()"
+        class="btn-publicar"
+        [disabled]="loading">
+        📢 Publicar Escala
+      </button>
+
+      <button *ngIf="!escalaNaoExiste && podeCriar() && isEscalaPublicada()"
+              (click)="reverterPublicacao()"
+              class="btn-reverter"
+              [disabled]="loading">
+        ↩️ Reverter Publicação
+      </button>
+
+      <span *ngIf="!escalaNaoExiste && isEscalaPublicada()" class="status-publicada">
+        ✅ Publicada
+      </span>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="loading" class="loading-state">
+    <div class="spinner"></div>
+    <p>Carregando escala...</p>
+  </div>
+
+  <!-- Mensagem de Erro - Só mostra quando há erro e não é "escala não encontrada" -->
+  <div *ngIf="erro && !escalaNaoExiste" class="error-state">
+    <p>❌ {{ erro }}</p>
+    <button (click)="limparErro()" class="btn-limpar">Fechar</button>
+  </div>
+
+  <!-- Mensagem de Escala Não Encontrada - Só mostra quando realmente não existe -->
+  <div *ngIf="!loading && escalaNaoExiste" class="escala-nao-encontrada">
+    <div class="empty-state">
+      <div class="empty-icon">📅</div>
+      <h3>Escala Não Encontrada</h3>
+      <p>Não existe escala disponível ou publicada para {{ getNomeMes() }}/{{ ano }}</p>
+
+      <div class="empty-actions" *ngIf="usuarioPodeGerarEscala">
+        <button (click)="gerarEscala()" class="btn-gerar-escala" [disabled]="loading">
+          🚀 Gerar Escala para {{ getNomeMes() }}/{{ ano }}
+        </button>
+      </div>
+
+      <div class="empty-actions" *ngIf="!usuarioPodeGerarEscala">
+        <p class="no-permission">Você não tem permissão para gerar escalas. Entre em contato com o administrador.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Conteúdo Principal (Só mostra quando a escala existe e está carregada) -->
+  <div *ngIf="!loading && !escalaNaoExiste && vistaEscala" class="main-content">
+    <!-- Tabela da Escala -->
+    <div class="table-container">
+      <table class="escala-table">
+        <thead>
+          <tr>
+            <th class="col-funcionario">
+              <div class="funcionario-header">
+                <span class="header-nome">Funcionário</span>
+                <span class="header-contador">Plantões</span>
+              </div>
+            </th>
+            <th *ngFor="let dia of diasDoMes"
+                class="col-dia"
+                [class.sabado]="ehSabado(dia)"
+                [class.domingo]="ehDomingo(dia)"
+                [class.feriado]="ehFeriado(dia)"
+                [attr.title]="ehFeriado(dia) ? getDescricaoFeriado(dia) : null">
+              <div class="dia-header">
+                <span class="dia-numero">{{ dia }}</span>
+                <div class="dia-info">
+                  <span *ngIf="ehSabado(dia) && !ehFeriado(dia)" class="label-dia sabado">{{ getDiaSemana(dia) | slice:0:3 }}</span>
+                  <span *ngIf="ehDomingo(dia) && !ehFeriado(dia)" class="label-dia domingo">{{ getDiaSemana(dia) | slice:0:3 }}</span>
+                  <span *ngIf="ehFeriado(dia)" class="label-dia feriado">{{ getDiaSemana(dia) | slice:0:3 }}</span>
+                  <span *ngIf="!ehFimDeSemana(dia) && !ehFeriado(dia)"
+                        class="label-dia normal">{{ getDiaSemana(dia) | slice:0:3 }}</span>
+                  <span *ngIf="ehFeriado(dia)" class="label-dia feriado-texto">FERIADO</span>
+                </div>
+              </div>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <ng-container *ngIf="getFuncionariosOrdenados().length > 0; else noFuncionarios">
+            <tr *ngFor="let funcionario of getFuncionariosOrdenados(); let i = index"
+                class="linha-funcionario"
+                [class.par]="i % 2 === 0">
+
+              <td class="col-funcionario">
+                <div class="funcionario-info">
+                  <span class="nome-funcionario" [title]="funcionario.nome">
+                    {{ funcionario.nome }}
+                  </span>
+                  <span class="contador-plantones"
+                        [title]="'Total de plantões: ' + getQuantidadePlantoesFuncionario(funcionario.id)">
+                    {{ getQuantidadePlantoesFuncionario(funcionario.id) }}
+                  </span>
+                </div>
+              </td>
+
+              <td *ngFor="let dia of diasDoMes"
+                  class="col-dia celula"
+                  [class.sabado]="ehSabado(dia)"
+                  [class.domingo]="ehDomingo(dia)"
+                  [class.feriado]="ehFeriado(dia)"
+                  [class.ferias]="estaDeFerias(funcionario.id, dia)"
+                  [class.preferencia-folga]="temPreferenciaFolga(funcionario.id, dia)"
+                  [attr.title]="getTitleCelula(funcionario.id, dia)"
+                  (drop)="onDropPlantao($event, funcionario.id, dia)"
+                  (dragover)="onDragOver($event)"
+                  (dragenter)="onDragEnter($event)"
+                  (dragleave)="onDragLeave($event)">
+
+                <!-- ✅ MELHORADO: Indicador de Preferência de Folga (sempre visível quando há preferência) -->
+                <div *ngIf="temPreferenciaFolga(funcionario.id, dia)"
+                     class="preferencia-indicator"
+                     [class.com-plantao]="getPlantao(funcionario.id, dia)"
+                     [class.sem-plantao]="!getPlantao(funcionario.id, dia)"
+                     [title]="getPlantao(funcionario.id, dia)
+                       ? '⭐ ATENÇÃO: Funcionário está de PLANTÃO em sua preferência de FOLGA!'
+                       : '⭐ Preferência de Folga marcada pelo funcionário'">
+                  <span class="preferencia-icon">⭐</span>
+                </div>
+
+                <!-- Plantão existente -->
+                <div *ngIf="getPlantao(funcionario.id, dia) as plantao"
+                     class="plantao"
+                     [style.background-color]="getCorPlantao(plantao.idTipoPlantao)"
+                     [title]="getTooltipPlantao(plantao.idTipoPlantao)"
+                     draggable="true"
+                     (dragstart)="onDragStart($event, plantao, funcionario.id, dia)"
+                     (dragend)="onDragEnd($event)">
+
+                  <div class="plantao-content">
+                    <span class="tipo-plantao">{{ getExibicaoPlantao(plantao.idTipoPlantao) }}</span>
+                  </div>
+
+                  <button *ngIf="plantao.id && podeExcluir()"
+                          class="remover"
+                          (click)="removerPlantao(plantao.id!, $event)">×</button>
+                </div>
+
+                <!-- Célula vazia (pode adicionar plantão) -->
+                <div *ngIf="!getPlantao(funcionario.id, dia) && !estaDeFerias(funcionario.id, dia)"
+                     class="vazio"
+                     title="Clique ou arraste para adicionar plantão">
+                  <span class="texto-vazio">-</span>
+                </div>
+
+                <!-- Indicador de Férias (sem plantão) -->
+                <div *ngIf="estaDeFerias(funcionario.id, dia) && !getPlantao(funcionario.id, dia)"
+                     class="ferias-indicator"
+                     [title]="'Férias: ' + getTitleCelula(funcionario.id, dia)">
+                  <span class="ferias-texto">FÉRIAS</span>
+                </div>
+
+                <!-- Plantão durante férias (conflito) -->
+                <div *ngIf="estaDeFerias(funcionario.id, dia) && getPlantao(funcionario.id, dia)"
+                     class="ferias-indicator plantao-sobre-ferias"
+                     [title]="'ATENÇÃO: Plantão durante férias! ' + getTitleCelula(funcionario.id, dia)">
+                  <span class="ferias-texto">FÉRIAS</span>
+                </div>
+              </td>
+            </tr>
+          </ng-container>
+
+          <ng-template #noFuncionarios>
+            <tr>
+              <td [attr.colspan]="diasDoMes.length + 1" class="sem-dados">
+                Nenhum funcionário encontrado
+              </td>
+            </tr>
+          </ng-template>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Área Inferior com Resumo e Tipos de Plantão -->
+    <div class="area-inferior">
+      <!-- Card de Resumo -->
+      <div class="resumo card">
+        <div class="card-cabecalho">
+          <h3>📊 Resumo da Escala</h3>
+        </div>
+        <div class="card-conteudo">
+          <div class="item-resumo">
+            <span class="rotulo">Funcionários:</span>
+            <span class="valor">{{ getFuncionarios().length }}</span>
+          </div>
+          <div class="item-resumo">
+            <span class="rotulo">Dias no Mês:</span>
+            <span class="valor">{{ diasDoMes.length }}</span>
+          </div>
+          <div class="item-resumo">
+            <span class="rotulo">Fins de Semana:</span>
+            <span class="valor">{{ contarFinsDeSemana() }}</span>
+          </div>
+          <div class="item-resumo">
+            <span class="rotulo">Feriados:</span>
+            <span class="valor">{{ feriados.length }}</span>
+          </div>
+          <div class="item-resumo">
+            <span class="rotulo">Func. de Férias:</span>
+            <span class="valor">{{ contarFuncionariosFerias() }}</span>
+          </div>
+          <!-- ✅ NOVO: Contador de Preferências -->
+          <div class="item-resumo">
+            <span class="rotulo">Preferências Folga:</span>
+            <span class="valor destaque">{{ contarTotalPreferencias() }}</span>
+          </div>
+          <div class="item-resumo">
+            <span class="rotulo">Total Plantões:</span>
+            <span class="valor destaque">{{ getTotalPlantoes() }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card de Tipos de Plantão -->
+      <div class="tipos-plantao card">
+        <div class="card-cabecalho">
+          <h3>📄 Tipos de Plantão</h3>
+          <span class="subtitulo">Arraste para a escala</span>
+        </div>
+        <div class="card-conteudo">
+          <div *ngIf="tiposPlantao.length > 0; else semTipos" class="grid-tipos">
+            <div *ngFor="let tipo of tiposPlantao"
+                 class="item-tipo"
+                 [style.background-color]="tipo.cor"
+                 [title]="tipo.nome + ' (' + getHorarioTipoPlantao(tipo) + ')'"
+                 draggable="true"
+                 (dragstart)="onDragStartTipo($event, tipo)"
+                 (dragend)="onDragEnd($event)">
+
+              <div class="info-tipo">
+                <span class="nome-tipo">{{ tipo.nome }}</span>
+                <span class="detalhes-tipo">{{ getHorarioTipoPlantao(tipo) }}</span>
+              </div>
+              <div class="indicador-arraste">↓ Arraste</div>
+            </div>
+          </div>
+
+          <ng-template #semTipos>
+            <div class="sem-tipos">Nenhum tipo de plantão disponível</div>
+          </ng-template>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mensagem quando não há dados mas a escala existe -->
+  <div *ngIf="!loading && !escalaNaoExiste && (!vistaEscala || !getFuncionariosOrdenados().length)" class="escala-nao-encontrada">
+    <div class="empty-state">
+      <div class="empty-icon">📊</div>
+      <h3>Dados da Escala Indisponíveis</h3>
+      <p>A escala existe mas não foi possível carregar os dados completos.</p>
+      <div class="empty-actions">
+        <button (click)="carregarEscalaCompleta()" class="btn-gerar-escala">
+          🔄 Tentar Novamente
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

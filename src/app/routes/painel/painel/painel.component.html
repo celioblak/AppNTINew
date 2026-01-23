@@ -1,0 +1,54 @@
+
+<iframe id="audios" style="display:none" allow="autoplay">
+    <audio id="player" #player (ended)="audioEnded()" preload="auto" autoplay height="0%" width="0%"></audio>
+</iframe>
+<app-painel-requisicao #painelRequisicao id="painelRequisicao" *ngIf ="showRequisicao"></app-painel-requisicao>
+<app-painel-incidente #painelIncidente id="painelIncidente" *ngIf ="showIncidente"></app-painel-incidente>
+
+<div class="bg-light min-vh-100 d-flex flex-row align-items-center" *ngIf ="tipoPainel == undefined || tipoPainel == ''">
+  <c-container>
+    <c-row class="justify-content-center">
+      <c-col md="6">
+        <span class="clearfix">
+          <h1 class="float-start display-3 me-4">Ops</h1>
+          <h4 class="pt-3">Houston, nós temos um problema!</h4>
+          <p class="text-medium-emphasis float-start">
+            Não foi passado nenhum paramentro para o tipo de painel a ser visualizado, informe um paramentro.
+            exemplo: 
+            <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Para acessar o painel de requisição informe ?tipo=requisicao
+            <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Para acessar o painel de incidentes informe ?tipo=incidente
+          </p>
+        </span>        
+      </c-col>
+    </c-row>
+  </c-container>
+</div>
+
+<div style="height:25px; position:fixed; bottom:0px; width:100%; right:0px;background-color:rgb(213, 255, 255);">   
+    <div class="row opci" style="height: 100%;">
+      <div class="col-sm-1" style="height: 100%; width:30px;">      
+        <div style="margin-bottom: 0px;margin-top: 7px; margin-left: 7px" [ngClass]="state"></div>
+      </div>
+      <div class="col-sm-3" style="height: 100%;" *ngIf="this.playList.length > 0">
+        <div class="row" style="height: 100%;">
+          <p align="left" style="color:blue;font-weight: bold;font-size:1rem;">
+            <span>Audio(s) na Fila: {{this.playList.length}}</span>
+            <span>&#160;&#160;&#160;</span>
+            <span>Status executor de audio: {{ this.songExecution?"Em Execução":"Parado" }}</span>
+          </p>
+        </div>            
+      </div>
+      
+      <div class="col-sm-3" style="height: 100%;">
+        <div class="row" style="height: 100%;">   
+          <p style="color:blue;font-weight: bold;font-size:1rem;"><span class="fullname"[innerHTML]="statusExecucao"></span></p>                
+        </div>            
+      </div>
+      
+      <div class="col-sm-3" style="height: 100%;">
+        <div class="row" style="height: 100%;">   
+          <p style="color:blue;font-weight: bold;font-size:1rem;"><span class="fullname" [innerHTML]="updatePainel"></span></p>                
+        </div>            
+      </div>                
+    </div>
+  </div>

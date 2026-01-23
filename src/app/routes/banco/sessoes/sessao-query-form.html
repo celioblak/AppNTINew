@@ -1,0 +1,33 @@
+<h2 mat-dialog-title>SQL</h2>
+
+<mat-dialog-content >
+  <mat-card >
+    <mat-list class="d-flex">
+      <mat-list-item style="height: 100%;">
+        <code-editor #codeMirror
+        [(ngModel)]="data.sqlFullText"
+        style="height: 100%;"
+        [readonly]="true"
+        [lineWrapping]="true"
+        />
+      </mat-list-item>
+      <mat-divider [vertical]="true" />
+      <mat-list-item style="height: 100%;">
+        <mtx-grid id="dtgridBind"
+                  style="height: 100%;"
+                  [columns]="columnsBind"
+                  [data]="listBind"
+                  [loading]="isLoading"
+                  [rowStriped]="true"
+                  [showPaginator]="true"
+         />
+      </mat-list-item>
+    -
+    </mat-list>
+  </mat-card>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-raised-button (click)="copysql()">Copiar</button>
+  <button mat-raised-button mat-dialog-close>Fechar</button>
+</mat-dialog-actions>
