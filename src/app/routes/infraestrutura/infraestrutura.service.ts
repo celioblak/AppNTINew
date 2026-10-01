@@ -7,6 +7,7 @@ import {
   Ambiente,
   Camada,
   ConsultaCredencial,
+  DiscoEdicao,
   Credencial,
   Hospedagem,
   Opcoes,
@@ -88,6 +89,11 @@ export class InfraestruturaService {
     return codProcesso
       ? this.http.put<Servico>(`${this.api}/servicos/${codProcesso}`, dados)
       : this.http.post<Servico>(`${this.api}/servidores/${codServidor}/servicos`, dados);
+  }
+
+  /** Exceções da partição (monitorar e limites próprios); devolve o servidor atualizado. */
+  salvarDisco(codDisco: number, dados: DiscoEdicao) {
+    return this.http.put<Servidor>(`${this.api}/discos/${codDisco}`, dados);
   }
 
   excluirServico(codProcesso: number) {

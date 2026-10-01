@@ -277,9 +277,26 @@
                   <h3><mat-icon>storage</mat-icon> Discos</h3>
                   @for (d of s.discos; track d.local) {
                     <div class="disco">
-                      <span>{{ d.local }}</span>
-                      <div class="barra"><div [style.width]="d.percentual" [class.barra--cheia]="+d.percentual.replace('%','') > 80"></div></div>
-                      <span class="disco__valor" [matTooltip]="tamanho(d.disponivel) + ' livres'">{{ d.percentual }} · {{ tamanho(d.usado) }} de {{ tamanho(d.total) }}</span>
+                      <span class="disco__local">
+                        {{ d.local }}
+                        @if (d.sistema) {
+                          <small class="disco__marca" matTooltip="Partição de boot: não gera alerta; cheia, vira só aviso">boot</small>
+                        } @else if (!d.monitorado) {
+                          <small class="disco__marca" matTooltip="Aparece aqui, mas não gera alerta">sem alerta</small>
+                        }
+                      </span>
+                      <div class="barra"><div [style.width]="d.percentual"
+                           [class.barra--cheia]="d.nivel === 'ATENCAO'"
+                           [class.barra--critica]="d.nivel === 'CRITICO' || d.nivel === 'EXTREMO'"></div></div>
+                      <span class="disco__valor" [matTooltip]="d.livre">{{ d.percentual }} · {{ tamanho(d.usado) }} de {{ tamanho(d.total) }}</span>
+                      @if (!d.sistema && d.codDisco) {
+                        <button mat-icon-button class="disco__ajuste" matTooltip="Alerta desta partição (monitorar e limites)"
+                                (click)="ajustarDisco(s, d)">
+                          <mat-icon>tune</mat-icon>
+                        </button>
+                      } @else {
+                        <span></span>
+                      }
                     </div>
                   }
                 </article>

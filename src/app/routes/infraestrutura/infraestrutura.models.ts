@@ -108,12 +108,36 @@ export interface Servico {
   disponibilidade: Disponibilidade | null;
 }
 
+export type NivelDisco = 'OK' | 'ATENCAO' | 'CRITICO' | 'EXTREMO' | 'SISTEMA' | 'IGNORADO' | 'SEM_DADOS';
+
 export interface Disco {
+  codDisco: number | null;
   local: string;
   total: string;
   usado: string;
   disponivel: string;
   percentual: string;
+  /** Falso = aparece na tela, sem alerta (D-41). */
+  monitorado: boolean;
+  /** Partição de boot: nunca alerta (D-37). */
+  sistema: boolean;
+  nivel: NivelDisco;
+  /** "8% livre (6,2 GB)". */
+  livre: string;
+  /** Limites próprios; nulo = padrão. */
+  pcLivreAtencao: number | null;
+  gbLivreAtencao: number | null;
+  pcLivreCritico: number | null;
+  gbLivreCritico: number | null;
+}
+
+/** Exceções da partição (D-41). */
+export interface DiscoEdicao {
+  monitorado: boolean;
+  pcLivreAtencao: number | null;
+  gbLivreAtencao: number | null;
+  pcLivreCritico: number | null;
+  gbLivreCritico: number | null;
 }
 
 export interface Servidor {

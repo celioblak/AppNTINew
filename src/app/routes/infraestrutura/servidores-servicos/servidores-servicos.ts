@@ -19,6 +19,7 @@ import { finalize, forkJoin } from 'rxjs';
 import { normalizar } from '../../dispositivo/terminal-ssh/comandos';
 import {
   Credencial,
+  Disco,
   Disponibilidade,
   Opcoes,
   Papel,
@@ -46,6 +47,7 @@ import {
 import { ServicoDialogComponent, ServicoDialogData } from './servico-dialog';
 import { ServicoSistemasDialogComponent } from './servico-sistemas-dialog';
 import { AtualizarHbServiceDialogComponent, AtualizarHbServiceDialogData } from './atualizar-hbservice-dialog';
+import { DiscoDialogComponent, DiscoDialogData } from './disco-dialog';
 import { ServidorDialogComponent, ServidorDialogData } from './servidor-dialog';
 import { WinRmDialogComponent, WinRmDialogData } from './winrm-dialog';
 
@@ -423,6 +425,22 @@ export class ServidoresServicosComponent implements OnInit {
           return resto;
         });
         this.carregar(false);
+      });
+  }
+
+  /** Exceções da partição: monitorar e limites próprios (D-41). */
+  ajustarDisco(s: Servidor, d: Disco) {
+    this.dialog
+      .open<DiscoDialogComponent, DiscoDialogData, Servidor>(DiscoDialogComponent, {
+        width: '520px',
+        maxWidth: '96vw',
+        data: { servidor: s.nome, disco: d },
+      })
+      .afterClosed()
+      .subscribe(salvo => {
+        if (!salvo) return;
+        this.toast.success(`Partição ${d.local} salva.`);
+        this.substituir(salvo);
       });
   }
 
