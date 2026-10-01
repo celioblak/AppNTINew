@@ -1,19 +1,11 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
-import { MatExpansionModule } from '@angular/material/expansion';
-import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
-import { MatInputModule } from '@angular/material/input';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { lastValueFrom } from 'rxjs';
 
-import {
-  AtualizacaoResult,
-  HbserviceService,
-  parametrosAtualizacaoPadrao,
-} from '@core/hbservice/hb.service';
+import { EtapaAtualizacao, HbserviceService, ResultadoAtualizacao } from '@core/hbservice/hb.service';
 import { TesteFonte } from '../infraestrutura.models';
 import { InfraestruturaService } from '../infraestrutura.service';
 
@@ -24,63 +16,44 @@ export interface AtualizarHbServiceDialogData {
 }
 
 /**
- * Atualizar HB Service (docs/infraestrutura.md, R-59): o mesmo fluxo da tela do VNC — copia o hbserviceUpdate da
- * rede para o servidor, inicia, e manda ele baixar o hbService.exe atual (servido pelo próprio NTI, R-58). No fim,
- * testa a leitura para confirmar a versão nova. Fecha com true quando atualizou.
+ * Atualizar os agentes do servidor (docs/infraestrutura.md, R-59 a R-61): o ntiapi conduz — o HB Service troca o
+ * atualizador, depois o atualizador troca o HB Service, cada um só depois do outro confirmado e com volta automática
+ * se o novo não subir. A tela mostra as etapas e, no fim, testa a leitura. Fecha com true quando atualizou.
  */
 @Component({
   selector: 'app-atualizar-hbservice-dialog',
-  imports: [
-    FormsModule,
-    MatButtonModule,
-    MatDialogModule,
-    MatExpansionModule,
-    MatFormFieldModule,
-    MatIconModule,
-    MatInputModule,
-    MatProgressBarModule,
-  ],
+  imports: [MatButtonModule, MatDialogModule, MatIconModule, MatProgressBarModule],
   template: `
     <h2 mat-dialog-title>Atualizar HB Service · {{ data.nome }}</h2>
     <mat-dialog-content>
       <p class="dica">
-        O NTI copia o <b>hbserviceUpdate</b> da rede para o servidor <b>{{ data.host }}</b>, inicia, e ele baixa e instala o
-        HB Service atual. O agente fica alguns segundos fora durante a troca.
+        O NTI atualiza os dois agentes de <b>{{ data.host }}</b>, um de cada vez: primeiro o <b>atualizador</b> (trocado pelo
+        HB Service), depois o <b>HB Service</b> (trocado pelo atualizador). Um sempre fica no ar, e quem troca volta o
+        anterior sozinho se o novo não subir. Os dois baixam os exe do próprio NTI.
       </p>
-
-      <mat-expansion-panel class="opcoes" [disabled]="rodando()">
-        <mat-expansion-panel-header>Opções da atualização</mat-expansion-panel-header>
-        <div class="campos">
-          <mat-form-field appearance="outline" subscriptSizing="dynamic">
-            <mat-label>hbserviceUpdate na rede</mat-label>
-            <input matInput [(ngModel)]="params.caminhoExeRede" />
-          </mat-form-field>
-          <mat-form-field appearance="outline" subscriptSizing="dynamic">
-            <mat-label>Pasta do HB Service no servidor</mat-label>
-            <input matInput [(ngModel)]="params.destinoLocal" />
-          </mat-form-field>
-          <mat-form-field appearance="outline" subscriptSizing="dynamic">
-            <mat-label>Endereço do hbService.exe (de onde o servidor baixa)</mat-label>
-            <input matInput [(ngModel)]="params.urlUpdate" />
-            <mat-hint>O servidor precisa alcançar este endereço</mat-hint>
-          </mat-form-field>
-        </div>
-      </mat-expansion-panel>
 
       @if (rodando()) {
         <mat-progress-bar mode="indeterminate" />
       }
       @if (etapas().length) {
-        <ol class="etapas">
+        <ul class="etapas">
           @for (e of etapas(); track $index) {
-            <li>{{ e }}</li>
+            <li class="etapa etapa--{{ e.tipo.toLowerCase() }}">
+              <mat-icon inline>{{ icone(e) }}</mat-icon>
+              <div>
+                {{ e.mensagem }}
+                @if (e.orientacao) {
+                  <small>{{ e.orientacao }}</small>
+                }
+              </div>
+            </li>
           }
-        </ol>
+        </ul>
       }
 
       @if (resultado(); as r) {
-        <div class="resultado" [class.resultado--ok]="r.ok" [class.resultado--erro]="!r.ok">
-          <mat-icon>{{ r.ok ? 'check_circle' : 'error' }}</mat-icon>
+        <div class="resultado" [class.resultado--ok]="r.sucesso" [class.resultado--erro]="!r.sucesso">
+          <mat-icon>{{ r.sucesso ? 'check_circle' : 'error' }}</mat-icon>
           <div>
             <b>{{ r.mensagem }}</b>
             @if (r.orientacao) {
@@ -92,16 +65,19 @@ export interface AtualizarHbServiceDialogData {
     </mat-dialog-content>
     <mat-dialog-actions align="end">
       <button mat-button (click)="fechar()" [disabled]="rodando()">Fechar</button>
-      <button mat-flat-button (click)="atualizar()" [disabled]="rodando() || !params.urlUpdate">
-        <mat-icon>system_update</mat-icon> {{ resultado() && !resultado()!.ok ? 'Tentar de novo' : 'Atualizar' }}
+      <button mat-flat-button (click)="atualizar()" [disabled]="rodando()">
+        <mat-icon>system_update</mat-icon> {{ resultado() && !resultado()!.sucesso ? 'Tentar de novo' : 'Atualizar' }}
       </button>
     </mat-dialog-actions>
   `,
   styles: `
     .dica { margin: 0 0 10px; font-size: .85rem; }
-    .opcoes { margin-bottom: 10px; }
-    .campos { display: flex; flex-direction: column; gap: 12px; padding-top: 4px; }
-    .etapas { margin: 10px 0 0; padding-left: 20px; font-size: .82rem; line-height: 1.6; }
+    .etapas { list-style: none; margin: 10px 0 0; padding: 0; font-size: .82rem; }
+    .etapa { display: flex; gap: 6px; align-items: flex-start; padding: 3px 0; }
+    .etapa small { display: block; opacity: .8; }
+    .etapa--ok mat-icon { color: #2e9e5b; }
+    .etapa--aviso mat-icon { color: #e08a00; }
+    .etapa--erro { color: #c62828; }
     .resultado { display: flex; gap: 8px; align-items: flex-start; margin-top: 10px; padding: 8px 10px; border-radius: 8px;
                  font-size: .85rem; }
     .resultado p { margin: 4px 0 0; }
@@ -116,11 +92,14 @@ export class AtualizarHbServiceDialogComponent {
   private readonly hbService = inject(HbserviceService);
   private readonly infra = inject(InfraestruturaService);
 
-  readonly params = parametrosAtualizacaoPadrao();
   readonly rodando = signal(false);
-  readonly etapas = signal<string[]>([]);
-  readonly resultado = signal<{ ok: boolean; mensagem: string; orientacao: string | null } | null>(null);
+  readonly etapas = signal<EtapaAtualizacao[]>([]);
+  readonly resultado = signal<ResultadoAtualizacao | null>(null);
   private atualizou = false;
+
+  icone(e: EtapaAtualizacao): string {
+    return e.tipo === 'OK' ? 'check_circle' : e.tipo === 'AVISO' ? 'warning' : e.tipo === 'ERRO' ? 'error' : 'info';
+  }
 
   async atualizar() {
     this.rodando.set(true);
@@ -128,26 +107,30 @@ export class AtualizarHbServiceDialogComponent {
     this.resultado.set(null);
     this.ref.disableClose = true;
     try {
-      const r = await this.hbService.atualizarHbService(this.data.host, { ...this.params }, etapa =>
-        this.etapas.update(lista => [...lista, etapa])
-      );
+      const r = await this.hbService
+        .atualizarAgentes(this.data.host, e => this.etapas.update(lista => [...lista, e]))
+        .catch(
+          (erro): ResultadoAtualizacao => ({
+            sucesso: false,
+            mensagem: `Não foi possível falar com o NTI: ${erro?.message ?? erro}.`,
+            orientacao: 'Confira se o ntiapi está no ar e tente de novo.',
+            versaoHbService: null,
+            versaoAtualizador: null,
+          })
+        );
       if (!r.sucesso) {
-        this.resultado.set({ ok: false, mensagem: `Falha na etapa "${r.etapa}": ${r.mensagem}`, orientacao: orientacao(r, this.params.urlUpdate) });
+        this.resultado.set(r);
         return;
       }
       this.atualizou = true;
-      this.etapas.update(lista => [...lista, 'Conferindo a leitura pelo HB Service novo...']);
+      this.etapas.update(lista => [...lista, { tipo: 'INFO', mensagem: 'Conferindo a leitura pelo HB Service novo...', orientacao: null }]);
       const testes = await lastValueFrom(this.infra.testarLeitura(this.data.codServidor)).catch(() => [] as TesteFonte[]);
       const agente = testes.find(t => t.fonte === 'HBSERVICE');
-      if (agente?.ok) {
-        this.resultado.set({ ok: true, mensagem: agente.mensagem, orientacao: agente.orientacao });
-      } else {
-        this.resultado.set({
-          ok: false,
-          mensagem: 'A atualização terminou, mas a leitura pelo HB Service ainda falha' + (agente ? `: ${agente.mensagem}` : '.'),
-          orientacao: agente?.orientacao ?? 'Aguarde um minuto e use "Testar leitura"; o agente pode estar terminando de subir.',
-        });
-      }
+      this.resultado.set(
+        agente && !agente.ok
+          ? { ...r, sucesso: false, mensagem: `${r.mensagem} Mas a leitura ainda falha: ${agente.mensagem}`, orientacao: agente.orientacao }
+          : r
+      );
     } finally {
       this.rodando.set(false);
       this.ref.disableClose = false;
@@ -157,25 +140,4 @@ export class AtualizarHbServiceDialogComponent {
   fechar() {
     this.ref.close(this.atualizou);
   }
-}
-
-/** O que fazer em cada etapa que falhou (memória: toda falha diz como corrigir). */
-function orientacao(r: AtualizacaoResult, url: string): string {
-  const msg = r.mensagem.toLowerCase();
-  if (r.etapa === 'health-check') {
-    return 'O HB Service não respondeu na porta 9071: confira no servidor se o hbService.exe está rodando e se o firewall libera a 9071 para o NTI.';
-  }
-  if (msg.includes('xcopy')) {
-    return 'O servidor não conseguiu copiar o hbserviceUpdate da rede: confira o caminho em "Opções da atualização" e se o servidor acessa esse compartilhamento.';
-  }
-  if (r.etapa === 'abrir-exe') {
-    return 'O hbserviceUpdate não subiu na porta 9072: veja no servidor se o antivírus bloqueou o hbServiceUpdate.exe e se o firewall libera a 9072 para o NTI.';
-  }
-  if (r.etapa === 'aguardar-restart') {
-    return 'O HB Service não voltou: no servidor, abra o hbService.exe (ou, se ele roda como serviço, inicie o serviço "HB Service") e tente de novo.';
-  }
-  if (msg.includes('disparar update')) {
-    return `O hbserviceUpdate não conseguiu baixar o pacote: confira se o servidor alcança ${url}.`;
-  }
-  return 'Tente de novo; se repetir, faça a atualização pela tela do VNC para ver o detalhe de cada etapa.';
 }

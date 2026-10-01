@@ -141,3 +141,27 @@
     display: none;
   }
 }
+
+/* Atualização dos agentes (R-60): etapas vindas do ntiapi */
+.update-dica {
+  margin: 0 0 6px;
+  font-size: 12px;
+  opacity: .85;
+}
+
+.update-etapa {
+  padding: 2px 0;
+  font-size: 12px;
+}
+
+.update-etapa--ok mat-icon {
+  color: #2e9e5b;
+}
+
+.update-etapa--aviso mat-icon {
+  color: #e08a00;
+}
+
+.update-etapa--erro {
+  color: #c62828;
+}

@@ -146,33 +146,18 @@
         </button>
       </div>
       <div class="update-painel-body">
-        <mat-form-field appearance="outline" style="width:100%;">
-          <mat-label>Exe na rede (UNC)</mat-label>
-          <input matInput [(ngModel)]="updateParams.caminhoExeRede" name="caminhoExeRede"
-                 placeholder="\\\\servidor\\share\\hbServiceUpdate.exe">
-        </mat-form-field>
-        <mat-form-field appearance="outline" style="width:100%;">
-          <mat-label>Destino local</mat-label>
-          <input matInput [(ngModel)]="updateParams.destinoLocal" name="destinoLocal"
-                 placeholder="C:\Trabalho\app_hb\hbService\">
-        </mat-form-field>
-        <mat-form-field appearance="outline" style="width:100%;">
-          <mat-label>Exe após cópia (caminho completo)</mat-label>
-          <input matInput [(ngModel)]="updateParams.exeDestino" name="exeDestino"
-                 placeholder="C:\Trabalho\app_hb\hbService\hbServiceUpdate.exe">
-        </mat-form-field>
-        <mat-form-field appearance="outline" style="width:100%;">
-          <mat-label>URL do pacote</mat-label>
-          <input matInput [(ngModel)]="updateParams.urlUpdate" name="urlUpdate"
-                 placeholder="http://servidor:8091/update/hbService.exe">
-        </mat-form-field>
-        <mat-form-field appearance="outline" style="width:120px;">
-          <mat-label>Timeout (seg)</mat-label>
-          <input matInput type="number" [(ngModel)]="updateParams.timeoutReinicioSeg" name="timeoutSeg" min="10" max="300">
-        </mat-form-field>
-        <div *ngIf="progressoAtualizacao" class="update-progresso">
+        <p class="update-dica">
+          O NTI atualiza os dois agentes, um de cada vez: primeiro o atualizador (trocado pelo HB Service), depois o
+          HB Service (trocado pelo atualizador). Um sempre fica no ar e quem troca volta o anterior se o novo não subir.
+        </p>
+        <div *ngFor="let e of etapasAtualizacao" class="update-etapa" [class]="'update-etapa update-etapa--' + e.tipo.toLowerCase()">
+          <mat-icon style="font-size:14px; width:14px; height:14px; vertical-align:middle;">{{ e.tipo === 'OK' ? 'check_circle' : e.tipo === 'ERRO' ? 'error' : e.tipo === 'AVISO' ? 'warning' : 'info' }}</mat-icon>
+          {{ e.mensagem }}
+          <small *ngIf="e.orientacao" style="display:block; margin-left:18px;">{{ e.orientacao }}</small>
+        </div>
+        <div *ngIf="atualizandoHb" class="update-progresso">
           <mat-spinner diameter="14" style="display:inline-block; vertical-align:middle; margin-right:6px;"></mat-spinner>
-          {{ progressoAtualizacao }}
+          Atualizando...
         </div>
         <div style="margin-top:8px; text-align:right;">
           <button mat-stroked-button (click)="painelUpdateAberto = false" style="margin-right:8px;">

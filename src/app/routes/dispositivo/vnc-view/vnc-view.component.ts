@@ -2,7 +2,7 @@ import { Component, ElementRef, HostListener, inject, OnInit, ViewChild, OnDestr
 import { HttpClient } from '@angular/common/http';
 import { lastValueFrom } from 'rxjs';
 import { environment } from '@env/environment';
-import { HbserviceService, parametrosAtualizacaoPadrao } from '@core/hbservice/hb.service';
+import { EtapaAtualizacao, HbserviceService } from '@core/hbservice/hb.service';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
@@ -192,8 +192,8 @@ export class VncViewComponent implements OnInit, OnDestroy {
   // Atualização do HBService
   painelUpdateAberto = false;
   atualizandoHb = false;
-  progressoAtualizacao = '';
-  updateParams = parametrosAtualizacaoPadrao();
+  /** Etapas da última atualização dos agentes, vindas do ntiapi (R-60). */
+  etapasAtualizacao: EtapaAtualizacao[] = [];
   private readonly http = inject(HttpClient);
   vncAtivo = false;
   isLoading = false;
@@ -511,38 +511,32 @@ export class VncViewComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Executa o fluxo completo de atualização do HBService na máquina remota.
-   * Usa o host atual do campo + params configurados no painel.
+   * Atualiza os agentes (HB Service e atualizador) da máquina pelo ntiapi (docs/infraestrutura.md, R-60 e R-61):
+   * um atualiza o outro, com o outro confirmado no ar. As etapas chegam por SSE e ficam no painel.
    */
   async executarAtualizacaoHb(): Promise<void> {
     if (this.atualizandoHb || !this.host?.trim()) return;
 
     this.atualizandoHb = true;
-    this.progressoAtualizacao = 'Iniciando...';
+    this.etapasAtualizacao = [];
     this.cdr.markForCheck();
 
     try {
-      const resultado = await this.hbService.atualizarHbService(
-        this.host.trim(),
-        { ...this.updateParams },
-        (etapa) => {
-          this.progressoAtualizacao = etapa;
-          this.setStatusMessage(etapa);
-          this.cdr.markForCheck();
-        }
-      );
+      const resultado = await this.hbService.atualizarAgentes(this.host.trim(), etapa => {
+        this.etapasAtualizacao = [...this.etapasAtualizacao, etapa];
+        this.setStatusMessage(etapa.mensagem);
+        this.cdr.markForCheck();
+      });
 
       if (resultado.sucesso) {
-        this.showSuccess(`HBService atualizado com sucesso em ${this.host}`);
-        this.painelUpdateAberto = false;
+        this.showSuccess(resultado.mensagem);
       } else {
-        this.showError(`Falha na etapa "${resultado.etapa}": ${resultado.mensagem}`);
+        this.showError(resultado.mensagem + (resultado.orientacao ? ' ' + resultado.orientacao : ''));
       }
     } catch (err: any) {
-      this.showError(`Erro inesperado na atualização: ${err?.message ?? err}`);
+      this.showError(`Não foi possível falar com o NTI: ${err?.message ?? err}`);
     } finally {
       this.atualizandoHb = false;
-      this.progressoAtualizacao = '';
       this.cdr.markForCheck();
     }
   }
