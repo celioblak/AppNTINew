@@ -1,0 +1,194 @@
+<div class="matero-container-wrap">
+  <!-- Header -->
+  <div class="flex justify-between items-center mb-6">
+    <div>
+      <h1 class="text-3xl font-bold text-gray-800">Configuração de SLA</h1>
+      <p class="text-gray-600">Defina os acordos de nível de serviço por criticidade</p>
+    </div>
+    <div>
+      <button mat-raised-button color="accent" (click)="aplicarConfiguracaoPadrao()">
+        <mat-icon>restore</mat-icon>
+        Configuração Padrão
+      </button>
+    </div>
+  </div>
+
+  <!-- Formulário de SLA -->
+  <mat-card class="mb-6" id="form-sla">
+    <mat-card-header>
+      <mat-card-title>
+        {{ isEditing ? 'Editar' : 'Novo' }} SLA
+      </mat-card-title>
+      <mat-card-subtitle>Configure os parâmetros de atendimento</mat-card-subtitle>
+    </mat-card-header>
+    <mat-card-content>
+      <form [formGroup]="form" (ngSubmit)="salvar()">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <!-- Nível -->
+          <mat-form-field appearance="outline" class="w-full">
+            <mat-label>Nível de Criticidade</mat-label>
+            <mat-select formControlName="nivel">
+              <mat-option [value]="1">Nível 1 - Impacto crítico negócio PARADA TOTAL</mat-option>
+              <mat-option [value]="2">Nível 2 - Impacto significativo ao negócio</mat-option>
+              <mat-option [value]="3">Nível 3 - Impacto reduzido ao negócio</mat-option>
+              <mat-option [value]="4">Nível 4 - Baixo impacto</mat-option>
+            </mat-select>
+            <mat-error *ngIf="form.get('nivel')?.hasError('required')">
+              Nível é obrigatório
+            </mat-error>
+          </mat-form-field>
+
+          <!-- Nome do Contrato -->
+          <mat-form-field appearance="outline" class="w-full">
+            <mat-label>Nome do Contrato</mat-label>
+            <input matInput formControlName="nomeContrato" placeholder="Ex: SLA Nível 1 - Crítico">
+            <mat-error *ngIf="form.get('nomeContrato')?.hasError('required')">
+              Nome é obrigatório
+            </mat-error>
+            <mat-error *ngIf="form.get('nomeContrato')?.hasError('maxlength')">
+              Máximo 100 caracteres
+            </mat-error>
+          </mat-form-field>
+
+          <!-- Horas Paliativo -->
+          <mat-form-field appearance="outline" class="w-full">
+            <mat-label>Horas para Paliativo</mat-label>
+            <input matInput type="number" formControlName="horasPaliativo" placeholder="4">
+            <span matTextSuffix>horas</span>
+            <mat-hint>Horas para solução paliativa</mat-hint>
+            <mat-error *ngIf="form.get('horasPaliativo')?.hasError('required')">
+              Horas são obrigatórias
+            </mat-error>
+            <mat-error *ngIf="form.get('horasPaliativo')?.hasError('min')">
+              Mínimo 1 hora
+            </mat-error>
+          </mat-form-field>
+
+          <!-- Horas Definitivo -->
+          <mat-form-field appearance="outline" class="w-full">
+            <mat-label>Horas para Solução Definitiva</mat-label>
+            <input matInput type="number" formControlName="horasDefinitivo" placeholder="12">
+            <span matTextSuffix>horas</span>
+            <mat-hint>Horas para solução definitiva</mat-hint>
+            <mat-error *ngIf="form.get('horasDefinitivo')?.hasError('required')">
+              Horas são obrigatórias
+            </mat-error>
+            <mat-error *ngIf="form.get('horasDefinitivo')?.hasError('min')">
+              Mínimo 1 hora
+            </mat-error>
+          </mat-form-field>
+
+          <!-- Horário Comercial -->
+          <div class="grid grid-cols-2 gap-4">
+            <mat-form-field appearance="outline" class="w-full">
+              <mat-label>Início Expediente</mat-label>
+              <input matInput type="time" formControlName="inicioExpediente">
+              <mat-error *ngIf="form.get('inicioExpediente')?.hasError('required')">
+                Horário é obrigatório
+              </mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="w-full">
+              <mat-label>Fim Expediente</mat-label>
+              <input matInput type="time" formControlName="fimExpediente">
+              <mat-error *ngIf="form.get('fimExpediente')?.hasError('required')">
+                Horário é obrigatório
+              </mat-error>
+            </mat-form-field>
+          </div>
+
+          <!-- Vigência -->
+          <div class="grid grid-cols-2 gap-4">
+            <mat-form-field appearance="outline" class="w-full">
+              <mat-label>Vigência Início</mat-label>
+              <input matInput type="date" formControlName="vigenciaInicio">
+              <mat-hint>Opcional</mat-hint>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="w-full">
+              <mat-label>Vigência Fim</mat-label>
+              <input matInput type="date" formControlName="vigenciaFim">
+              <mat-hint>Opcional</mat-hint>
+            </mat-form-field>
+          </div>
+
+          <!-- Descrição -->
+          <mat-form-field appearance="outline" class="w-full md:col-span-2 lg:col-span-3">
+            <mat-label>Descrição</mat-label>
+            <textarea matInput formControlName="descricao" rows="3" placeholder="Detalhes do acordo de nível de serviço"></textarea>
+            <mat-error *ngIf="form.get('descricao')?.hasError('maxlength')">
+              Máximo 500 caracteres
+            </mat-error>
+          </mat-form-field>
+        </div>
+
+        <!-- Checkbox Horas Úteis -->
+        <div class="mt-4 mb-6">
+          <mat-checkbox formControlName="horasUteis">
+            Considerar apenas horas úteis (Seg-Sex, {{form.get('inicioExpediente')?.value || '08:00'}} às {{form.get('fimExpediente')?.value || '18:00'}})
+          </mat-checkbox>
+        </div>
+
+        <!-- Botões -->
+        <div class="flex justify-end gap-2">
+          <button mat-button type="button" (click)="cancelar()" *ngIf="isEditing">
+            Cancelar
+          </button>
+          <button mat-raised-button color="primary" type="submit" [disabled]="form.invalid">
+            <mat-icon>{{ isEditing ? 'save' : 'add' }}</mat-icon>
+            {{ isEditing ? 'Atualizar' : 'Criar' }} SLA
+          </button>
+        </div>
+      </form>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Lista de SLAs Configurados -->
+  <mat-card>
+    <mat-card-header>
+      <mat-card-title>SLAs Configurados ({{slas.length}})</mat-card-title>
+      <mat-card-subtitle>Acordos de nível de serviço por criticidade</mat-card-subtitle>
+    </mat-card-header>
+    <mat-card-content>
+      <mtx-grid
+        [data]="slas"
+        [columns]="slaColumns"
+        [loading]="loading"
+        [pageOnFront]="true"
+        [showPaginator]="true"
+        [pageSizeOptions]="[5, 10, 20]"
+        [pageSize]="10"
+        [columnResizable]="true">
+      </mtx-grid>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Informações -->
+  <mat-card class="mt-6">
+    <mat-card-header>
+      <mat-card-title>Informações sobre SLA</mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <h3 class="font-semibold text-lg mb-2">Níveis de Criticidade:</h3>
+          <ul class="list-disc pl-5 space-y-1">
+            <li><span class="font-semibold text-red-600">Nível 1:</span> Impacto crítico - Parada total do negócio</li>
+            <li><span class="font-semibold text-orange-600">Nível 2:</span> Impacto significativo ao negócio</li>
+            <li><span class="font-semibold text-yellow-600">Nível 3:</span> Impacto reduzido ao negócio</li>
+            <li><span class="font-semibold text-green-600">Nível 4:</span> Baixo impacto</li>
+          </ul>
+        </div>
+        <div>
+          <h3 class="font-semibold text-lg mb-2">Regras de SLA:</h3>
+          <ul class="list-disc pl-5 space-y-1">
+            <li>Nível 1 e 2: Controle automático de SLA com alertas</li>
+            <li>Nível 3 e 4: Controle via sprints</li>
+            <li>Horas úteis: Segunda a Sexta, 08:00 às 18:00</li>
+            <li>Finais de semana e feriados não são contabilizados</li>
+          </ul>
+        </div>
+      </div>
+    </mat-card-content>
+  </mat-card>
+</div>

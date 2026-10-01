@@ -1,0 +1,260 @@
+/* =========================================================
+   ROOT HOST — VIEWPORT REAL (ANTI SCROLL FANTASMA)
+========================================================= */
+
+:host {
+  display: block;
+  height: calc(100dvh - 1px);
+  overflow: hidden;
+}
+
+/* =========================================================
+   REMOVE OVERFLOW GLOBAL DO ANGULAR
+========================================================= */
+
+:host-context(body) {
+  overflow: hidden;
+}
+
+/* =========================================================
+   CONTAINER PRINCIPAL
+========================================================= */
+
+.container-fluid {
+  height: 100%;
+  min-height: 0;
+  padding: 6px 10px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+/* Garante box-model consistente */
+.container-fluid * {
+  box-sizing: border-box;
+}
+
+/* =========================================================
+   FILTROS SUPERIORES
+========================================================= */
+
+.filter-container {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.filter-container.mobile-layout {
+  flex-direction: column;
+}
+
+/* Compactação Angular Material */
+.filter-container mat-form-field {
+  width: 120px; /* largura padrão para mês/ano */
+}
+
+.filter-container .mes-filter,
+.filter-container .ano-filter {
+  width: 120px;
+}
+
+.filter-container .mat-form-field-wrapper {
+  padding-bottom: 0 !important;
+  margin: 0 !important;
+}
+
+.filter-container .mat-form-field-flex {
+  height: 40px;
+}
+
+.filter-container .mat-form-field-infix {
+  padding: 0.4em 0 0.45em 0 !important;
+}
+
+/* Botão pesquisar/atualizar */
+.search-button-wrapper {
+  display: flex;
+  align-items: center;
+}
+
+.search-button-wrapper button {
+  width: 40px;
+  height: 40px;
+}
+
+/* =========================================================
+   DARK THEME — INPUTS / LABELS (mantido do servidor)
+========================================================= */
+
+::ng-deep .mat-form-field-label {
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+
+::ng-deep .mat-form-field.mat-focused .mat-form-field-label {
+  color: #90caf9 !important;
+}
+
+::ng-deep .mat-input-element {
+  color: rgba(255, 255, 255, 0.92);
+}
+
+/* =========================================================
+   CARD PRINCIPAL
+========================================================= */
+
+mat-card {
+  flex: 1;
+  min-height: 0;
+  padding: 6px 10px !important;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  margin: 0 !important;
+  border-radius: 6px;
+}
+
+/* Remove sombra que gera overflow subpixel */
+::ng-deep .mat-card {
+  box-shadow: none !important;
+}
+
+mat-card-content {
+  flex: 1;
+  min-height: 0;
+  padding: 0 !important;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* =========================================================
+   TÍTULOS DAS SEÇÕES
+========================================================= */
+
+.section-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 2px;
+  margin: 0;
+}
+
+.section-title h3 {
+  font-size: 14.5px;
+  font-weight: 500;
+  margin: 0;
+  line-height: 1.2;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+/* =========================================================
+   GRID PRINCIPAL
+========================================================= */
+
+.grid-wrapper {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  overflow: hidden;
+}
+
+/* ngMatero ocupar container */
+::ng-deep .mtx-grid {
+  height: 100%;
+}
+
+/* =========================================================
+   COMPACTAÇÃO DAS LINHAS
+========================================================= */
+
+::ng-deep .mtx-grid .mat-row,
+::ng-deep .mtx-grid .mat-header-row {
+  min-height: 32px !important;
+}
+
+/* Compactação das células */
+::ng-deep .mtx-grid .mat-cell,
+::ng-deep .mtx-grid .mat-header-cell {
+  padding: 3px 6px !important;
+  font-size: 12.8px;
+}
+
+/* Header mais visível */
+::ng-deep .mtx-grid .mat-header-cell {
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+/* =========================================================
+   AÇÕES (ÍCONES DE EDITAR/REPLICAR/EXCLUIR)
+========================================================= */
+
+.acoes-cell {
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+  align-items: center;
+}
+
+.acoes-cell button {
+  width: 28px;
+  height: 28px;
+  line-height: 28px;
+}
+
+.acoes-cell button mat-icon {
+  font-size: 18px;
+}
+
+/* =========================================================
+   MENU MATERIAL
+========================================================= */
+
+::ng-deep .mat-menu-content {
+  padding-top: 4px !important;
+  padding-bottom: 4px !important;
+}
+
+/* =========================================================
+   PAGINAÇÃO — FIX ALTURA
+========================================================= */
+
+::ng-deep .mat-paginator {
+  min-height: 36px !important;
+  max-height: 36px !important;
+  overflow: hidden;
+}
+
+/* =========================================================
+   MOBILE
+========================================================= */
+
+.container-fluid.mobile {
+  .filter-container {
+    gap: 6px;
+
+    mat-form-field,
+    .mes-filter,
+    .ano-filter {
+      width: 100%; /* Filtros ocupam toda largura no mobile */
+    }
+  }
+
+  .section-title h3 {
+    font-size: 14px;
+  }
+
+  /* Botões de ação maiores para toque */
+  .acoes-cell button {
+    width: 36px;
+    height: 36px;
+    line-height: 36px;
+
+    mat-icon {
+      font-size: 20px;
+    }
+  }
+}

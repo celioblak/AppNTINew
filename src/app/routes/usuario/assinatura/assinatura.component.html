@@ -1,0 +1,96 @@
+<!-- assinatura.component.html -->
+<div class="assinatura-container">
+
+  <div class="header">
+    <h2>Minha Assinatura</h2>
+    <p class="subtitulo">Configure seu nome, cargo e imagem de assinatura para os relatórios</p>
+  </div>
+
+  <div class="loading" *ngIf="carregando">Carregando...</div>
+
+  <div class="card" *ngIf="!carregando">
+
+    <div class="form-grid">
+
+      <div class="campo campo-full">
+        <label>Nome de Exibição no Relatório *</label>
+        <input type="text"
+               [(ngModel)]="assinatura.nomeExibicao"
+               placeholder="Ex: João Silva dos Santos"
+               class="input">
+      </div>
+
+      <div class="campo">
+        <label>Cargo</label>
+        <input type="text"
+               [(ngModel)]="assinatura.cargo"
+               placeholder="Ex: Gerente de TI"
+               class="input">
+      </div>
+
+      <div class="campo">
+        <label>Setor / Departamento</label>
+        <input type="text"
+               [(ngModel)]="assinatura.setor"
+               placeholder="Ex: SETOR DE INFORMÁTICA"
+               class="input">
+      </div>
+
+      <!-- Upload da imagem -->
+      <div class="campo campo-full">
+        <label>Imagem da Assinatura</label>
+        <p class="instrucao">
+          PNG com fundo transparente é o ideal. Máximo 500KB.
+        </p>
+
+        <div class="upload-area">
+          <div class="preview-area" *ngIf="previewUrl">
+            <img [src]="previewUrl" alt="Preview da assinatura" class="preview-img">
+            <button class="btn btn-perigo btn-pequeno" (click)="removerImagem()">
+              🗑️ Remover
+            </button>
+          </div>
+
+          <div class="sem-imagem" *ngIf="!previewUrl">
+            <span>Nenhuma imagem cadastrada</span>
+          </div>
+
+          <label class="btn btn-secundario">
+            {{ previewUrl ? '🔄 Trocar imagem' : '📎 Selecionar imagem' }}
+            <input type="file"
+                   accept=".png,.jpg,.jpeg,image/png,image/jpeg"
+                   (change)="onImagemSelecionada($event)"
+                   hidden>
+          </label>
+        </div>
+
+        <div class="nova-selecionada" *ngIf="imagemSelecionada">
+          <span>📎 {{ imagemSelecionada.name }}</span>
+          <small>({{ (imagemSelecionada.size / 1024).toFixed(1) }} KB)</small>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="acoes">
+      <button class="btn btn-primario"
+              (click)="salvar()"
+              [disabled]="salvando">
+        {{ salvando ? 'Salvando...' : '💾 Salvar Assinatura' }}
+      </button>
+    </div>
+
+    <!-- Preview como vai aparecer no relatório -->
+    <div class="preview-relatorio" *ngIf="assinatura.nomeExibicao">
+      <h4>Preview no relatório:</h4>
+      <div class="preview-bloco">
+        <img *ngIf="previewUrl" [src]="previewUrl" alt="assinatura" class="preview-assinatura">
+        <div class="linha-assinatura"></div>
+        <p class="preview-nome">{{ assinatura.nomeExibicao }}</p>
+        <p class="preview-cargo" *ngIf="assinatura.cargo">{{ assinatura.cargo }}</p>
+        <p class="preview-setor" *ngIf="assinatura.setor">{{ assinatura.setor }}</p>
+      </div>
+    </div>
+
+  </div>
+</div>

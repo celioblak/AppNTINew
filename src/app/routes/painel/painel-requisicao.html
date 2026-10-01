@@ -1,0 +1,72 @@
+<div class="requisicao">
+  <div class="requisicao__colunas">
+    <section class="coluna">
+      <header class="secao">
+        <h2 class="secao__titulo">Aguardando análise</h2>
+        <span class="secao__contador">{{ analise().length }}</span>
+
+        @if (paginasAnalise() > 1) {
+          <span class="paginacao">
+            <span class="paginacao__texto">
+              Página {{ paginaAnalise() + 1 }} de {{ paginasAnalise() }}
+            </span>
+            @for (indice of indicesAnalise(); track indice) {
+              <span class="paginacao__ponto" [class.paginacao__ponto--ativo]="indice === paginaAnalise()"></span>
+            }
+          </span>
+        }
+      </header>
+
+      <div class="coluna__grade" [style.--linhas]="porPagina">
+        @for (chamado of analiseVisivel(); track chamado.idChamado) {
+          <app-chamado-card [chamado]="chamado" [tom]="tomDoChamado(chamado)" />
+        }
+      </div>
+    </section>
+
+    <section class="coluna">
+      <header class="secao">
+        <h2 class="secao__titulo">Aguardando execução</h2>
+        <span class="secao__contador">{{ execucao().length }}</span>
+
+        @if (paginasExecucao() > 1) {
+          <span class="paginacao">
+            <span class="paginacao__texto">
+              Página {{ paginaExecucao() + 1 }} de {{ paginasExecucao() }}
+            </span>
+            @for (indice of indicesExecucao(); track indice) {
+              <span class="paginacao__ponto" [class.paginacao__ponto--ativo]="indice === paginaExecucao()"></span>
+            }
+          </span>
+        }
+      </header>
+
+      <div class="coluna__grade" [style.--linhas]="porPagina">
+        @for (chamado of execucaoVisivel(); track chamado.idChamado) {
+          <app-chamado-card [chamado]="chamado" [tom]="tomDoChamado(chamado)" />
+        }
+      </div>
+    </section>
+  </div>
+
+  <div class="legenda">
+    @for (item of legenda; track item.cor) {
+      <span class="legenda__item">
+        <i class="legenda__cor legenda__cor--{{ item.cor }}"></i>
+        {{ item.texto }}
+      </span>
+    }
+  </div>
+
+  <footer class="contadores">
+    @for (contador of contadores(); track contador.rotulo) {
+      <div
+        class="contador contador--{{ contador.situacao }}"
+        [class.contador--acao]="contador.acao"
+      >
+        <span class="contador__numero">{{ contador.valor }}</span>
+        <span class="contador__rotulo">{{ contador.rotulo }}</span>
+      </div>
+    }
+  </footer>
+</div>

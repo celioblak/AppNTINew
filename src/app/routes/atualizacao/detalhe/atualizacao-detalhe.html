@@ -1,0 +1,893 @@
+@if (carregando() && !detalhe()) {
+  <mat-progress-bar mode="indeterminate" />
+} @else if (naoEncontrada()) {
+  <div class="pagina">
+    <p class="vazio">Atualização não encontrada.</p>
+    <button mat-stroked-button type="button" (click)="voltar()"><mat-icon>arrow_back</mat-icon> Voltar ao painel</button>
+  </div>
+} @else if (detalhe(); as d) {
+  <div class="pagina detalhe">
+    <!-- Cabeçalho -->
+    <header class="cabecalho">
+      <button mat-icon-button type="button" (click)="voltar()" matTooltip="Voltar ao painel" aria-label="Voltar ao painel">
+        <mat-icon>arrow_back</mat-icon>
+      </button>
+      <div class="cabecalho__texto">
+        <div class="cabecalho__linha">
+          <span class="mono numero">{{ d.numero }}</span>
+          <app-situacao-atualizacao [situacao]="d.situacao" />
+          @if (d.emergencial) {
+            <app-etiqueta tom="critico" [matTooltip]="d.justificativaEmergencial ?? ''">Emergencial</app-etiqueta>
+          }
+          @if (d.homologada) {
+            <app-etiqueta tom="sucesso">Homologada</app-etiqueta>
+          }
+          @if (d.choques.length) {
+            <app-etiqueta [tom]="choquesCriticos() ? 'critico' : 'alerta'">{{ d.choques.length }} choque{{ d.choques.length === 1 ? '' : 's' }}</app-etiqueta>
+          }
+        </div>
+        <h1 class="titulo">{{ d.titulo }}</h1>
+        <p class="suave meta">
+          {{ d.sistema ?? 'Sem sistema' }}
+          @if (d.ticketMv) {
+            · Ticket MV {{ d.ticketMv }}@if (d.tituloTicketMv) {: {{ d.tituloTicketMv }}}
+          }
+          · Responsável: {{ d.nomeResponsavel }}
+          @if (d.janela) {
+            · Janela: {{ d.janela | date: 'dd/MM/yyyy HH:mm' }}
+          }
+        </p>
+      </div>
+      <div class="cabecalho__acoes">
+        <button mat-stroked-button type="button" (click)="tempoAberto.set(!tempoAberto())" [attr.aria-expanded]="tempoAberto()"
+          matTooltip="Abrir ou fechar a linha do tempo">
+          <mat-icon>history</mat-icon> Linha do tempo <span class="pendencias__qtd">{{ d.eventos.length }}</span>
+        </button>
+        @if (d.acoes.validar) {
+          <button mat-flat-button type="button" (click)="registrarValidacao()"><mat-icon>assignment_turned_in</mat-icon> Registrar validação</button>
+        }
+        @if (d.acoes.solicitarAprovacao) {
+          <button mat-flat-button type="button" (click)="janela('solicitar')"><mat-icon>send</mat-icon> Solicitar aprovação</button>
+        }
+        @if (d.acoes.aprovar) {
+          <button mat-flat-button type="button" (click)="janela('aprovar')"><mat-icon>verified_user</mat-icon> Aprovar</button>
+          <button mat-stroked-button type="button" (click)="janela('recusar')">Recusar</button>
+        }
+        @if (d.acoes.concluir) {
+          <button mat-flat-button type="button" (click)="concluir()"><mat-icon>check_circle</mat-icon> Concluir</button>
+        }
+        @if (d.acoes.editar || d.acoes.cancelar || d.acoes.criarComplemento) {
+          <button mat-icon-button type="button" [matMenuTriggerFor]="mais" aria-label="Mais ações" matTooltip="Mais ações">
+            <mat-icon>more_vert</mat-icon>
+          </button>
+          <mat-menu #mais="matMenu">
+            @if (d.acoes.editar) {
+              <button mat-menu-item type="button" (click)="editarDados()"><mat-icon>edit</mat-icon> Editar dados</button>
+            }
+            @if (d.acoes.criarComplemento) {
+              <button mat-menu-item type="button" (click)="criarComplemento()"><mat-icon>library_add</mat-icon> Criar complemento</button>
+            }
+            @if (d.acoes.cancelar) {
+              <button mat-menu-item type="button" (click)="janela('cancelar')"><mat-icon>block</mat-icon> Cancelar atualização</button>
+            }
+          </mat-menu>
+        }
+      </div>
+    </header>
+
+    <!-- Ciclo -->
+    <ol class="ciclo" aria-label="Ciclo da atualização">
+      @for (e of etapas; track e.situacao; let i = $index) {
+        <li class="ciclo__etapa" [class.ciclo__etapa--feita]="i < etapaAtual()" [class.ciclo__etapa--atual]="i === etapaAtual()"
+          [class.ciclo__etapa--desvio]="i === etapaAtual() && desvio()">
+          <span class="ciclo__marca" aria-hidden="true"></span>
+          <span class="ciclo__rotulo">{{ i === etapaAtual() && desvio() ? situacaoInfo[d.situacao].rotulo : e.rotulo }}</span>
+        </li>
+      }
+    </ol>
+
+    <!-- Execução automática que parou no meio (servidor da aplicação caiu): aparece ao abrir, antes de tudo -->
+    @for (e of restauraveis(); track e.id) {
+      <section class="parou" role="alert">
+        <mat-icon>report</mat-icon>
+        <div class="parou__texto">
+          <strong>
+            {{ e.abandonada ? 'A aplicação automática de ' + e.artefato + ' parou no meio: o servidor da aplicação caiu.' : 'A aplicação automática de ' + e.artefato + ' terminou com o retorno incompleto.' }}
+          </strong>
+          <span>
+            Os nós ({{ nomesDosNos(e) }}) podem estar diferentes. Restaure os backups antes de continuar; depois dá
+            para aplicar de novo.
+            @if (e.abandonada && e.ultimaPulsacao) {
+              Último sinal de vida: {{ e.ultimaPulsacao | date: 'dd/MM HH:mm:ss' }}.
+            }
+          </span>
+        </div>
+        <div class="parou__acoes">
+          <button mat-button type="button" (click)="abrirConsole(e)"><mat-icon>code</mat-icon> Ver console</button>
+          <button mat-flat-button type="button" class="perigo" (click)="restaurarExecucao(e)">
+            <mat-icon>settings_backup_restore</mat-icon> Restaurar os backups
+          </button>
+        </div>
+      </section>
+    }
+
+    <!-- Passo atual: o que fazer agora, quanto falta e o que vem depois -->
+    @if (passo(); as p) {
+      <section class="passo" [attr.data-tom]="p.tom" aria-live="polite">
+        <mat-icon class="passo__icone">{{ p.tom === 'fim' ? 'flag' : p.tom === 'espera' ? 'hourglass_empty' : 'play_circle_filled' }}</mat-icon>
+        <div class="passo__texto">
+          <p class="passo__linha">
+            <span class="passo__rotulo">{{ p.tom === 'fim' ? 'Situação' : p.tom === 'espera' ? 'Aguardando' : 'Agora' }}</span>
+            <strong class="passo__titulo">{{ p.titulo }}</strong>
+            <span class="passo__descricao">{{ p.descricao }}</span>
+          </p>
+          @if (p.falta || p.proximo) {
+            <p class="passo__linha passo__linha--sub">
+              @if (p.falta) {
+                <span class="passo__falta">{{ p.falta }}</span>
+              }
+              @if (p.proximo) {
+                <span class="passo__proximo"><mat-icon>arrow_forward</mat-icon> Depois: {{ p.proximo }}</span>
+              }
+            </p>
+          }
+        </div>
+        <div class="passo__acoes">
+          @if (p.acao) {
+            <button mat-flat-button type="button" (click)="executarPasso(p.acao.tipo)">
+              <mat-icon>{{ p.acao.icone }}</mat-icon> {{ p.acao.rotulo }}
+            </button>
+          }
+          @if (aba() !== p.aba) {
+            <button mat-stroked-button type="button" (click)="aba.set(p.aba)">
+              Ir para {{ abaRotulo[p.aba] }} <mat-icon iconPositionEnd>arrow_downward</mat-icon>
+            </button>
+          }
+        </div>
+      </section>
+    }
+
+    @if (d.pendencias.length || d.conflitos.length || d.choques.length || d.origem || d.complementos.length) {
+      <div class="avisos">
+        @if (d.pendencias.length) {
+          <!-- Recolhido: mostra só a quantidade; o usuário expande para ver quais -->
+          <details class="secao pendencias">
+            <summary class="secao__titulo">
+              <mat-icon>playlist_add_check</mat-icon> Pendências
+              <span class="pendencias__qtd">{{ d.pendencias.length }}</span>
+              <span class="suave pendencias__dica">clique para ver</span>
+            </summary>
+            <ul>
+              @for (p of d.pendencias; track $index) {
+                <li>{{ p }}</li>
+              }
+            </ul>
+          </details>
+        }
+        @if (d.choques.length) {
+          <section class="secao choques" [class.choques--critico]="choquesCriticos()">
+            <h2 class="secao__titulo">
+              <mat-icon>call_split</mat-icon> Choques com outras atualizações de {{ d.sistema }}
+              <span class="suave">combine com os responsáveis antes de homologar</span>
+            </h2>
+            <ul class="choques__lista">
+              @for (c of d.choques; track $index) {
+                <li class="choque">
+                  <app-etiqueta [tom]="gravidadeTom[c.gravidade]">{{ choqueRotulo[c.tipo] }}</app-etiqueta>
+                  <div class="celula">
+                    <span>{{ c.mensagem }}</span>
+                    <span class="suave">
+                      <button type="button" class="link mono" (click)="abrirAtualizacao(c.codAtualizacao)">{{ c.numero }}</button>
+                      · {{ c.titulo }} · {{ situacaoInfo[c.situacao].rotulo }}{{ c.responsavel ? ' · ' + c.responsavel : '' }}
+                    </span>
+                    @if (c.telas.length) {
+                      <details>
+                        <summary>{{ c.telas.length }} arquivo(s) em comum</summary>
+                        <ul class="caminhos">
+                          @for (t of c.telas; track t) {
+                            <li><code>{{ t }}</code></li>
+                          }
+                        </ul>
+                      </details>
+                    }
+                  </div>
+                </li>
+              }
+            </ul>
+          </section>
+        }
+        @if (d.conflitos.length) {
+          <p class="aviso">
+            Outras atualizações a caminho da produção nos mesmos destinos (R-09):
+            @for (c of d.conflitos; track c.codAtualizacao; let ultimo = $last) {
+              <button type="button" class="link" (click)="abrirAtualizacao(c.codAtualizacao)">{{ c.numero }}</button>
+              @if (c.janela) {
+                ({{ c.janela | date: 'dd/MM HH:mm' }})
+              }{{ ultimo ? '' : ', ' }}
+            }
+          </p>
+        }
+        @if (d.origem) {
+          <p class="suave">
+            Complemento de <button type="button" class="link" (click)="abrirAtualizacao(d.origem.codAtualizacao)">{{ d.origem.numero }}</button> · {{ d.origem.titulo }}
+          </p>
+        }
+        @if (d.complementos.length) {
+          <p class="suave">
+            Complementos:
+            @for (c of d.complementos; track c.codAtualizacao; let ultimo = $last) {
+              <button type="button" class="link" (click)="abrirAtualizacao(c.codAtualizacao)">{{ c.numero }}</button>
+              ({{ situacaoInfo[c.situacao].rotulo }}){{ ultimo ? '' : ', ' }}
+            }
+          </p>
+        }
+      </div>
+    }
+
+    <div class="corpo">
+      <mat-tab-group
+        class="abas"
+        animationDuration="0ms"
+        mat-stretch-tabs="false"
+        [selectedIndex]="aba()"
+        (selectedIndexChange)="aba.set($any($event))">
+        <!-- Artefatos -->
+        <mat-tab [label]="'Artefatos (' + d.artefatos.length + ')'">
+          <div class="aba">
+            <!-- O que o fabricante mandou e ficou de fora por falta de mapeamento (decisão registrada ao incluir) -->
+            @if (foraDoMapeamento().length) {
+              <section class="fora-mapeamento">
+                <h2 class="secao__titulo">
+                  <mat-icon>warning</mat-icon> Ficaram de fora do pacote (sem mapeamento de JAR)
+                </h2>
+                @for (e of foraDoMapeamento(); track e.codEvento) {
+                  <p>
+                    <span class="suave">{{ e.data | date: 'dd/MM/yy HH:mm' }} · {{ e.nomeUsuario }}:</span>
+                    {{ e.descricao }}
+                  </p>
+                }
+              </section>
+            }
+            @if (d.acoes.incluirArtefato) {
+              <div class="barra">
+                <span class="suave">Arquivos inteiros ou conteúdo para dentro de JAR. Cada artefato guarda todas as versões; só a vigente segue para produção.</span>
+                <span class="espaco"></span>
+                <button mat-flat-button type="button" (click)="incluirArtefatos()"><mat-icon>add</mat-icon> Incluir artefatos</button>
+              </div>
+            }
+            @for (a of d.artefatos; track a.codArtefato) {
+              <section class="secao">
+                <h2 class="secao__titulo">
+                  <span class="mono">{{ a.nome }}</span>
+                  <span class="suave">
+                    {{ a.tipo }} · {{ a.conteudoJar ? (a.montaJar ? 'conteúdo para JAR' : 'JAR pronto') : metodoRotulo[a.metodo] }}
+                  </span>
+                  @if (a.versaoVigente?.situacao === 'REPROVADA') {
+                    <app-etiqueta tom="critico">v{{ a.versaoVigente?.numero }} reprovada</app-etiqueta>
+                  }
+                  @if (a.destinoDesatualizado) {
+                    <app-etiqueta tom="alerta" matTooltip="O diretório mudou no cadastro do sistema (ex.: nova versão instalada). Recalcule os destinos.">
+                      Diretório mudou no cadastro
+                    </app-etiqueta>
+                  }
+                  <span class="espaco"></span>
+                  @if (d.acoes.alterarArtefato) {
+                    <button mat-stroked-button type="button" (click)="enviarVersaoCorrigida(a)"><mat-icon>update</mat-icon> Versão corrigida</button>
+                    @if (a.recalculavel) {
+                      <button mat-icon-button type="button" (click)="recalcularDestinos(a)" matTooltip="Recalcular destinos pelo cadastro do sistema" aria-label="Recalcular destinos">
+                        <mat-icon>sync_alt</mat-icon>
+                      </button>
+                    }
+                    <button mat-icon-button type="button" (click)="alterarArtefato(a)" matTooltip="Alterar nome e observação" aria-label="Alterar artefato">
+                      <mat-icon>edit</mat-icon>
+                    </button>
+                  }
+                  @if (a.removivel) {
+                    <button mat-icon-button type="button" (click)="removerArtefato(a)" matTooltip="Remover artefato" aria-label="Remover artefato">
+                      <mat-icon>delete</mat-icon>
+                    </button>
+                  }
+                </h2>
+                <dl class="dl">
+                  @if (a.conteudoJar; as cj) {
+                    <dt>JAR</dt>
+                    <dd><code [matTooltip]="'Padrão do nome: ' + cj.jarPadrao">{{ nomeJar(cj.jarPadrao) }}</code></dd>
+                    <dt>Caminho no JAR</dt>
+                    <dd><code>{{ cj.caminhoInterno }}</code> <span class="suave">(pasta {{ cj.pasta }} do pacote)</span></dd>
+                  }
+                  <dt>{{ d.ambienteHomologacao === 'HOMOLOGACAO' ? 'Homologação' : 'Homologação em ' + ambienteRotulo[d.ambienteHomologacao] }}</dt>
+                  <dd>
+                    <ng-container *ngTemplateOutlet="fichaDestino; context: { $implicit: a.homologacao, destino: a.destinoHml }" />
+                  </dd>
+                  <dt>Produção</dt>
+                  <dd>
+                    <ng-container *ngTemplateOutlet="fichaDestino; context: { $implicit: a.producao, destino: a.destinoPrd }" />
+                  </dd>
+                  @if (a.removidos.length) {
+                    <dt>Destinos retirados</dt>
+                    <dd>
+                      <ul class="retirados">
+                        @for (r of a.removidos; track r.codDestino) {
+                          <li>
+                            {{ ambienteRotulo[r.ambiente] }} · {{ r.alvo }}: {{ r.justificativa }}
+                            <span class="suave">({{ r.nomeUsuario }}, {{ r.data | date: 'dd/MM/yy HH:mm' }})</span>
+                          </li>
+                        }
+                      </ul>
+                    </dd>
+                  }
+                  @if (a.observacao) {
+                    <dt>Observação</dt>
+                    <dd>{{ a.observacao }}</dd>
+                  }
+                </dl>
+                <div class="rolagem">
+                  <table class="tabela">
+                    <thead>
+                      <tr>
+                        <th>Versão</th>
+                        <th>{{ a.montaJar ? 'Conteúdo' : 'Arquivo' }}</th>
+                        <th>SHA-256</th>
+                        <th>Enviada</th>
+                        <th>Correção / erro</th>
+                        <th class="acoes"></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (v of a.versoes; track v.codVersao) {
+                        <tr [class.linha--vigente]="v.vigente">
+                          <td>
+                            <div class="celula">
+                              <strong>v{{ v.numero }}</strong>
+                              <span [class.falha]="v.situacao === 'REPROVADA'" [class.suave]="v.situacao === 'SUBSTITUIDA'">
+                                {{ v.situacao === 'VIGENTE' ? 'vigente' : v.situacao === 'REPROVADA' ? 'reprovada' : 'substituída' }}
+                              </span>
+                            </div>
+                          </td>
+                          <td>
+                            <div class="celula">
+                              @if (v.entradas.length) {
+                                <span>{{ v.entradas.length }} arquivo(s) para dentro do JAR</span>
+                                <details>
+                                  <summary>Ver caminhos</summary>
+                                  <ul class="caminhos">
+                                    @for (e of v.entradas; track e.caminhoInterno) {
+                                      <li><code>{{ e.caminhoInterno }}</code> <span class="suave">{{ tamanho(e.tamanho) }}</span></li>
+                                    }
+                                  </ul>
+                                </details>
+                              } @else {
+                                <span>{{ v.arquivo.nome }}</span>
+                                <span class="suave">{{ tamanho(v.arquivo.tamanho) }}</span>
+                              }
+                              @if (v.arquivoRetorno) {
+                                <span class="suave">Retorno: {{ v.arquivoRetorno.nome }}</span>
+                              }
+                            </div>
+                          </td>
+                          <td><code [matTooltip]="v.arquivo.sha256">{{ hash(v.arquivo.sha256) }}…</code></td>
+                          <td>
+                            <div class="celula">
+                              <span>{{ v.dataEnvio | date: 'dd/MM/yy HH:mm' }}</span>
+                              <span class="suave">{{ v.nomeEnvio }}</span>
+                            </div>
+                          </td>
+                          <td>
+                            <div class="celula">
+                              @if (v.descricaoCorrecao) {
+                                <span>Corrige: {{ v.descricaoCorrecao }}</span>
+                              }
+                              @if (v.descricaoErro) {
+                                <span class="falha">Erro: {{ v.descricaoErro }}</span>
+                              }
+                            </div>
+                          </td>
+                          <td class="acoes">
+                            <button
+                              mat-icon-button
+                              type="button"
+                              (click)="baixar(v.arquivo)"
+                              [matTooltip]="v.entradas.length ? 'Baixar pacote da versão (zip)' : 'Baixar versão'"
+                              aria-label="Baixar versão">
+                              <mat-icon>file_download</mat-icon>
+                            </button>
+                            @if (v.arquivoRetorno) {
+                              <button mat-icon-button type="button" (click)="baixar(v.arquivoRetorno)" matTooltip="Baixar script de retorno" aria-label="Baixar script de retorno">
+                                <mat-icon>undo</mat-icon>
+                              </button>
+                            }
+                          </td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+            } @empty {
+              <p class="vazio">Nenhum artefato. Inclua os arquivos ou o pacote recebido do fabricante.</p>
+            }
+          </div>
+        </mat-tab>
+
+        <!-- Homologação -->
+        <mat-tab [label]="d.ambienteHomologacao === 'HOMOLOGACAO' ? 'Homologação' : 'Homologação em ' + ambienteRotulo[d.ambienteHomologacao]">
+          <div class="aba">
+            <p class="suave">
+              Backup antes de cada aplicação (R-02). Com mais de um processo, o backup de todos vem antes da primeira aplicação (R-13) e a aplicação
+              segue a ordem (R-14). Conteúdo para JAR: o backup é o JAR atual do destino; gere o JAR e aplique o arquivo gerado.
+            </p>
+            @if (d.acoes.validar || (d.acoes.registrarHomologacao && d.artefatos.length)) {
+              <div class="barra">
+                @if (d.acoes.validar) {
+                  <button mat-flat-button type="button" (click)="registrarValidacao()"><mat-icon>assignment_turned_in</mat-icon> Registrar validação</button>
+                }
+                <span class="espaco"></span>
+                @if (d.acoes.registrarHomologacao && d.artefatos.length) {
+                  <button mat-stroked-button type="button" (click)="backupsEmLote('HOMOLOGACAO')">
+                    <mat-icon>file_upload</mat-icon> Enviar vários backups
+                  </button>
+                  @if (execucaoDeTodos(); as lote) {
+                    <button mat-flat-button type="button" class="automacao" [attr.data-situacao]="lote.restauravel ? 'RESTAURAVEL' : lote.situacao" (click)="abrirConsole(lote)">
+                      <mat-icon>code</mat-icon> Backup de todos em execução… ver console
+                    </button>
+                  } @else if (semBackupAutomatizaveis() > 0) {
+                    <button mat-stroked-button type="button" (click)="backupAutomaticoDeTodos()"
+                      matTooltip="Por SSH: baixa o arquivo atual de cada artefato sem backup e registra para todos os nós">
+                      <mat-icon>cloud_download</mat-icon> Backup automático de todos ({{ semBackupAutomatizaveis() }})
+                    </button>
+                  }
+                  @if (temConteudoJar()) {
+                    <button mat-stroked-button type="button" (click)="gerarJarsEmLote('HOMOLOGACAO')">
+                      <mat-icon>all_inbox</mat-icon> Gerar JAR de todos
+                    </button>
+                    <button mat-stroked-button type="button" [disabled]="baixandoJars() === 'HOMOLOGACAO'" (click)="baixarJars('HOMOLOGACAO')" matTooltip="Zip com os JARs gerados que falta aplicar (cada JAR uma vez só) e um LEIA-ME com os destinos e o diretório de cada um">
+                      <mat-icon>archive</mat-icon> {{ baixandoJars() === 'HOMOLOGACAO' ? 'Preparando…' : 'Baixar JARs gerados' }}
+                    </button>
+                  }
+                }
+              </div>
+            }
+            @for (a of d.artefatos; track a.codArtefato) {
+              <section class="secao">
+                <h2 class="secao__titulo">
+                  <span class="mono">{{ a.nome }}</span>
+                  <span class="suave">v{{ a.versaoVigente?.numero }} · {{ a.destinoHml.descricao }}</span>
+                </h2>
+                @if (a.destinoHml.passoManual) {
+                  <p class="aviso">Passo manual: {{ a.destinoHml.passoManual }}</p>
+                }
+                <ng-container *ngTemplateOutlet="tabelaAlvos; context: { $implicit: a, alvos: a.homologacao, ambiente: 'HOMOLOGACAO' }" />
+              </section>
+            }
+
+            <section class="secao">
+              <h2 class="secao__titulo">
+                Validações
+                @if (reprovacoes()) {
+                  <span class="suave">{{ reprovacoes() }} reprovação(ões)</span>
+                }
+              </h2>
+              @for (v of d.validacoes; track v.codValidacao) {
+                <article class="validacao" [class.validacao--cancelada]="v.cancelada">
+                  <div class="validacao__cabecalho">
+                    <app-etiqueta [tom]="v.cancelada ? 'neutro' : v.resultado === 'APROVADA' ? 'sucesso' : 'critico'">
+                      {{ v.resultado === 'APROVADA' ? 'Aprovada' : 'Reprovada' }}{{ v.cancelada ? ' · cancelada' : '' }}
+                    </app-etiqueta>
+                    <span>{{ v.data | date: 'dd/MM/yyyy HH:mm' }} · {{ v.nomeUsuario }}</span>
+                    @if (v.ativa && v.resultado === 'APROVADA') {
+                      <span [class.ok]="v.backupProducaoConcluido" [class.pendente]="!v.backupProducaoConcluido">
+                        Backup de produção {{ v.backupProducaoConcluido ? 'concluído' : 'pendente' }}
+                      </span>
+                    }
+                    @if (v.evidencia) {
+                      <button mat-button type="button" (click)="baixar(v.evidencia)"><mat-icon>attach_file</mat-icon> Evidência</button>
+                    }
+                  </div>
+                  <ul class="validacao__versoes">
+                    @for (vv of v.versoes; track vv.codVersao) {
+                      <li [class.falha]="vv.erro">
+                        {{ vv.artefato }} v{{ vv.numeroVersao }} <code>{{ hash(vv.sha256) }}…</code>
+                        @if (vv.erro) {
+                          — {{ vv.descricaoErro }}
+                        }
+                      </li>
+                    }
+                  </ul>
+                  <details>
+                    <summary>Roteiro de testes</summary>
+                    <p class="roteiro">{{ v.roteiro }}</p>
+                    @if (v.observacao) {
+                      <p class="roteiro suave">{{ v.observacao }}</p>
+                    }
+                  </details>
+                  @if (v.cancelada) {
+                    <p class="suave">Cancelada em {{ v.dataCancelamento | date: 'dd/MM/yyyy HH:mm' }}: {{ v.motivoCancelamento }}</p>
+                  }
+                </article>
+              } @empty {
+                <p class="vazio">
+                  @if (!d.homologacaoCompleta) {
+                    A validação é liberada com todas as versões aplicadas com sucesso em homologação.
+                  } @else if (d.acoes.validar) {
+                    Homologação completa: registre a validação.
+                  } @else {
+                    Homologação completa. A validação precisa ser registrada por outra pessoa com acesso: quem aplicou em homologação não valida (R-06).
+                  }
+                </p>
+              }
+            </section>
+          </div>
+        </mat-tab>
+
+        <!-- Produção -->
+        <mat-tab label="Produção">
+          <div class="aba">
+            <section class="secao">
+              <h2 class="secao__titulo">Aprovação</h2>
+              <dl class="dl">
+                <dt>Janela</dt>
+                <dd>{{ d.janela ? (d.janela | date: 'dd/MM/yyyy HH:mm') : 'Não proposta' }}</dd>
+                <dt>Aprovador</dt>
+                <dd>{{ d.nomeAprovador ? d.nomeAprovador + ' em ' + (d.dataAprovacao | date: 'dd/MM/yyyy HH:mm') : '—' }}</dd>
+                @if (d.comentarioAprovacao) {
+                  <dt>Comentário</dt>
+                  <dd>{{ d.comentarioAprovacao }}</dd>
+                }
+                @if (d.dataProducao) {
+                  <dt>Em produção desde</dt>
+                  <dd>{{ d.dataProducao | date: 'dd/MM/yyyy HH:mm' }}</dd>
+                }
+                @if (d.dataConclusao) {
+                  <dt>Concluída em</dt>
+                  <dd>{{ d.dataConclusao | date: 'dd/MM/yyyy HH:mm' }}</dd>
+                }
+              </dl>
+            </section>
+            <p class="suave">
+              O backup de produção é feito na validação aprovada (R-15). Na janela, confira que nada mudou; se mudou, renove o backup antes de aplicar.
+              Para conteúdo de JAR, gere o JAR na janela a partir do backup que vale.
+            </p>
+            @if ((d.acoes.registrarBackupProducao || d.acoes.registrarProducao) && d.artefatos.length) {
+              <div class="barra">
+                <span class="espaco"></span>
+                <button mat-stroked-button type="button" (click)="backupsEmLote('PRODUCAO')">
+                  <mat-icon>file_upload</mat-icon> Enviar vários backups
+                </button>
+                @if (temConteudoJar()) {
+                  <button mat-stroked-button type="button" (click)="gerarJarsEmLote('PRODUCAO')">
+                    <mat-icon>all_inbox</mat-icon> Gerar JAR de todos
+                  </button>
+                    <button mat-stroked-button type="button" [disabled]="baixandoJars() === 'PRODUCAO'" (click)="baixarJars('PRODUCAO')" matTooltip="Zip com os JARs gerados que falta aplicar (cada JAR uma vez só) e um LEIA-ME com os destinos e o diretório de cada um">
+                      <mat-icon>archive</mat-icon> {{ baixandoJars() === 'PRODUCAO' ? 'Preparando…' : 'Baixar JARs gerados' }}
+                    </button>
+                }
+              </div>
+            }
+            @for (a of d.artefatos; track a.codArtefato) {
+              <section class="secao">
+                <h2 class="secao__titulo">
+                  <span class="mono">{{ a.nome }}</span>
+                  <span class="suave">v{{ a.versaoVigente?.numero }} · {{ a.destinoPrd.descricao }}</span>
+                </h2>
+                @if (a.destinoPrd.passoManual) {
+                  <p class="aviso">Passo manual: {{ a.destinoPrd.passoManual }}</p>
+                }
+                <ng-container *ngTemplateOutlet="tabelaAlvos; context: { $implicit: a, alvos: a.producao, ambiente: 'PRODUCAO' }" />
+              </section>
+            }
+          </div>
+        </mat-tab>
+
+        <!-- Dados -->
+        <mat-tab label="Dados">
+          <div class="aba">
+            <section class="secao">
+              <h2 class="secao__titulo">
+                Dados da atualização
+                <span class="espaco"></span>
+                @if (d.acoes.editar) {
+                  <button mat-stroked-button type="button" (click)="editarDados()"><mat-icon>edit</mat-icon> Editar</button>
+                }
+              </h2>
+              <dl class="dl">
+                <dt>Número</dt>
+                <dd class="mono">{{ d.numero }}</dd>
+                <dt>Sistema</dt>
+                <dd>{{ d.sistema ?? '—' }}</dd>
+                <dt>Ambiente de homologação</dt>
+                <dd>{{ ambienteRotulo[d.ambienteHomologacao] }}{{ d.ambienteHomologacao === 'TREINAMENTO' ? ' (TRN)' : ' (SML)' }}</dd>
+                <dt>Versão do fabricante</dt>
+                <dd>{{ d.versaoFabricante ?? '—' }}</dd>
+                <dt>Ticket MV</dt>
+                <dd>{{ d.ticketMv ?? '—' }}{{ d.tituloTicketMv ? ' · ' + d.tituloTicketMv : '' }}</dd>
+                <dt>Chamado GLPI</dt>
+                <dd>{{ d.chamadoGlpi ?? '—' }}</dd>
+                <dt>Motivo</dt>
+                <dd>{{ d.motivo ?? '—' }}</dd>
+                <dt>Responsável</dt>
+                <dd>{{ d.nomeResponsavel }}</dd>
+                @if (d.emergencial) {
+                  <dt>Emergencial</dt>
+                  <dd>{{ d.justificativaEmergencial }}</dd>
+                }
+                <dt>Cadastro</dt>
+                <dd>{{ d.dataCadastro | date: 'dd/MM/yyyy HH:mm' }} · {{ d.nomeCadastro }}</dd>
+                <dt>Última alteração</dt>
+                <dd>{{ d.dataUltimaAlteracao | date: 'dd/MM/yyyy HH:mm' }}</dd>
+              </dl>
+            </section>
+          </div>
+        </mat-tab>
+      </mat-tab-group>
+
+      <!-- Linha do tempo -->
+      <!-- Linha do tempo em painel deslizante: fechado por padrão, abre pela direita por cima do conteúdo -->
+      @if (tempoAberto()) {
+        <div class="tempo__fundo" (click)="tempoAberto.set(false)" aria-hidden="true"></div>
+      }
+      <aside class="tempo secao" [class.tempo--aberta]="tempoAberto()" aria-label="Linha do tempo" [attr.aria-hidden]="!tempoAberto()">
+        <div class="tempo__topo">
+          <h2 class="secao__titulo">Linha do tempo <span class="pendencias__qtd">{{ d.eventos.length }}</span></h2>
+          <button mat-button type="button" (click)="eventosAbertos.set(!eventosAbertos())">
+            <mat-icon>{{ eventosAbertos() ? 'unfold_less' : 'unfold_more' }}</mat-icon>
+            {{ eventosAbertos() ? 'Recolher todos' : 'Expandir todos' }}
+          </button>
+          <button mat-icon-button type="button" (click)="tempoAberto.set(false)" aria-label="Fechar a linha do tempo" matTooltip="Fechar (Esc)">
+            <mat-icon>close</mat-icon>
+          </button>
+        </div>
+        <ol class="tempo__lista">
+          @for (e of d.eventos; track e.codEvento) {
+            <li class="tempo__item" [class.tempo__item--destaque]="destaque.has(e.tipo)" [attr.data-tipo]="e.tipo">
+              <span class="tempo__marca" aria-hidden="true"></span>
+              <details class="tempo__conteudo" [open]="eventosAbertos()">
+                <summary class="tempo__cabecalho">
+                  <strong>{{ eventoRotulo[e.tipo] }}</strong>
+                  <span class="suave">{{ e.data | date: 'dd/MM/yy HH:mm' }}</span>
+                </summary>
+                <span class="tempo__descricao">{{ e.descricao }}</span>
+                <span class="suave">{{ e.nomeUsuario }}{{ e.ip ? ' · ' + e.ip : '' }}</span>
+              </details>
+            </li>
+          }
+        </ol>
+      </aside>
+    </div>
+  </div>
+
+  <!-- Ficha do destino: processos na ordem e o diretório, ou o banco/schema -->
+  <ng-template #fichaDestino let-alvos let-destino="destino">
+    @if (!alvos.length) {
+      <span class="pendente">{{ destino.descricao }}</span>
+    } @else if (destino.tipo === 'BANCO') {
+      <span>Banco/schema: {{ alvos[0].alvo }}</span>
+    } @else {
+      @let diretorio = diretorioComum(alvos);
+      <ol class="destinos">
+        @for (alvo of alvos; track alvo.chave) {
+          <li>
+            <span>{{ alvo.alvo }}</span>
+            @if (!diretorio && alvo.diretorio) {
+              <code class="suave">{{ alvo.diretorio }}</code>
+            }
+          </li>
+        }
+      </ol>
+      @if (diretorio) {
+        <span class="suave">Diretório: <code>{{ diretorio }}</code></span>
+      }
+      @if (destino.passoManual) {
+        <span class="pendente">Passo manual: {{ destino.passoManual }}</span>
+      }
+    }
+  </ng-template>
+
+  <!-- Destinos de um artefato em um ambiente: backup, JAR montado e aplicação por destino -->
+  <ng-template #tabelaAlvos let-a let-alvos="alvos" let-ambiente="ambiente">
+    @if (!alvos.length) {
+      <div class="vazio sem-destino">
+        <span>Sem destino neste ambiente. Confira o cadastro do sistema (Configuração › Sistemas por ambiente) e recalcule os destinos.</span>
+        @if (podeRecalcular(a) && (ambiente === 'PRODUCAO' || a.removivel)) {
+          <button mat-stroked-button type="button" (click)="recalcularDestinos(a)">
+            <mat-icon>sync_alt</mat-icon> Recalcular destinos
+          </button>
+        }
+      </div>
+    } @else {
+      <!-- Cluster (revisão 9): uma linha por artefato; backup, JAR e aplicação valem para todos os nós -->
+      @let rep = representante(alvos);
+      @let backup = backupDoCluster(alvos);
+      @let renovado = backupRenovadoDoCluster(alvos);
+      @let jar = jarDoCluster(alvos);
+      <div class="rolagem">
+        <table class="tabela cluster">
+          <thead>
+            <tr>
+              <th>{{ alvos.length > 1 ? 'Nós (' + alvos.length + ')' : 'Destino' }}</th>
+              <th>{{ ambiente === 'PRODUCAO' ? 'Backup da validação' : 'Backup antes de aplicar' }}</th>
+              @if (ambiente === 'PRODUCAO') {
+                <th>Renovado na janela</th>
+              }
+              @if (a.montaJar) {
+                <th>JAR montado</th>
+              }
+              <th>Aplicação v{{ a.versaoVigente?.numero }}</th>
+              <th class="acoes"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>
+                <div class="celula">
+                  <ul class="nos">
+                    @for (alvo of alvos; track alvo.chave) {
+                      <li>
+                        <span>{{ alvo.ordem }}. {{ alvo.alvo }}</span>
+                        @if (podeRetirarDestino(alvos, ambiente) && !alvo.ultimaAplicacao) {
+                          <button mat-icon-button type="button" class="no__retirar" (click)="retirarDestino(a, alvo, ambiente)" matTooltip="Retirar este nó (com justificativa)" aria-label="Retirar nó">
+                            <mat-icon>remove_circle_outline</mat-icon>
+                          </button>
+                        }
+                      </li>
+                    }
+                  </ul>
+                  @if (rep.diretorio) {
+                    <code class="suave">{{ rep.diretorio }}</code>
+                  }
+                  @if (rep.exigeReinicio) {
+                    <span class="suave" [matTooltip]="rep.comandoReinicio ?? ''">Exige reinício</span>
+                  }
+                </div>
+              </td>
+              <td>
+                @if (backup; as b) {
+                  <div class="celula">
+                    <span class="ok">{{ b.semArquivo ? 'Sem arquivo anterior' : b.arquivo?.nome }}</span>
+                    @if (b.arquivo) {
+                      <code [matTooltip]="b.arquivo.sha256">{{ hash(b.arquivo.sha256) }}…</code>
+                    }
+                    <span class="suave">{{ b.data | date: 'dd/MM/yy HH:mm' }} · {{ b.nomeUsuario }}</span>
+                    @if (b.observacao) {
+                      <span class="suave">{{ b.observacao }}</span>
+                    }
+                  </div>
+                } @else {
+                  <span class="pendente">Pendente</span>
+                }
+              </td>
+              @if (ambiente === 'PRODUCAO') {
+                <td>
+                  @if (renovado; as r) {
+                    <div class="celula">
+                      <span>{{ r.semArquivo ? 'Sem arquivo anterior' : r.arquivo?.nome }}</span>
+                      @if (r.arquivo) {
+                        <code [matTooltip]="r.arquivo.sha256">{{ hash(r.arquivo.sha256) }}…</code>
+                      }
+                      <span class="suave">{{ r.data | date: 'dd/MM/yy HH:mm' }}</span>
+                    </div>
+                  } @else {
+                    <span class="suave">—</span>
+                  }
+                </td>
+              }
+              @if (a.montaJar) {
+                <td>
+                  @if (jar; as j) {
+                    <div class="celula">
+                      <span [class.ok]="j.baseAtual" [class.pendente]="!j.baseAtual">
+                        {{ j.baseAtual ? j.arquivo.nome : 'O backup mudou: gere de novo' }}
+                      </span>
+                      <span class="suave">{{ j.substituidas }} substituído(s) · {{ j.incluidas }} novo(s) · {{ j.iguais }} igual(is)</span>
+                      @if (j.assinado) {
+                        <span class="falha">Assinatura do JAR invalidada</span>
+                      }
+                      <span class="suave">{{ j.data | date: 'dd/MM/yy HH:mm' }} · {{ j.nomeUsuario }}</span>
+                      @if (j.resumo) {
+                        <details>
+                          <summary>O que mudou no JAR</summary>
+                          <pre class="log">{{ j.resumo }}</pre>
+                        </details>
+                      }
+                    </div>
+                  } @else {
+                    <span class="suave">{{ backup || renovado ? 'Não gerado' : 'Depois do backup' }}</span>
+                  }
+                </td>
+              }
+              <td>
+                <ul class="nos">
+                  @for (alvo of alvos; track alvo.chave) {
+                    <li>
+                      @if (alvo.ultimaAplicacao; as p) {
+                        <span [class.ok]="p.resultado === 'SUCESSO'" [class.falha]="p.resultado === 'FALHA'" [matTooltip]="p.log ?? ''">
+                          <mat-icon class="no__icone">{{ p.resultado === 'SUCESSO' ? 'check_circle' : 'error' }}</mat-icon>
+                          {{ alvo.alvo }}
+                        </span>
+                        <span class="suave">{{ p.data | date: 'dd/MM HH:mm' }} · {{ p.nomeUsuario }}</span>
+                      } @else {
+                        <span class="suave"><mat-icon class="no__icone">radio_button_unchecked</mat-icon> {{ alvo.alvo }} · não aplicada</span>
+                      }
+                    </li>
+                  }
+                </ul>
+                @if (rep.ultimaAplicacao?.log && todosAplicados(alvos)) {
+                  <details>
+                    <summary>Log</summary>
+                    <pre class="log">{{ rep.ultimaAplicacao?.log }}</pre>
+                  </details>
+                }
+              </td>
+              <td class="acoes">
+                <!-- Automação por SSH, sem reinício (F-3a): só no ambiente de homologação (D-16) -->
+                @if (ambiente === 'HOMOLOGACAO') {
+                  @let aberta = execucaoAberta(a);
+                  @if (aberta) {
+                    <button mat-flat-button type="button" class="automacao" [attr.data-situacao]="aberta.restauravel ? 'RESTAURAVEL' : aberta.situacao" (click)="abrirConsole(aberta)">
+                      <mat-icon>{{ aberta.restauravel ? 'report' : aberta.situacao === 'EM_ANDAMENTO' ? 'code' : 'replay' }}</mat-icon>
+                      {{ aberta.restauravel ? 'Parou no meio: restaurar' : aberta.situacao === 'EM_ANDAMENTO' ? 'Em execução… ver console' : 'Aguardando reinício: confirmar' }}
+                    </button>
+                  }
+                  @if (podeAutomatizar(a, ambiente)) {
+                    <button mat-stroked-button type="button" (click)="backupAutomatico(a)" matTooltip="Backup por SSH: baixa o arquivo atual de um nó e registra para todos">
+                      <mat-icon>cloud_download</mat-icon> Backup automático
+                    </button>
+                    @if (backup) {
+                      <button mat-stroked-button type="button" (click)="aplicacaoAutomatica(a)" matTooltip="Troca o arquivo em todos os nós por SSH, sem reiniciar">
+                        <mat-icon>bolt</mat-icon> Aplicar automaticamente
+                      </button>
+                    }
+                  }
+                  @if (ultimaExecucao(a); as ultima) {
+                    <button mat-icon-button type="button" (click)="abrirConsole(ultima)" matTooltip="Console da última execução automática" aria-label="Console da última execução automática">
+                      <mat-icon>code</mat-icon>
+                    </button>
+                  }
+                }
+                @if (ambiente === 'HOMOLOGACAO') {
+                  @if (podeBackupHomologacao(a, rep)) {
+                    <button mat-stroked-button type="button" (click)="registrarBackup(a, rep, 'HOMOLOGACAO')">
+                      <mat-icon>{{ backup ? 'replay' : 'file_upload' }}</mat-icon> {{ backup ? 'Refazer backup' : 'Enviar backup' }}
+                    </button>
+                  }
+                } @else {
+                  @if (podeBackupValidacao()) {
+                    <button mat-stroked-button type="button" (click)="registrarBackup(a, rep, 'PRODUCAO')">
+                      <mat-icon>{{ backup ? 'replay' : 'file_upload' }}</mat-icon> {{ backup ? 'Refazer backup' : 'Enviar backup' }}
+                    </button>
+                  }
+                  @if (podeRenovarBackup(rep)) {
+                    <button mat-stroked-button type="button" (click)="registrarBackup(a, rep, 'PRODUCAO')">
+                      <mat-icon>{{ backup || renovado ? 'autorenew' : 'file_upload' }}</mat-icon> {{ backup || renovado ? 'Renovar backup' : 'Enviar backup' }}
+                    </button>
+                  }
+                }
+                @if (podeGerarJar(a, rep, ambiente)) {
+                  <button
+                    mat-stroked-button
+                    type="button"
+                    [disabled]="gerando() === chaveGeracao(a, rep, ambiente)"
+                    (click)="gerarJar(a, rep, ambiente)">
+                    <mat-icon>all_inbox</mat-icon> {{ gerando() === chaveGeracao(a, rep, ambiente) ? 'Gerando…' : jar ? 'Gerar de novo' : 'Gerar JAR' }}
+                  </button>
+                }
+                @if (ambiente === 'HOMOLOGACAO' ? podeAplicarHomologacao(a, rep) : podeAplicarProducao(a, rep)) {
+                  <button mat-flat-button type="button" (click)="registrarAplicacao(a, rep, ambiente)">Registrar aplicação</button>
+                }
+                @if (jar?.arquivo) {
+                  <button mat-icon-button type="button" (click)="baixar(jar?.arquivo)" matTooltip="Baixar JAR gerado" aria-label="Baixar JAR gerado">
+                    <mat-icon>all_inbox</mat-icon>
+                  </button>
+                }
+                @if (backup?.arquivo) {
+                  <button mat-icon-button type="button" (click)="baixar(backup?.arquivo)" matTooltip="Baixar o arquivo do backup" aria-label="Baixar o arquivo do backup">
+                    <mat-icon>file_download</mat-icon>
+                  </button>
+                }
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    }
+  </ng-template>
+}

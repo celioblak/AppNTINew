@@ -1,0 +1,204 @@
+<div class="preferencia-folga-container h-screen flex flex-col overflow-hidden bg-gray-50 dark:bg-gray-900">
+  <!-- Cabeçalho principal -->
+  <div class="flex-shrink-0">
+    <mat-card class="m-2 shadow-sm">
+      <mat-card-header class="py-1 px-3">
+        <mat-card-title class="flex items-center gap-1 text-sm font-medium text-gray-800 dark:text-gray-200">
+          <mat-icon class="text-lg" color="primary">calendar_today</mat-icon>
+          <span>Preferências de Folga</span>
+        </mat-card-title>
+        <mat-card-subtitle class="text-xs text-gray-600 dark:text-gray-400">
+          Gerencie seus dias de folga
+        </mat-card-subtitle>
+      </mat-card-header>
+    </mat-card>
+  </div>
+
+  <!-- Filtros + Calendário lado a lado -->
+  <div class="flex flex-row gap-1 mx-2 mb-1 flex-shrink-0" style="display: flex !important; flex-direction: row !important;">
+    <!-- Filtros -->
+    <mat-card class="shadow-sm dark:bg-gray-800 flex-shrink-0" style="width: 200px; min-width: 200px; max-width: 200px; border: 2px solid #e5e7eb;">
+      <mat-card-header class="p-1 border-b border-gray-200 dark:border-gray-700">
+        <mat-card-title class="flex items-center gap-1 text-xs font-semibold text-gray-700 dark:text-gray-300">
+          <mat-icon class="text-sm" color="primary">filter_list</mat-icon>
+          <span>Filtros</span>
+        </mat-card-title>
+      </mat-card-header>
+      <mat-card-content class="px-1 py-0">
+        <form [formGroup]="filtroForm" class="flex flex-col gap-1">
+          <mat-form-field appearance="outline" class="w-full dense">
+            <mat-label class="text-xs">Mês</mat-label>
+            <mat-select formControlName="mes" class="text-xs">
+              <mat-option *ngFor="let mes of meses" [value]="mes.valor">{{mes.nome}}</mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="w-full dense">
+            <mat-label class="text-xs">Ano</mat-label>
+            <mat-select formControlName="ano" class="text-xs">
+              <mat-option *ngFor="let ano of anos" [value]="ano">{{ano}}</mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <button mat-stroked-button color="primary" (click)="limparFiltros()" class="w-full text-xs py-0">
+            <mat-icon class="text-sm">clear_all</mat-icon> Limpar
+          </button>
+        </form>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Calendário -->
+    <mat-card class="shadow-sm dark:bg-gray-800" style="flex: 1; min-width: 0; border: 2px solid #e5e7eb;">
+      <mat-card-header class="p-1 border-b border-gray-200 dark:border-gray-700">
+        <mat-card-title class="flex items-center gap-1 text-xs font-semibold text-gray-700 dark:text-gray-300">
+          <mat-icon class="text-sm" color="primary">calendar_month</mat-icon>
+          <span>Calendário</span>
+        </mat-card-title>
+      </mat-card-header>
+      <mat-card-content class="px-1 py-0">
+        <div class="calendar-grid-compact mx-auto">
+          <div class="calendar-weekdays-compact">
+            <div *ngFor="let day of ['D','S','T','Q','Q','S','S']">{{day}}</div>
+          </div>
+          <div class="calendar-days-compact">
+            <div *ngFor="let dia of dias"
+                 class="calendar-day-compact"
+                 [class.weekend]="dia.isWeekend"
+                 [class.preferencia]="dia.selecionado"
+                 [class.preferencia-original]="dia.isPreferencia && !dia.selecionado"
+                 (click)="toggleDia(dia)">
+              {{dia.dia}}
+            </div>
+          </div>
+        </div>
+
+        <div class="flex gap-1 mt-1 justify-end" style="display: flex; justify-content: flex-end; align-items: center;">
+          <button mat-raised-button color="primary" (click)="salvarPreferencias()" [disabled]="loading" class="text-xs py-0 min-w-[80px]">
+            <mat-icon class="text-sm">save</mat-icon> Salvar
+          </button>
+          <button mat-stroked-button (click)="resetarSelecao()" [disabled]="loading" class="text-xs py-0 min-w-[80px]">
+            <mat-icon class="text-sm">undo</mat-icon> Desfazer
+          </button>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  <!-- Área rolável com tabelas -->
+  <div class="flex-1 overflow-y-auto px-2 pb-2">
+    <div class="preferencias-side-by-side grid grid-cols-1 md:grid-cols-2 gap-2">
+      <!-- Minhas Preferências -->
+      <mat-card class="shadow-sm dark:bg-gray-800 flex flex-col" style="max-height: 320px;">
+        <mat-card-header class="p-2 pb-0 flex-shrink-0">
+          <mat-card-title class="flex items-center gap-1 text-xs font-semibold text-gray-700 dark:text-gray-300">
+            <mat-icon class="text-sm" color="primary">list</mat-icon>
+            <span>Minhas Preferências</span>
+            <span class="ml-auto bg-primary text-white text-xs px-2 py-0.5 rounded-full">{{minhasPreferencias?.length || 0}}</span>
+          </mat-card-title>
+        </mat-card-header>
+        <mat-card-content class="flex-1 overflow-y-auto p-0">
+          <div *ngIf="!minhasPreferencias || minhasPreferencias.length === 0" class="text-center py-6 text-gray-500 dark:text-gray-400 text-xs">
+            <mat-icon class="text-4xl opacity-40">event_busy</mat-icon>
+            <p>Nenhuma preferência cadastrada</p>
+          </div>
+
+          <table mat-table [dataSource]="minhasPreferencias || []" class="w-full dense-table"
+                 *ngIf="minhasPreferencias?.length > 0">
+
+            <!-- Coluna Data Folga -->
+            <ng-container matColumnDef="dataFolga">
+              <th mat-header-cell *matHeaderCellDef>Data</th>
+              <td mat-cell *matCellDef="let p">
+                {{formatarData(p.dataFolga)}} ({{getDiaSemana(p.dataFolga)}})
+              </td>
+            </ng-container>
+
+            <!-- Coluna Data Criação -->
+            <ng-container matColumnDef="dataCriacao">
+              <th mat-header-cell *matHeaderCellDef>Criação</th>
+              <td mat-cell *matCellDef="let p">
+                {{p.dataCriacao ? formatarDataHora(p.dataCriacao) : '—'}}
+              </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="colunasMinhas"></tr>
+            <tr mat-row *matRowDef="let row; columns: colunasMinhas;"></tr>
+          </table>
+        </mat-card-content>
+      </mat-card>
+
+      <!-- Todas as Preferências -->
+      <mat-card class="shadow-sm dark:bg-gray-800 flex flex-col" style="max-height: 320px;">
+        <mat-card-header class="p-2 pb-0 flex-shrink-0">
+          <mat-card-title class="flex items-center gap-1 text-xs font-semibold text-gray-700 dark:text-gray-300">
+            <mat-icon class="text-sm" color="primary">people</mat-icon>
+            <span>Todas Preferências</span>
+            <span class="ml-auto bg-primary text-white text-xs px-2 py-0.5 rounded-full">{{todasPreferencias?.length || 0}}</span>
+          </mat-card-title>
+        </mat-card-header>
+        <mat-card-content class="flex-1 overflow-y-auto p-0">
+          <div *ngIf="!todasPreferencias || todasPreferencias.length === 0" class="text-center py-6 text-gray-500 dark:text-gray-400 text-xs">
+            <mat-icon class="text-4xl opacity-40">people_outline</mat-icon>
+            <p>Nenhuma preferência encontrada</p>
+          </div>
+
+          <table mat-table [dataSource]="todasPreferencias || []" class="w-full dense-table"
+                 *ngIf="todasPreferencias?.length > 0">
+
+            <!-- Coluna Funcionário -->
+            <ng-container matColumnDef="idUsuario">
+              <th mat-header-cell *matHeaderCellDef>Funcionário</th>
+              <td mat-cell *matCellDef="let p">
+                {{getNomeUsuario(p.idUsuario) || '—'}}
+              </td>
+            </ng-container>
+
+            <!-- Coluna Data Folga -->
+            <ng-container matColumnDef="dataFolga">
+              <th mat-header-cell *matHeaderCellDef>Data</th>
+              <td mat-cell *matCellDef="let p">
+                {{formatarData(p.dataFolga)}}
+              </td>
+            </ng-container>
+
+            <!-- Coluna Data Criação -->
+            <ng-container matColumnDef="dataCriacao">
+              <th mat-header-cell *matHeaderCellDef>Criação</th>
+              <td mat-cell *matCellDef="let p">
+                {{p.criadoEm ? formatarDataHora(p.criadoEm) : '—'}}
+              </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="colunasTodas"></tr>
+            <tr mat-row *matRowDef="let row; columns: colunasTodas;"></tr>
+          </table>
+        </mat-card-content>
+      </mat-card>
+    </div>
+
+    <!-- Dicas / Informações -->
+    <mat-card class="mt-2 shadow-sm dark:bg-gray-800">
+      <mat-card-content class="p-3 text-xs text-gray-600 dark:text-gray-400">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div class="flex items-start gap-2">
+            <mat-icon class="text-blue-500">help_outline</mat-icon>
+            <span>Clique nos dias do calendário para marcar/desmarcar preferências</span>
+          </div>
+          <div class="flex items-start gap-2">
+            <mat-icon class="text-yellow-500">warning</mat-icon>
+            <span>As preferências são apenas sugestões e podem não ser atendidas</span>
+          </div>
+          <div class="flex items-start gap-2">
+            <mat-icon class="text-green-500">lightbulb_outline</mat-icon>
+            <span>Use os filtros acima para mudar o mês/ano exibido</span>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  <!-- Overlay de loading -->
+  <div *ngIf="loading" class="absolute inset-0 bg-black/30 flex items-center justify-center z-50">
+    <mat-spinner diameter="48"></mat-spinner>
+  </div>
+</div>

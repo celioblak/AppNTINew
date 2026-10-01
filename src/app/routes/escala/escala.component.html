@@ -4,34 +4,58 @@
     <div class="header-title">
       <h2>Escala de Plantão - {{ getNomeMes() }}/{{ ano }}</h2>
       <p class="subtitle">Controle de escala mensal de plantões</p>
-
-      <!-- Status da Escala - Só mostra quando a escala existe ////
-      <div *ngIf="escala && !escalaNaoExiste" class="escala-status">
-        <span class="status-badge" [class.publicada]="escala.publicado" [class.rascunho]="!escala.publicado">
-          {{ escala.publicado ? '📢 PUBLICADA' : '📝 RASCUNHO' }}
-        </span>
-        <span *ngIf="!escalaNaoExiste && isEscalaPublicada()" class="status-publicada">
-          ✅ Publicada (visível para todos)
-        </span>
-        <span *ngIf="escala.criadoEm" class="criacao-info">
-          Criada em: {{ escala.criadoEm | date:'dd/MM/yyyy HH:mm' }}
-        </span>
-      </div>-->
     </div>
-    <div class="header-controls">
+    <div class="header-controls" *ngIf="permissoesConfigurada">
       <button (click)="mesAnterior()" class="btn-nav">‹ Anterior</button>
       <button (click)="proximoMes()" class="btn-nav">Próximo ›</button>
+
+      <!-- Botão para ocultar/exibir cards de tipos -->
+      <button (click)="toggleTipos()" class="btn-toggle-tipos" [title]="mostrarTipos ? 'Ocultar tipos' : 'Mostrar tipos'">
+        {{ mostrarTipos ? '👁️ Ocultar Tipos' : '👁️ Mostrar Tipos' }}
+      </button>
+
+      <!-- Checkbox para filtrar não plantonistas -->
+      <label class="checkbox-filtro" title="Marque para ocultar usuários que não são plantonistas">
+        <input type="checkbox"
+               [(ngModel)]="ocultarNaoPlantonistas"
+               (change)="aplicarFiltroFuncionarios()">
+        <span class="checkbox-label">📋 Apenas Plantonistas</span>
+      </label>
+
+      <!-- NOVO BOTÃO: Gerar Imagem -->
+      <button (click)="gerarImagem()" class="btn-imagem" [disabled]="capturandoImagem">
+        📸 {{ capturandoImagem ? 'Gerando...' : 'Gerar Imagem' }}
+      </button>
+
+      <!-- NOVO BOTÃO: Histórico -->
+      <button (click)="abrirHistorico()" class="btn-historico" title="Ver histórico de ponte e plantões únicos (12 meses)">
+        📋 Histórico
+      </button>
+
+      <!-- BOTÃO: Log de Alterações (só quando escala está publicada) -->
+      <button *ngIf="!escalaNaoExiste && isEscalaPublicada()"
+              (click)="abrirLogAlteracoes()"
+              class="btn-log"
+              title="Ver log de alterações realizadas após publicação">
+        📝 Log de Alterações
+        <span *ngIf="logTotalAlteracoes > 0" class="log-badge">{{ logTotalAlteracoes }}</span>
+      </button>
 
       <!-- Total de plantões - Só mostra quando a escala existe -->
       <span *ngIf="!escalaNaoExiste" class="total-plantones">Total: {{ getTotalPlantoes() }} plantões</span>
 
       <!-- Controles de Publicação - Só mostra quando a escala existe -->
       <button *ngIf="!escalaNaoExiste && podeCriar() && !isEscalaPublicada()"
-        (click)="publicarEscala()"
+        (click)="validarEPublicar()"
         class="btn-publicar"
-        [disabled]="loading">
+        [disabled]="loading || temConflitosFeriasPlantao()">
         📢 Publicar Escala
       </button>
+
+      <!-- Alerta de conflitos -->
+      <div *ngIf="!escalaNaoExiste && temConflitosFeriasPlantao()" class="alerta-conflitos">
+        ⚠️ {{ getQuantidadeConflitos() }} conflito(s): Plantão durante férias
+      </div>
 
       <button *ngIf="!escalaNaoExiste && podeCriar() && isEscalaPublicada()"
               (click)="reverterPublicacao()"
@@ -52,32 +76,43 @@
     <p>Carregando escala...</p>
   </div>
 
-  <!-- Mensagem de Erro - Só mostra quando há erro e não é "escala não encontrada" -->
+  <!-- Mensagem de Erro -->
   <div *ngIf="erro && !escalaNaoExiste" class="error-state">
     <p>❌ {{ erro }}</p>
     <button (click)="limparErro()" class="btn-limpar">Fechar</button>
   </div>
 
-  <!-- Mensagem de Escala Não Encontrada - Só mostra quando realmente não existe -->
-  <div *ngIf="!loading && escalaNaoExiste" class="escala-nao-encontrada">
+    <!-- Permissões Não Encontrada -->
+  <div *ngIf="!permissoesConfigurada && !loading" class="escala-nao-encontrada">
+    <div class="empty-state">
+      <div class="empty-icon">❌</div>
+      <h3>Permissões não configurada</h3>
+      <p>Não existe permissões configurada para seu usuario</p>
+    </div>
+  </div>
+
+  <!-- Mensagem de Escala Não Encontrada -->
+  <div *ngIf="!loading && escalaNaoExiste && permissoesConfigurada" class="escala-nao-encontrada">
     <div class="empty-state">
       <div class="empty-icon">📅</div>
       <h3>Escala Não Encontrada</h3>
       <p>Não existe escala disponível ou publicada para {{ getNomeMes() }}/{{ ano }}</p>
 
-      <div class="empty-actions" *ngIf="usuarioPodeGerarEscala">
+    @if (podeCriar()) {
+      <div class="empty-actions">
         <button (click)="gerarEscala()" class="btn-gerar-escala" [disabled]="loading">
           🚀 Gerar Escala para {{ getNomeMes() }}/{{ ano }}
         </button>
       </div>
-
-      <div class="empty-actions" *ngIf="!usuarioPodeGerarEscala">
+    }@else{
+       <div class="empty-actions">
         <p class="no-permission">Você não tem permissão para gerar escalas. Entre em contato com o administrador.</p>
       </div>
+    }
     </div>
   </div>
 
-  <!-- Conteúdo Principal (Só mostra quando a escala existe e está carregada) -->
+  <!-- Conteúdo Principal -->
   <div *ngIf="!loading && !escalaNaoExiste && vistaEscala" class="main-content">
     <!-- Tabela da Escala -->
     <div class="table-container">
@@ -114,12 +149,15 @@
           <ng-container *ngIf="getFuncionariosOrdenados().length > 0; else noFuncionarios">
             <tr *ngFor="let funcionario of getFuncionariosOrdenados(); let i = index"
                 class="linha-funcionario"
-                [class.par]="i % 2 === 0">
+                [class.par]="i % 2 === 0"
+                [class.selecionada]="funcionarioSelecionadoId === funcionario.id">
 
-              <td class="col-funcionario">
+              <td class="col-funcionario"
+                  (click)="selecionarFuncionario(funcionario.id)"
+                  [title]="'Clique para selecionar ' + funcionario.nome">
                 <div class="funcionario-info">
                   <span class="nome-funcionario" [title]="funcionario.nome">
-                    {{ funcionario.nome }}
+                     {{ funcionario.matricula }} - {{ funcionario.nome }}
                   </span>
                   <span class="contador-plantones"
                         [title]="'Total de plantões: ' + getQuantidadePlantoesFuncionario(funcionario.id)">
@@ -139,27 +177,37 @@
                   (drop)="onDropPlantao($event, funcionario.id, dia)"
                   (dragover)="onDragOver($event)"
                   (dragenter)="onDragEnter($event)"
-                  (dragleave)="onDragLeave($event)">
+                  (dragleave)="onDragLeave($event)"
+                  (click)="tocarCelula(funcionario, dia)">
 
-                <!-- ✅ MELHORADO: Indicador de Preferência de Folga (sempre visível quando há preferência) -->
+                <!-- ✅ Indicador de Preferência de Folga (sempre visível quando há preferência) -->
                 <div *ngIf="temPreferenciaFolga(funcionario.id, dia)"
                      class="preferencia-indicator"
-                     [class.com-plantao]="getPlantao(funcionario.id, dia)"
-                     [class.sem-plantao]="!getPlantao(funcionario.id, dia)"
+                     [class.com-plantao]="getPlantao(funcionario.id, dia) || getAusencia(funcionario.id, dia)"
+                     [class.sem-plantao]="!getPlantao(funcionario.id, dia) && !getAusencia(funcionario.id, dia)"
                      [title]="getPlantao(funcionario.id, dia)
                        ? '⭐ ATENÇÃO: Funcionário está de PLANTÃO em sua preferência de FOLGA!'
-                       : '⭐ Preferência de Folga marcada pelo funcionário'">
+                       : (getAusencia(funcionario.id, dia)
+                         ? '⭐ ATENÇÃO: Funcionário está de AUSÊNCIA em sua preferência de FOLGA!'
+                         : '⭐ Preferência de Folga marcada pelo funcionário')">
                   <span class="preferencia-icon">⭐</span>
                 </div>
 
-                <!-- Plantão existente -->
+                <!-- Plantão existente (NÃO em férias) -->
                 <div *ngIf="getPlantao(funcionario.id, dia) as plantao"
-                     class="plantao"
-                     [style.background-color]="getCorPlantao(plantao.idTipoPlantao)"
-                     [title]="getTooltipPlantao(plantao.idTipoPlantao)"
-                     draggable="true"
-                     (dragstart)="onDragStart($event, plantao, funcionario.id, dia)"
-                     (dragend)="onDragEnd($event)">
+                      [ngClass]="{'plantao': true, 'plantao-em-ferias': estaDeFerias(funcionario.id, dia)}"
+                      [style.background-color]="getCorPlantao(plantao.idTipoPlantao)"
+                      [title]="estaDeFerias(funcionario.id, dia)
+                        ? '⚠️ CONFLITO: Plantão durante FÉRIAS! Remova antes de publicar - ' + getTooltipPlantao(plantao.idTipoPlantao)
+                        : getTooltipPlantao(plantao.idTipoPlantao) + ' - Duplo clique para editar'"
+                      draggable="true"
+                      (dragstart)="onDragStart($event, plantao, funcionario.id, dia)"
+                      (dragend)="onDragEnd($event)"
+                      (dblclick)="podeEditar() ? abrirSeletorPlantaoDialog(funcionario.id, dia, $event) : null"
+                      [class.draggable]="podeEditar()">
+
+                  <!-- Ícone de alerta para plantão durante férias -->
+                  <span *ngIf="estaDeFerias(funcionario.id, dia)" class="alerta-ferias">⚠️</span>
 
                   <div class="plantao-content">
                     <span class="tipo-plantao">{{ getExibicaoPlantao(plantao.idTipoPlantao) }}</span>
@@ -170,24 +218,50 @@
                           (click)="removerPlantao(plantao.id!, $event)">×</button>
                 </div>
 
+                <!-- Ausência -->
+                <div *ngIf="getAusencia(funcionario.id, dia) as ausencia"
+                      class="ausencia"
+                      [style.background-color]="getCorAusencia(ausencia.idTipoAusencia)"
+                      [title]="getTooltipAusencia(ausencia.idTipoAusencia) + ' - Duplo clique para editar'"
+                      draggable="true"
+                      (dragstart)="onDragStartAusencia($event, ausencia, funcionario.id, dia)"
+                      (dragend)="onDragEnd($event)"
+                      (dblclick)="podeEditar() ? abrirSeletorAusenciaDialog(funcionario.id, dia, $event) : null"
+                      [class.draggable]="podeEditar()">
+
+                    <div class="ausencia-content">
+                      <span class="sigla-ausencia">{{ getExibicaoAusencia(ausencia.idTipoAusencia) }}</span>
+                    </div>
+
+                    <button *ngIf="ausencia.id && podeExcluir()"
+                            class="remover"
+                            (click)="removerAusencia(ausencia.id!, $event)">×</button>
+                  </div>
+
                 <!-- Célula vazia (pode adicionar plantão) -->
-                <div *ngIf="!getPlantao(funcionario.id, dia) && !estaDeFerias(funcionario.id, dia)"
+                <div *ngIf="!getPlantao(funcionario.id, dia) && !estaDeFerias(funcionario.id, dia) && !temAusencia(funcionario.id, dia)"
                      class="vazio"
-                     title="Clique ou arraste para adicionar plantão">
+                     title="Duplo clique ou arraste para adicionar plantão"
+                     (dblclick)="abrirSeletorPlantaoDialog(funcionario.id, dia, $event)">
                   <span class="texto-vazio">-</span>
+                      <div class="acoes-celula">
+                        <button class="btn-mini btn-plantao"
+                                (click)="abrirSeletorPlantaoDialog(funcionario.id, dia, $event)"
+                                title="Adicionar Plantão">
+                          P
+                        </button>
+                        <button class="btn-mini btn-ausencia"
+                                (click)="abrirSeletorAusenciaDialog(funcionario.id, dia, $event)"
+                                title="Marcar Ausência/Folga">
+                          A
+                        </button>
+                      </div>
                 </div>
 
                 <!-- Indicador de Férias (sem plantão) -->
-                <div *ngIf="estaDeFerias(funcionario.id, dia) && !getPlantao(funcionario.id, dia)"
+                <div *ngIf="estaDeFerias(funcionario.id, dia) && !getPlantao(funcionario.id, dia) && !getAusencia(funcionario.id, dia)"
                      class="ferias-indicator"
                      [title]="'Férias: ' + getTitleCelula(funcionario.id, dia)">
-                  <span class="ferias-texto">FÉRIAS</span>
-                </div>
-
-                <!-- Plantão durante férias (conflito) -->
-                <div *ngIf="estaDeFerias(funcionario.id, dia) && getPlantao(funcionario.id, dia)"
-                     class="ferias-indicator plantao-sobre-ferias"
-                     [title]="'ATENÇÃO: Plantão durante férias! ' + getTitleCelula(funcionario.id, dia)">
                   <span class="ferias-texto">FÉRIAS</span>
                 </div>
               </td>
@@ -205,9 +279,72 @@
       </table>
     </div>
 
-    <!-- Área Inferior com Resumo e Tipos de Plantão -->
+    <!-- Área Inferior reorganizada -->
     <div class="area-inferior">
-      <!-- Card de Resumo -->
+      <!-- Wrapper dos cards de tipos (visíveis apenas se mostrarTipos for true) -->
+      <div class="tipos-wrapper" *ngIf="mostrarTipos">
+        <!-- Card de Tipos de Ausência -->
+        <div class="tipos-ausencia card">
+          <div class="card-cabecalho">
+            <h3>🏖️ Tipos de Ausência/Folga</h3>
+            <span class="subtitulo">Arraste para a escala</span>
+          </div>
+          <div class="card-conteudo">
+            <div *ngIf="tiposAusencia.length > 0; else semTiposAusencia" class="grid-tipos">
+              <div *ngFor="let tipo of tiposAusencia"
+                  class="item-tipo-ausencia"
+                  [style.background-color]="tipo.cor"
+                  [title]="tipo.nome + (tipo.descricao ? ' - ' + tipo.descricao : '')"
+                  draggable="true"
+                  (dragstart)="onDragStartTipoAusencia($event, tipo)"
+                  (dragend)="onDragEnd($event)">
+
+                <!-- BADGE REMOVIDO -->
+                <div class="info-tipo">
+                  <span class="sigla-tipo">{{ tipo.sigla }}</span>
+                  <span class="nome-tipo-ausencia">{{ tipo.nome }}</span>
+                </div>
+              </div>
+            </div>
+
+            <ng-template #semTiposAusencia>
+              <div class="sem-tipos">Nenhum tipo de ausência configurado</div>
+            </ng-template>
+          </div>
+        </div>
+
+        <!-- Card de Tipos de Plantão -->
+        <div class="tipos-plantao card">
+          <div class="card-cabecalho">
+            <h3>📄 Tipos de Plantão</h3>
+            <span class="subtitulo">Arraste para a escala</span>
+          </div>
+          <div class="card-conteudo">
+            <div *ngIf="tiposPlantao.length > 0; else semTipos" class="grid-tipos">
+              <div *ngFor="let tipo of tiposPlantao"
+                   class="item-tipo"
+                   [style.background-color]="tipo.cor"
+                   [title]="tipo.nome + ' '+tipo.descricao + ' (' + getHorarioTipoPlantao(tipo) + ')'"
+                   draggable="true"
+                   (dragstart)="onDragStartTipo($event, tipo)"
+                   (dragend)="onDragEnd($event)">
+
+                <!-- BADGE REMOVIDO -->
+                <div class="info-tipo">
+                  <span class="nome-tipo">{{ tipo.nome }}</span>
+                  <span class="detalhes-tipo">{{ tipo.descricao }}</span>
+                </div>
+              </div>
+            </div>
+
+            <ng-template #semTipos>
+              <div class="sem-tipos">Nenhum tipo de plantão disponível</div>
+            </ng-template>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card de Resumo (sempre visível) -->
       <div class="resumo card">
         <div class="card-cabecalho">
           <h3>📊 Resumo da Escala</h3>
@@ -242,36 +379,11 @@
             <span class="rotulo">Total Plantões:</span>
             <span class="valor destaque">{{ getTotalPlantoes() }}</span>
           </div>
-        </div>
-      </div>
-
-      <!-- Card de Tipos de Plantão -->
-      <div class="tipos-plantao card">
-        <div class="card-cabecalho">
-          <h3>📄 Tipos de Plantão</h3>
-          <span class="subtitulo">Arraste para a escala</span>
-        </div>
-        <div class="card-conteudo">
-          <div *ngIf="tiposPlantao.length > 0; else semTipos" class="grid-tipos">
-            <div *ngFor="let tipo of tiposPlantao"
-                 class="item-tipo"
-                 [style.background-color]="tipo.cor"
-                 [title]="tipo.nome + ' (' + getHorarioTipoPlantao(tipo) + ')'"
-                 draggable="true"
-                 (dragstart)="onDragStartTipo($event, tipo)"
-                 (dragend)="onDragEnd($event)">
-
-              <div class="info-tipo">
-                <span class="nome-tipo">{{ tipo.nome }}</span>
-                <span class="detalhes-tipo">{{ getHorarioTipoPlantao(tipo) }}</span>
-              </div>
-              <div class="indicador-arraste">↓ Arraste</div>
-            </div>
+          <!-- ✅ NOVO: Contador de Conflitos -->
+          <div class="item-resumo" *ngIf="temConflitosFeriasPlantao()">
+            <span class="rotulo">⚠️ Conflitos:</span>
+            <span class="valor destaque" style="color: #dc3545;">{{ getQuantidadeConflitos() }}</span>
           </div>
-
-          <ng-template #semTipos>
-            <div class="sem-tipos">Nenhum tipo de plantão disponível</div>
-          </ng-template>
         </div>
       </div>
     </div>
@@ -290,4 +402,304 @@
       </div>
     </div>
   </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     PAINEL HISTÓRICO — slide-in lateral
+     Exibe últimos 12 meses com plantões ponte e plantões únicos sem férias
+════════════════════════════════════════════════════════════════════ -->
+
+<!-- Ações da célula em telas de toque (celular/tablet). No desktop acoesToque fica sempre null. -->
+<ng-container *ngIf="acoesToque as acao">
+  <div class="toque-overlay" (click)="fecharAcoesToque()"></div>
+  <div class="toque-painel" role="dialog" aria-label="Ações do dia na escala">
+    <div class="toque-cabecalho">
+      <strong class="toque-nome">{{ acao.nome }}</strong>
+      <span class="toque-dia">Dia {{ acao.dia }}/{{ mes }} ({{ getDiaSemana(acao.dia) }})</span>
+    </div>
+    <p class="toque-detalhes">{{ acao.detalhes }}</p>
+
+    <div class="toque-acoes">
+      <ng-container *ngIf="acao.tipo === 'vazio'">
+        <button type="button" class="toque-btn toque-plantao" (click)="executarAcaoToque('plantao')">📅 Adicionar plantão</button>
+        <button type="button" class="toque-btn toque-ausencia" (click)="executarAcaoToque('ausencia')">🏖️ Marcar ausência/folga</button>
+      </ng-container>
+
+      <ng-container *ngIf="acao.tipo === 'plantao'">
+        <button *ngIf="podeEditar()" type="button" class="toque-btn toque-plantao" (click)="executarAcaoToque('plantao')">✏️ Alterar plantão</button>
+        <button *ngIf="acao.id && podeExcluir()" type="button" class="toque-btn toque-remover" (click)="executarAcaoToque('remover')">🗑️ Remover plantão</button>
+      </ng-container>
+
+      <ng-container *ngIf="acao.tipo === 'ausencia'">
+        <button *ngIf="podeEditar()" type="button" class="toque-btn toque-ausencia" (click)="executarAcaoToque('ausencia')">✏️ Alterar ausência</button>
+        <button *ngIf="acao.id && podeExcluir()" type="button" class="toque-btn toque-remover" (click)="executarAcaoToque('remover')">🗑️ Remover ausência</button>
+      </ng-container>
+
+      <button type="button" class="toque-btn toque-fechar" (click)="acoesToque = null">Fechar</button>
+    </div>
+  </div>
+</ng-container>
+
+<!-- Overlay escuro -->
+<div class="historico-overlay"
+     *ngIf="historicoPainelAberto"
+     (click)="fecharHistorico()">
+</div>
+
+<!-- Painel lateral -->
+<div class="historico-painel" [class.aberto]="historicoPainelAberto">
+
+  <!-- Cabeçalho -->
+  <div class="historico-header">
+    <div class="historico-header-title">
+      <span class="historico-icon">📋</span>
+      <div>
+        <h3>Histórico de Plantões</h3>
+        <small>Últimos 12 meses</small>
+      </div>
+    </div>
+    <div class="historico-header-acoes">
+      <button class="btn-recarregar" (click)="recarregarHistorico()" title="Recarregar">🔄</button>
+      <button class="btn-fechar-painel" (click)="fecharHistorico()" title="Fechar">✕</button>
+    </div>
+  </div>
+
+
+  <!-- Loading -->
+  <div *ngIf="historicoCarregando" class="historico-loading">
+    <div class="spinner-mini"></div>
+    <span>Carregando 12 meses...</span>
+  </div>
+
+  <!-- Sem dados -->
+  <div *ngIf="!historicoCarregando && historicoItems.length === 0" class="historico-vazio">
+    <div class="vazio-icon">🔍</div>
+    <p>Nenhum registro encontrado nos últimos 12 meses.</p>
+  </div>
+
+  <!-- Contador / filtro rápido -->
+  <div *ngIf="!historicoCarregando && historicoItems.length > 0" class="historico-contador">
+    <button class="cnt cnt-ponte"
+            [class.ativo]="historicoFiltro === 'ponte'"
+            (click)="filtrarHistorico('ponte')"
+            title="Clique para filtrar somente pontes">
+      🌉 {{ getItensPorMotivo('ponte').length }} pontes
+    </button>
+    <button class="cnt cnt-unico"
+            [class.ativo]="historicoFiltro === 'unico_sem_ferias'"
+            (click)="filtrarHistorico('unico_sem_ferias')"
+            title="Clique para filtrar somente plantões únicos">
+      1️⃣ {{ getItensPorMotivo('unico_sem_ferias').length }} únicos
+    </button>
+    <span class="cnt-total">
+      {{ getItensFiltrados().length }}
+      <span *ngIf="historicoFiltro !== 'todos'"> / {{ historicoItems.length }}</span>
+      total
+      <button *ngIf="historicoFiltro !== 'todos'"
+              class="btn-limpar-filtro"
+              (click)="filtrarHistorico(historicoFiltro)"
+              title="Limpar filtro">✕</button>
+    </span>
+  </div>
+
+  <!-- Sugestões de próximo plantonista — só relevantes durante a confecção da escala -->
+  <div *ngIf="!historicoCarregando && historicoItems.length > 0 && !isEscalaPublicada()"
+       class="historico-sugestoes">
+
+    <!-- Sugestão Ponte -->
+    <div class="sugestao-bloco sugestao-ponte">
+      <div class="sugestao-titulo">🌉 Sugestão — Próximo Ponte</div>
+      <ng-container *ngIf="getSugestoes('ponte').length > 0; else semPlantonistaPonte">
+        <div class="sugestao-item"
+             *ngFor="let s of getSugestoes('ponte') | slice:0:3; let i = index"
+             [class.sugestao-primeiro]="i === 0">
+          <span class="sugestao-pos">{{ i + 1 }}º</span>
+          <div class="sugestao-info">
+            <span class="sugestao-nome">{{ s.nome }}</span>
+            <span class="sugestao-ultima">{{ s.ultimaVez }}</span>
+          </div>
+          <span *ngIf="i === 0" class="sugestao-badge-next">PRÓXIMO</span>
+        </div>
+        <div *ngIf="getSugestoes('ponte').length > 3" class="sugestao-mais">
+          + {{ getSugestoes('ponte').length - 3 }} na fila
+        </div>
+      </ng-container>
+      <ng-template #semPlantonistaPonte>
+        <div class="sugestao-vazio">Nenhum plantonista encontrado</div>
+      </ng-template>
+    </div>
+
+    <!-- Sugestão Único -->
+    <div class="sugestao-bloco sugestao-unico">
+      <div class="sugestao-titulo">1️⃣ Sugestão — Próximo Único</div>
+      <ng-container *ngIf="getSugestoes('unico_sem_ferias').length > 0; else semPlantonista">
+        <div class="sugestao-item"
+             *ngFor="let s of getSugestoes('unico_sem_ferias') | slice:0:3; let i = index"
+             [class.sugestao-primeiro]="i === 0">
+          <span class="sugestao-pos">{{ i + 1 }}º</span>
+          <div class="sugestao-info">
+            <span class="sugestao-nome">{{ s.nome }}</span>
+            <span class="sugestao-ultima">{{ s.ultimaVez }}</span>
+          </div>
+          <span *ngIf="i === 0" class="sugestao-badge-next">PRÓXIMO</span>
+        </div>
+        <div *ngIf="getSugestoes('unico_sem_ferias').length > 3" class="sugestao-mais">
+          + {{ getSugestoes('unico_sem_ferias').length - 3 }} na fila
+        </div>
+      </ng-container>
+      <ng-template #semPlantonista>
+        <div class="sugestao-vazio">Nenhum plantonista encontrado</div>
+      </ng-template>
+    </div>
+
+  </div>
+  <div *ngIf="!historicoCarregando && historicoItems.length > 0" class="historico-lista">
+    <ng-container *ngFor="let mesGrupo of getMesesHistorico()">
+      <div class="historico-grupo-mes">
+
+        <!-- Título do mês -->
+        <div class="historico-mes-titulo">
+          <span class="mes-nome">📅 {{ mesGrupo }}</span>
+          <span class="mes-badges">
+            <span *ngIf="getItensPorMesEMotivo(mesGrupo, 'ponte').length > 0" class="ms-badge-p">
+              🌉 {{ getItensPorMesEMotivo(mesGrupo, 'ponte').length }}
+            </span>
+            <span *ngIf="getItensPorMesEMotivo(mesGrupo, 'unico_sem_ferias').length > 0" class="ms-badge-u">
+              1️⃣ {{ getItensPorMesEMotivo(mesGrupo, 'unico_sem_ferias').length }}
+            </span>
+          </span>
+        </div>
+
+        <!-- ── Bloco PONTE ── -->
+        <ng-container *ngIf="getItensPorMesEMotivo(mesGrupo, 'ponte').length > 0">
+          <div class="bloco-tipo bloco-ponte">
+            <div class="bloco-tipo-header">
+              <span class="bloco-icone">🌉</span>
+              <span class="bloco-titulo">Plantão Ponte</span>
+            </div>
+            <div class="historico-item item-ponte"
+                 *ngFor="let item of getItensPorMesEMotivo(mesGrupo, 'ponte')">
+              <div class="item-info">
+                <span class="item-nome">{{ item.nome }}</span>
+                <span class="item-detalhe">Dia {{ item.dia }} &bull; {{ item.tipoPlantao }}</span>
+              </div>
+            </div>
+          </div>
+        </ng-container>
+
+        <!-- ── Bloco ÚNICO ── -->
+        <ng-container *ngIf="getItensPorMesEMotivo(mesGrupo, 'unico_sem_ferias').length > 0">
+          <div class="bloco-tipo bloco-unico">
+            <div class="bloco-tipo-header">
+              <span class="bloco-icone">1️⃣</span>
+              <span class="bloco-titulo">Único na Escala</span>
+            </div>
+            <div class="historico-item item-unico"
+                 *ngFor="let item of getItensPorMesEMotivo(mesGrupo, 'unico_sem_ferias')">
+              <div class="item-info">
+                <span class="item-nome">{{ item.nome }}</span>
+                <span class="item-detalhe">Dia {{ item.dia }} &bull; {{ item.tipoPlantao }}</span>
+              </div>
+            </div>
+          </div>
+        </ng-container>
+
+      </div>
+    </ng-container>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- PAINEL LATERAL — LOG DE ALTERAÇÕES PÓS-PUBLICAÇÃO      -->
+<!-- ═══════════════════════════════════════════════════════ -->
+
+<!-- Overlay -->
+<div class="historico-overlay" *ngIf="logPainelAberto" (click)="fecharLogAlteracoes()"></div>
+
+<!-- Painel -->
+<div class="historico-painel log-painel" [class.aberto]="logPainelAberto">
+
+  <div class="historico-header">
+    <div class="historico-header-title">
+      <span class="historico-icon">📝</span>
+      <div>
+        <h3>Log de Alterações</h3>
+        <small>Modificações após publicação da escala</small>
+      </div>
+    </div>
+    <div class="historico-header-acoes">
+      <button class="btn-recarregar" (click)="recarregarLogAlteracoes()" title="Recarregar">🔄</button>
+      <button class="btn-fechar-painel" (click)="fecharLogAlteracoes()" title="Fechar">✕</button>
+    </div>
+  </div>
+
+  <!-- Filtros -->
+  <div class="log-filtros" *ngIf="!logCarregando && logItens.length > 0">
+    <button class="cnt" [class.ativo]="logFiltroAcao === 'TODOS'"     (click)="logFiltroAcao = 'TODOS'">🔍 Todos ({{ logItens.length }})</button>
+    <button class="cnt" [class.ativo]="logFiltroAcao === 'ADICIONAR'" (click)="logFiltroAcao = 'ADICIONAR'">➕ Adições ({{ logContar('ADICIONAR') }})</button>
+    <button class="cnt" [class.ativo]="logFiltroAcao === 'ALTERAR'"   (click)="logFiltroAcao = 'ALTERAR'">✏️ Alterações ({{ logContar('ALTERAR') }})</button>
+    <button class="cnt" [class.ativo]="logFiltroAcao === 'REMOVER'"   (click)="logFiltroAcao = 'REMOVER'">🗑️ Remoções ({{ logContar('REMOVER') }})</button>
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="logCarregando" class="historico-loading">
+    <div class="spinner-mini"></div>
+    <span>Carregando log...</span>
+  </div>
+
+  <!-- Vazio -->
+  <div *ngIf="!logCarregando && logItens.length === 0" class="historico-vazio">
+    <div class="vazio-icon">✅</div>
+    <p>Nenhuma alteração registrada após a publicação.</p>
+  </div>
+
+  <!-- Lista -->
+  <div class="historico-lista" *ngIf="!logCarregando && logItens.length > 0">
+    <div class="log-item"
+         *ngFor="let log of logItensFiltrados()"
+         [class.log-adicionar]="log.acao === 'ADICIONAR'"
+         [class.log-alterar]="log.acao === 'ALTERAR'"
+         [class.log-remover]="log.acao === 'REMOVER'">
+
+      <!-- Linha 1: ação + data/hora -->
+      <div class="log-item-header">
+        <span class="log-acao-badge">
+          {{ log.acao === 'ADICIONAR' ? '➕ Adicionado' : log.acao === 'ALTERAR' ? '✏️ Alterado' : '🗑️ Removido' }}
+        </span>
+        <span class="log-data">🕐 {{ formatarLogData(log.alteradoEm) }}</span>
+      </div>
+
+      <!-- Linha 2: quem executou -->
+      <div class="log-por">
+        <span class="log-label">Executado por:</span>
+        <strong>{{ getNomeFuncionarioPorId(log.alteradoPor) }}</strong>
+      </div>
+
+      <!-- Linha 3: diff -->
+      <div class="log-descricao" *ngIf="log.acao === 'ALTERAR'">
+        <div class="log-diff-linha log-antes">
+          <span class="diff-seta">◀ Antes:</span>
+          <span class="diff-valor">{{ formatarLogSnapshot(log.valorAntigo) }}</span>
+        </div>
+        <div class="log-diff-linha log-depois">
+          <span class="diff-seta">▶ Depois:</span>
+          <span class="diff-valor">{{ formatarLogSnapshot(log.valorNovo) }}</span>
+        </div>
+      </div>
+      <div class="log-descricao" *ngIf="log.acao === 'ADICIONAR'">
+        <div class="log-diff-linha log-depois">
+          <span class="diff-seta">▶ Plantão:</span>
+          <span class="diff-valor">{{ formatarLogSnapshot(log.valorNovo) }}</span>
+        </div>
+      </div>
+      <div class="log-descricao" *ngIf="log.acao === 'REMOVER'">
+        <div class="log-diff-linha log-antes">
+          <span class="diff-seta">◀ Removido:</span>
+          <span class="diff-valor">{{ formatarLogSnapshot(log.valorAntigo) }}</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
 </div>

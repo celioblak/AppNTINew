@@ -1,0 +1,188 @@
+<div class="pagina">
+  @if (carregando()) {
+    <mat-progress-bar mode="indeterminate" />
+  }
+
+  @let r = resumo();
+  <div class="resumo">
+    <span><b>{{ r.sistemas }}</b> sistemas ativos</span>
+    <span [class.alerta]="r.fora > 0"><b>{{ r.fora }}</b> fora do ar</span>
+    <span [class.aviso]="r.parciais > 0"><b>{{ r.parciais }}</b> parciais</span>
+    <span [class.aviso]="r.pendencias > 0"><b>{{ r.pendencias }}</b> pendências</span>
+    <span class="espaco"></span>
+    <button mat-icon-button matTooltip="Atualizar" (click)="carregar()"><mat-icon>refresh</mat-icon></button>
+    <button mat-flat-button (click)="novoSistema()"><mat-icon>add</mat-icon> Novo sistema</button>
+  </div>
+
+  <div class="corpo">
+    <!-- ───── Lista ───── -->
+    <aside class="lista">
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-icon matPrefix>search</mat-icon>
+        <mat-label>Pesquisar</mat-label>
+        <input matInput [ngModel]="filtro()" (ngModelChange)="filtro.set($event)" placeholder="Sistema, versão, serviço, servidor..." />
+      </mat-form-field>
+      <div class="chaves">
+        <mat-slide-toggle [checked]="soPendencias()" (change)="soPendencias.set($event.checked)">Com pendências</mat-slide-toggle>
+        <mat-slide-toggle [checked]="mostrarInativos()" (change)="mostrarInativos.set($event.checked)">Inativos</mat-slide-toggle>
+      </div>
+
+      <div class="itens">
+        @for (s of filtrados(); track s.codSistema) {
+          <button class="item {{ classeSistema(pior(s)) }}" [class.item--ativo]="s.codSistema === selecionado()" [class.item--inativo]="!s.ativo"
+                  (click)="selecionar(s.codSistema)">
+            <i class="ponto"></i>
+            <b class="item__nome">{{ s.nome }}</b>
+            <span class="item__fim">
+              @if (s.pendencias) {
+                <span class="contador" matTooltip="Pendências a corrigir">{{ s.pendencias }}</span>
+              }
+            </span>
+            @if (s.ambientes.length) {
+              <span class="item__ambs">
+                @for (a of s.ambientes; track a.ambiente) {
+                  <span class="amb-sit {{ classeSistema(a.situacao) }}" [matTooltip]="rotuloSituacaoSistema[a.situacao] + ' · ' + a.detalhe">
+                    <i class="ponto"></i>{{ a.nomeAmbiente }} <small>{{ percentual(a.disponibilidade) }}</small>
+                  </span>
+                }
+              </span>
+            } @else {
+              <small class="item__info">Em nenhum ambiente</small>
+            }
+          </button>
+        } @empty {
+          <p class="vazio">Nenhum sistema atende aos filtros.</p>
+        }
+      </div>
+    </aside>
+
+    <!-- ───── Detalhe ───── -->
+    <section class="detalhe">
+      @if (atual(); as s) {
+        <header class="cabecalho sit--ok">
+          <mat-icon class="cabecalho__icone">apps</mat-icon>
+          <div class="cabecalho__titulo">
+            <h2>{{ s.nome }} @if (!s.ativo) { <span class="tag">Inativo</span> }</h2>
+            <span>{{ s.ambientes.length }} ambiente(s){{ s.trabalhaModulo ? ' · trabalha com módulos' : '' }}</span>
+          </div>
+          <button mat-stroked-button (click)="editarSistema(s)"><mat-icon>edit</mat-icon> Editar</button>
+          <button mat-icon-button matTooltip="Excluir sistema (só sem uso)" (click)="excluirSistema(s)"><mat-icon>delete</mat-icon></button>
+        </header>
+
+        <div class="ambientes__topo">
+          @if (ambientesParaIncluir().length) {
+            <button mat-stroked-button [matMenuTriggerFor]="menuAmbiente"><mat-icon>add</mat-icon> Incluir em ambiente</button>
+            <mat-menu #menuAmbiente="matMenu">
+              @for (amb of ambientesParaIncluir(); track amb.codigo) {
+                <button mat-menu-item (click)="incluirAmbiente(s, amb.codigo)">{{ amb.nome }}</button>
+              }
+            </mat-menu>
+          }
+        </div>
+
+        @if (!s.ambientes.length) {
+          <div class="vazio vazio--grande">
+            <mat-icon>layers</mat-icon>
+            <p>O sistema ainda não está em nenhum ambiente. Use "Incluir em ambiente" para registrar a versão e os serviços.</p>
+          </div>
+        } @else {
+          <mat-tab-group animationDuration="0ms" [selectedIndex]="aba()" (selectedIndexChange)="aba.set($event)">
+            @for (a of s.ambientes; track a.ambiente) {
+              <mat-tab>
+                <ng-template mat-tab-label>
+                  <span class="amb-sit {{ classeSistema(a.situacao) }}"><i class="ponto"></i>{{ a.nomeAmbiente }}</span>
+                </ng-template>
+
+                <div class="aba-ambiente">
+                  <div class="caixa {{ classeSistema(a.situacao) }}">
+                    <b>{{ rotuloSituacaoSistema[a.situacao] }}</b> — {{ a.detalhe }}
+                  </div>
+
+                  <div class="blocos">
+                    <article class="bloco">
+                      <h3><mat-icon>label</mat-icon> Versão instalada</h3>
+                      <div class="versao">
+                        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                          <mat-label>Versão</mat-label>
+                          <input matInput [ngModel]="versaoEditada(a)" (ngModelChange)="editarVersao(a, $event)" maxlength="100"
+                                 placeholder="2022.3.9.PATCHMHC-RC4" />
+                        </mat-form-field>
+                        <button mat-flat-button [disabled]="!versaoMudou(a)" (click)="salvarVersao(s, a)">Salvar</button>
+                      </div>
+                      @if (a.dataVersao) {
+                        <p class="nota">Registrada em {{ a.dataVersao | date: 'dd/MM/yyyy HH:mm' }}</p>
+                      }
+                    </article>
+                    <article class="bloco">
+                      <h3><mat-icon>timeline</mat-icon> Disponibilidade</h3>
+                      <button class="disp-grande" [class]="classeDisponibilidade(a.disponibilidade)" (click)="historico(a, s)"
+                              [matTooltip]="tooltipDisponibilidade(a.disponibilidade)">
+                        <b>{{ percentual(a.disponibilidade) }}</b> disponível em 30 dias <mat-icon inline>chevron_right</mat-icon>
+                      </button>
+                    </article>
+                  </div>
+
+                  @if (a.pendencias.length) {
+                    <div class="pendencias">
+                      @for (p of a.pendencias; track $index) {
+                        <div class="pendencia pendencia--{{ p.gravidade.toLowerCase() }}">
+                          <mat-icon>{{ iconePendencia(p) }}</mat-icon>
+                          <div><b>{{ p.mensagem }}</b>@if (p.orientacao) { <span> — {{ p.orientacao }}</span> }</div>
+                        </div>
+                      }
+                    </div>
+                  }
+
+                  <div class="servicos__topo">
+                    <h3>Serviços ({{ a.servicos.length }})</h3>
+                    <span class="espaco"></span>
+                    <button mat-stroked-button (click)="abrirVinculo(s, a, null)"><mat-icon>add</mat-icon> Incluir serviço</button>
+                  </div>
+                  <p class="nota">
+                    Camadas em série: se todos os essenciais de uma camada caem, o sistema fica fora. Na mesma camada, redundância (parte fora =
+                    parcial). Auxiliar fora = parcial.
+                  </p>
+                  <div class="servicos">
+                    @for (sv of a.servicos; track sv.codProcesso) {
+                      <article class="servico sit--{{ sv.situacao.toLowerCase() }}" [class.servico--off]="!sv.monitorado">
+                        <div class="servico__linha">
+                          <i class="ponto"></i>
+                          <div class="servico__nome">
+                            <b>{{ sv.nome }}</b>
+                            <small>{{ sv.tipo ?? 'sem tipo' }}{{ sv.monitorado ? '' : ' · não monitorado' }}</small>
+                          </div>
+                          <span class="camada" [matTooltip]="sv.camadaDefinida ? 'Definida no vínculo' : 'Padrão pelo papel do tipo'">
+                            {{ rotuloCamada[sv.camada] }}
+                          </span>
+                          <span class="marca" [class.marca--aux]="!sv.essencial">{{ sv.essencial ? 'Essencial' : 'Auxiliar' }}</span>
+                          <span class="servico__sit" [matTooltip]="sv.detalhe ?? ''">{{ rotuloSituacao[sv.situacao] }}</span>
+                          <button [class]="classeDisponibilidade(sv.disponibilidade)" [matTooltip]="tooltipDisponibilidade(sv.disponibilidade)"
+                                  (click)="historicoServico(sv)">
+                            {{ percentual(sv.disponibilidade) }}
+                          </button>
+                          <button mat-icon-button matTooltip="Camada e marca" (click)="abrirVinculo(s, a, sv)"><mat-icon>edit</mat-icon></button>
+                          <button mat-icon-button matTooltip="Tirar do sistema" (click)="desvincular(s, a, sv)"><mat-icon>link_off</mat-icon></button>
+                        </div>
+                      </article>
+                    } @empty {
+                      <p class="vazio">Nenhum serviço neste ambiente.</p>
+                    }
+                  </div>
+
+                  <div class="rodape">
+                    <button mat-button color="warn" (click)="excluirAmbiente(s, a)"><mat-icon>remove_circle_outline</mat-icon> Tirar o sistema de {{ a.nomeAmbiente }}</button>
+                  </div>
+                </div>
+              </mat-tab>
+            }
+          </mat-tab-group>
+        }
+      } @else {
+        <div class="vazio vazio--grande">
+          <mat-icon>apps</mat-icon>
+          <p>Escolha um sistema na lista.</p>
+        </div>
+      }
+    </section>
+  </div>
+</div>

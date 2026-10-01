@@ -1,6 +1,6 @@
 import { ClipboardModule } from '@angular/cdk/clipboard';
 import { CommonModule } from '@angular/common';
-import { Component, HostListener, Inject, inject, OnInit, TemplateRef, ViewChild } from '@angular/core';
+import { Component, ElementRef, HostListener, Inject, inject, OnInit, TemplateRef, ViewChild,ChangeDetectorRef } from '@angular/core';
 import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -18,12 +18,14 @@ import { MtxGridColumn, MtxGridModule } from '@ng-matero/extensions/grid';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MtxSelectModule } from '@ng-matero/extensions/select';
 import { ServidorService } from './servidor.service';
-import { ToastrService } from 'ngx-toastr';
-import { grupoServidor, Servidor, ServidorParamentroProcesso, ServidorProcesso } from '@core';
+import { grupoServidor, Servidor, ServidorParamentroProcesso, ServidorProcesso } from '@core/interface';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { FormlyFieldConfig, FormlyModule } from '@ngx-formly/core';
 import { ConfirmDialogComponent } from './confirm-dialog.component';
+import { HotToastService } from '@ngxpert/hot-toast';
+import { Router } from '@angular/router';
+
 
 @Component({
   selector: 'app-servidor',
@@ -56,15 +58,25 @@ import { ConfirmDialogComponent } from './confirm-dialog.component';
   styleUrl: './servidor.component.scss'
 })
 export class ServidorComponent implements OnInit {
-  private readonly toast = inject(ToastrService);
+  private readonly toast = inject(HotToastService);
   private readonly servidorService = inject(ServidorService);
   private readonly dialog = inject(MatDialog);
+  private readonly cdr = inject(ChangeDetectorRef);
+  private readonly router = inject(Router);
 
   list: Servidor[] = [];
+  listCompleta: Servidor[] = [];
+  apenasAtivos: boolean = true;
+  /** Texto do campo "Valor Pesquisa" — filtra por QUALQUER atributo do servidor (client-side). */
+  termoPesquisa: string = '';
   listProcesso: ServidorProcesso[] = [];
   listParamentro: ServidorParamentroProcesso[] = [];
   listGrupo: grupoServidor[] = [];
+  listTipoProcesso: any[] = [];
+  listTipoParametro: any[] = [];
   grupoSelecionado: grupoServidor = {};
+  /** Sentinel para opcao "TODOS" - sem codGrupoServidor, faz o filtro ignorar grupo */
+  todosGrupos: grupoServidor = {};
   servidorSelecionado: Servidor = {};
   processoSelecionado: ServidorProcesso = {};
   paramentroSelecionado: ServidorParamentroProcesso = {};
@@ -75,6 +87,7 @@ export class ServidorComponent implements OnInit {
   @ViewChild('statusAtivoTpl', { static: true }) statusAtivoTpl!: TemplateRef<any>;
   @ViewChild('statusProcessoTpl', { static: true }) statusProcessoTpl!: TemplateRef<any>;
   @ViewChild('statusMonitoramentoTpl', { static: true }) statusMonitoramentoTpl!: TemplateRef<any>;
+  @ViewChild('filterValue') filterValueRef?: ElementRef<HTMLInputElement>;
 
   isMobile = window.innerWidth < 768;
 
@@ -115,7 +128,7 @@ export class ServidorComponent implements OnInit {
     {
       header: 'Máquina',
       field: 'dsMaquina',
-      width: '130px',
+      width: '180px',
       resizable: true,
       formatter: (data: any) =>
         `<span class="label" title="${data?.dsMaquina || ''}">${data?.dsMaquina || ''}</span>`
@@ -252,8 +265,10 @@ export class ServidorComponent implements OnInit {
       field: 'dsParametro',
       width: '100%',
       resizable: false,
-      formatter: (data: any) =>
-        `<span class="label box" title="${data?.dsParametro || ''}">${data?.dsParametro || ''}</span>`
+      formatter: (data: any) => {
+        const label = this.formatTipoParametro(data?.dsParametro);
+        return `<span class="label box" title="${label}">${label}</span>`;
+      }
     },
     {
       header: 'Valor',
@@ -277,8 +292,10 @@ export class ServidorComponent implements OnInit {
       field: 'dsParametro',
       width: '150px',
       resizable: true,
-      formatter: (data: any) =>
-        `<span class="label box" title="${data?.dsParametro || ''}">${data?.dsParametro || ''}</span>`
+      formatter: (data: any) => {
+        const label = this.formatTipoParametro(data?.dsParametro);
+        return `<span class="label box" title="${label}">${label}</span>`;
+      }
     },
     {
       header: 'Valor',
@@ -302,37 +319,128 @@ export class ServidorComponent implements OnInit {
   }
 
   ngOnInit() {
+    this.grupoSelecionado = this.todosGrupos;
     this.search();
     this.buscarGrupos();
+    this.buscarTiposProcesso();
+    this.buscarTiposParametro();
   }
 
   buscarGrupos() {
     this.servidorService.carregarGrupos().subscribe(dadosGrupo => {
       this.listGrupo = dadosGrupo;
+      this.cdr.markForCheck();
     });
+  }
+
+  buscarTiposProcesso() {
+    this.servidorService.carregarTipoProcesso().subscribe(dados => {
+      this.listTipoProcesso = dados;
+      this.cdr.markForCheck();
+    });
+  }
+
+  buscarTiposParametro() {
+    this.servidorService.carregarTipoParametro().subscribe(dados => {
+      this.listTipoParametro = dados;
+      this.cdr.markForCheck();
+    });
+  }
+
+  formatTipoParametro(key: string): string {
+    if (!key) return '';
+    const tipo = this.listTipoParametro.find(t => t.key === key);
+    return tipo ? tipo.value : key;
   }
 
   search() {
     this.servidorService.carregarServidor().subscribe(dadosServidor => {
       this.listParamentro = [];
       this.listProcesso = [];
-      this.list = dadosServidor;
+      this.listCompleta = dadosServidor;
+      this.aplicarFiltroAtivos();
       this.resetarSelecoes();
+      this.cdr.markForCheck();
     });
   }
 
   searchFiltro(pesquisaInput: HTMLInputElement) {
-    if (pesquisaInput.value === "" && !this.grupoSelecionado.codGrupoServidor) {
-      this.search();
-      return;
+    // Filtro totalmente client-side sobre a lista já carregada (listCompleta),
+    // pesquisando em QUALQUER atributo do servidor.
+    this.termoPesquisa = pesquisaInput?.value ?? '';
+    this.aplicarFiltroAtivos();
+    this.resetarSelecoes();
+    this.cdr.markForCheck();
+  }
+
+  /**
+   * Recarrega os servidores do backend e reaplica os filtros atuais
+   * (grupo + texto + apenas ativos). Usar após operações de CRUD.
+   */
+  refresh() {
+    this.search();
+  }
+
+  /**
+   * Aplica, em sequência, os três filtros locais: grupo, "apenas ativos" e o
+   * termo de pesquisa (que casa com qualquer atributo do servidor).
+   * Mantém o nome antigo pois é chamado em vários pontos.
+   */
+  aplicarFiltroAtivos() {
+    let base = [...this.listCompleta];
+
+    const codGrupo = this.grupoSelecionado?.codGrupoServidor;
+    if (codGrupo) {
+      base = base.filter(s => s.grupoServidor?.codGrupoServidor === codGrupo);
     }
 
-    this.servidorService.carregarServidorfiltro(pesquisaInput.value, this.grupoSelecionado).subscribe(dadosServidor => {
-      this.listParamentro = [];
-      this.listProcesso = [];
-      this.list = dadosServidor;
-      this.resetarSelecoes();
-    });
+    if (this.apenasAtivos) {
+      base = base.filter(s => s.snAtivo);
+    }
+
+    const termo = (this.termoPesquisa ?? '').trim().toLowerCase();
+    if (termo) {
+      base = base.filter(s => this.servidorContemTermo(s, termo));
+    }
+
+    this.list = base;
+  }
+
+  /** Verdadeiro se algum valor (em qualquer profundidade) do servidor contém o termo. */
+  private servidorContemTermo(servidor: Servidor, termo: string): boolean {
+    const visitados = new Set<any>();
+
+    const percorre = (valor: any): boolean => {
+      if (valor == null) return false;
+
+      if (typeof valor === 'string') {
+        return valor.toLowerCase().includes(termo);
+      }
+      if (typeof valor === 'number') {
+        return String(valor).includes(termo);
+      }
+      if (typeof valor === 'boolean') {
+        const rotulos = valor ? ['sim', 'true', 'ativo'] : ['nao', 'não', 'false', 'inativo'];
+        return rotulos.some(r => r.includes(termo) || termo.includes(r));
+      }
+      if (valor instanceof Date) {
+        return valor.toLocaleString('pt-BR').toLowerCase().includes(termo);
+      }
+      if (typeof valor === 'object') {
+        if (visitados.has(valor)) return false;
+        visitados.add(valor);
+        return Object.values(valor).some(percorre);
+      }
+      return false;
+    };
+
+    return percorre(servidor);
+  }
+
+  onToggleApenasAtivos() {
+    this.aplicarFiltroAtivos();
+    this.resetarSelecoes();
+    this.cdr.markForCheck();
   }
 
   searchProcessos(serv: Servidor) {
@@ -341,6 +449,7 @@ export class ServidorComponent implements OnInit {
       this.processoSelecionado = {};
       this.listParamentro = [];
       this.paramentroSelecionado = {};
+      this.cdr.markForCheck();
     });
   }
 
@@ -348,6 +457,7 @@ export class ServidorComponent implements OnInit {
     this.servidorService.carregarProcessoParamentro(proc).subscribe(dadosParamentro => {
       this.listParamentro = dadosParamentro;
       this.paramentroSelecionado = {};
+      this.cdr.markForCheck();
     });
   }
 
@@ -364,6 +474,116 @@ export class ServidorComponent implements OnInit {
     } else if (type === 'parametro') {
       this.paramentroSelecionado = row;
     }
+
+    // Pinta a linha clicada para feedback visual consistente com a navegacao por teclado
+    if (event && event.event && event.event.target) {
+      const tr = (event.event.target as HTMLElement).closest('tr');
+      if (tr && tr.parentElement) {
+        const wrapper = tr.closest('.grid-wrapper') as HTMLElement | null;
+        if (wrapper) {
+          wrapper.querySelectorAll('tr.row-selected').forEach(el => el.classList.remove('row-selected'));
+          tr.classList.add('row-selected');
+        }
+      }
+    }
+  }
+
+  /**
+   * Aplica destaque na linha selecionada e faz scroll ate ela.
+   * Encontra a <tr> pelo INDICE dentro do wrapper, sem depender da
+   * mtx-grid suportar rowClassFormatter.
+   */
+  private highlightAndScrollRow(wrapper: HTMLElement, indice: number) {
+    // Aguarda Angular finalizar o ciclo de detecao
+    setTimeout(() => {
+      // Remove highlight de qualquer linha previamente marcada nesse wrapper
+      const previas = wrapper.querySelectorAll('tr.row-selected');
+      previas.forEach(el => el.classList.remove('row-selected'));
+
+      // Pega todas as <tr> de dados (ignora cabecalho thead)
+      const linhas = wrapper.querySelectorAll('tbody tr');
+      if (linhas.length === 0 || indice < 0 || indice >= linhas.length) {
+        return;
+      }
+
+      const alvo = linhas[indice] as HTMLElement;
+      alvo.classList.add('row-selected');
+
+      if (typeof alvo.scrollIntoView === 'function') {
+        alvo.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      }
+    }, 0);
+  }
+
+  /**
+   * Navegacao por teclado nas grids. Captura ArrowUp/ArrowDown e Home/End
+   * antes do navegador rolar a pagina, e move a selecao entre as linhas.
+   */
+  onGridKeyDown(event: KeyboardEvent, type: 'servidor' | 'processo' | 'parametro') {
+    const navKeys = ['ArrowDown', 'ArrowUp', 'Home', 'End'];
+    if (!navKeys.includes(event.key)) {
+      return;
+    }
+
+    let lista: any[];
+    let selecionado: any;
+    let chaveId: string;
+
+    if (type === 'servidor') {
+      lista = this.list;
+      selecionado = this.servidorSelecionado;
+      chaveId = 'codServidor';
+    } else if (type === 'processo') {
+      lista = this.listProcesso;
+      selecionado = this.processoSelecionado;
+      chaveId = 'codProcesso';
+    } else {
+      lista = this.listParamentro;
+      selecionado = this.paramentroSelecionado;
+      chaveId = 'codParametro';
+    }
+
+    if (!lista || lista.length === 0) {
+      return;
+    }
+
+    // Sempre preveni o scroll padrao quando a grid tem itens
+    event.preventDefault();
+
+    const indiceAtual = selecionado && selecionado[chaveId]
+      ? lista.findIndex(item => item[chaveId] === selecionado[chaveId])
+      : -1;
+
+    let novoIndice: number;
+
+    switch (event.key) {
+      case 'ArrowDown':
+        novoIndice = indiceAtual < 0 ? 0 : Math.min(indiceAtual + 1, lista.length - 1);
+        break;
+      case 'ArrowUp':
+        novoIndice = indiceAtual <= 0 ? 0 : indiceAtual - 1;
+        break;
+      case 'Home':
+        novoIndice = 0;
+        break;
+      case 'End':
+        novoIndice = lista.length - 1;
+        break;
+      default:
+        return;
+    }
+
+    if (novoIndice === indiceAtual) {
+      return;
+    }
+
+    // Reusa o mesmo fluxo do clique para manter consistencia (cascata de carregamento)
+    this.onRowClick({ rowData: lista[novoIndice] }, type);
+    this.cdr.markForCheck();
+
+    // Pinta e rola a linha (independente da versao da mtx-grid)
+    const wrapper = event.currentTarget as HTMLElement;
+    this.highlightAndScrollRow(wrapper, novoIndice);
   }
 
   // Métodos auxiliares
@@ -382,9 +602,13 @@ export class ServidorComponent implements OnInit {
 
   changeGrupo(event: any) {
     this.grupoSelecionado = event || {};
+    this.aplicarFiltroAtivos();
+    this.resetarSelecoes();
+    this.cdr.markForCheck();
   }
 
   changeSelectProcesso(event: any) {
+    console.log(event);
     if (event && event.length > 0) {
       this.processoSelecionado = event[0];
       this.searchParamentros(event[0]);
@@ -411,7 +635,7 @@ export class ServidorComponent implements OnInit {
 
     dialogRef.afterClosed().subscribe(result => {
       if (result && result !== 'cancelado') {
-        this.search();
+        this.refresh();
         this.toast.success('Servidor adicionado com sucesso!');
       }
     });
@@ -439,7 +663,7 @@ export class ServidorComponent implements OnInit {
 
     dialogRef.afterClosed().subscribe(result => {
       if (result && result !== 'cancelado') {
-        this.search();
+        this.refresh();
         this.toast.success('Servidor atualizado com sucesso!');
       }
     });
@@ -465,7 +689,7 @@ export class ServidorComponent implements OnInit {
         this.servidorService.deletarServidor(this.servidorSelecionado).subscribe({
           next: () => {
             this.toast.success('Servidor excluído com sucesso!');
-            this.search();
+            this.refresh();
           },
           error: (error) => {
             this.toast.error('Erro ao excluir servidor!');
@@ -476,6 +700,17 @@ export class ServidorComponent implements OnInit {
     });
   }
 
+  /** Abre Dispositivos > Terminal SSH já conectando no servidor selecionado. */
+  abrirTerminalSsh() {
+    if (!this.servidorSelecionado.codServidor) {
+      this.toast.warning('Selecione um servidor para abrir o terminal!');
+      return;
+    }
+    this.router.navigate(['/dispositivo/terminal-ssh'], {
+      queryParams: { servidor: this.servidorSelecionado.codServidor },
+    });
+  }
+
   openAddProcessoDialog() {
     if (!this.servidorSelecionado.codServidor) {
       this.toast.warning('Selecione um servidor primeiro!');
@@ -483,7 +718,7 @@ export class ServidorComponent implements OnInit {
     }
 
     const dialogRef = this.dialog.open(DialogProcessoComponent, {
-      data: { modo: 'adicionar', processo: {}, servidor: this.servidorSelecionado },
+      data: { modo: 'adicionar', processo: {}, servidor: this.servidorSelecionado, tiposProcesso: this.listTipoProcesso },
       maxWidth: '90vw',
       maxHeight: '90vh',
       height: '90%',
@@ -507,7 +742,7 @@ export class ServidorComponent implements OnInit {
     }
 
     const dialogRef = this.dialog.open(DialogProcessoComponent, {
-      data: { modo: 'editar', processo: { ...this.processoSelecionado } },
+      data: { modo: 'editar', processo: { ...this.processoSelecionado }, tiposProcesso: this.listTipoProcesso },
       maxWidth: '90vw',
       maxHeight: '90vh',
       height: '90%',
@@ -562,7 +797,7 @@ export class ServidorComponent implements OnInit {
     }
 
     const dialogRef = this.dialog.open(DialogParametroComponent, {
-      data: { modo: 'adicionar', parametro: {}, processo: this.processoSelecionado },
+      data: { modo: 'adicionar', parametro: {}, processo: this.processoSelecionado, tiposParametro: this.listTipoParametro },
       maxWidth: '90vw',
       maxHeight: '90vh',
       height: '90%',
@@ -586,7 +821,7 @@ export class ServidorComponent implements OnInit {
     }
 
     const dialogRef = this.dialog.open(DialogParametroComponent, {
-      data: { modo: 'editar', parametro: { ...this.paramentroSelecionado } },
+      data: { modo: 'editar', parametro: { ...this.paramentroSelecionado }, tiposParametro: this.listTipoParametro },
       maxWidth: '90vw',
       maxHeight: '90vh',
       height: '90%',
@@ -612,7 +847,7 @@ export class ServidorComponent implements OnInit {
     const dialogRef = this.dialog.open(ConfirmDialogComponent, {
       data: {
         title: 'Confirmar Exclusão',
-        message: `Tem certeza que deseja excluir o parâmetro "${this.paramentroSelecionado.dsParametro}"?`,
+        message: `Tem certeza que deseja excluir o parâmetro "${this.formatTipoParametro(this.paramentroSelecionado.dsParametro as any)}"?`,
         confirmButtonText: 'Excluir'
       },
       width: this.isMobile ? '90%' : '400px'
@@ -658,7 +893,7 @@ export class ServidorComponent implements OnInit {
 })
 export class DialogServidorComponent {
   private readonly servidorService = inject(ServidorService);
-  private readonly toast = inject(ToastrService);
+  private readonly toast = inject(HotToastService);
 
   form = new FormGroup({});
   model: any = {};
@@ -824,6 +1059,25 @@ export class DialogServidorComponent {
         fieldGroup: [
           {
             className: 'col-sm-12',
+            key: 'codGrupoServidor',
+            type: 'select',
+            templateOptions: {
+              label: 'Grupo do Servidor',
+              placeholder: 'Selecione o grupo do servidor',
+              required: true,
+              options: this.grupos.map(g => ({
+                value: g.codGrupoServidor,
+                label: g.dsGrupo
+              }))
+            }
+          }
+        ]
+      },
+      {
+        fieldGroupClassName: 'row',
+        fieldGroup: [
+          {
+            className: 'col-sm-12',
             key: 'obsServidor',
             type: 'textarea',
             templateOptions: {
@@ -910,17 +1164,19 @@ export class DialogServidorComponent {
 })
 export class DialogProcessoComponent {
   private readonly servidorService = inject(ServidorService);
-  private readonly toast = inject(ToastrService);
+  private readonly toast = inject(HotToastService);
 
   form = new FormGroup({});
   model: any = {};
   fields: FormlyFieldConfig[] = [];
+  tiposProcesso: any[] = [];
 
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: any,
     private dialogRef: MatDialogRef<DialogProcessoComponent>,
     private fb: FormBuilder
   ) {
+    this.tiposProcesso = data.tiposProcesso || [];
     this.initializeForm();
   }
 
@@ -933,7 +1189,8 @@ export class DialogProcessoComponent {
       nmProcesso: processo.nmProcesso || '',
       caminhoProcesso: processo.caminhoProcesso || '',
       dsProcessoDetalhe: processo.dsProcessoDetalhe || '',
-      snMonitorado: processo.snMonitorado !== undefined ? processo.snMonitorado : true
+      snMonitorado: processo.snMonitorado !== undefined ? processo.snMonitorado : true,
+      codTipoProcesso: processo.servidorTipoProcesso?.codTipoProcesso || null
     };
 
     this.fields = [
@@ -963,6 +1220,19 @@ export class DialogProcessoComponent {
             }
           }
         ]
+      },
+      {
+        key: 'codTipoProcesso',
+        type: 'select',
+        templateOptions: {
+          label: 'Tipo do Processo',
+          placeholder: 'Selecione o tipo do processo',
+          required: true,
+          options: this.tiposProcesso.map(t => ({
+            value: t.codTipoProcesso,
+            label: t.dsTipoProcesso
+          }))
+        }
       },
       {
         key: 'caminhoProcesso',
@@ -995,7 +1265,11 @@ export class DialogProcessoComponent {
 
   submit() {
     if (this.form.valid) {
-      const processo: ServidorProcesso = { ...this.model };
+      const { codTipoProcesso, ...rest } = this.model;
+      const processo: ServidorProcesso = {
+        ...rest,
+        servidorTipoProcesso: codTipoProcesso ? { codTipoProcesso } : null
+      };
       const codServidor = this.data.servidor?.codServidor;
 
       if (!codServidor && this.data.modo === 'adicionar') {
@@ -1047,17 +1321,19 @@ export class DialogProcessoComponent {
 })
 export class DialogParametroComponent {
   private readonly servidorService = inject(ServidorService);
-  private readonly toast = inject(ToastrService);
+  private readonly toast = inject(HotToastService);
 
   form = new FormGroup({});
   model: any = {};
   fields: FormlyFieldConfig[] = [];
+  tiposParametro: any[] = [];
 
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: any,
     private dialogRef: MatDialogRef<DialogParametroComponent>,
     private fb: FormBuilder
   ) {
+    this.tiposParametro = data.tiposParametro || [];
     this.initializeForm();
   }
 
@@ -1066,7 +1342,7 @@ export class DialogParametroComponent {
 
     this.model = {
       codParametro: parametro.codParametro || null,
-      dsParametro: parametro.dsParametro || '',
+      dsParametro: parametro.dsParametro || null,
       dsValor: parametro.dsValor || '',
       snMonitorado: parametro.snMonitorado !== undefined ? parametro.snMonitorado : true
     };
@@ -1074,12 +1350,15 @@ export class DialogParametroComponent {
     this.fields = [
       {
         key: 'dsParametro',
-        type: 'input',
+        type: 'select',
         templateOptions: {
-          label: 'Descrição do Parâmetro',
-          placeholder: 'Digite a descrição do parâmetro',
+          label: 'Tipo do Parâmetro',
+          placeholder: 'Selecione o tipo do parâmetro',
           required: true,
-          maxLength: 100
+          options: this.tiposParametro.map(t => ({
+            value: t.key,
+            label: t.value
+          }))
         }
       },
       {

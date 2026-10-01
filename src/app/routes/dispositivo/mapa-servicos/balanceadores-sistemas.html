@@ -1,0 +1,110 @@
+<div class="cadastro" alturaAteRodape>
+  <div class="barra">
+    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="busca">
+      <mat-icon matPrefix>search</mat-icon>
+      <mat-label>Pesquisar</mat-label>
+      <input matInput placeholder="Sistema, balanceador, worker ou serviço" [ngModel]="filtro()" (ngModelChange)="filtro.set($event)" />
+    </mat-form-field>
+
+    @if (aba() === 0) {
+      <mat-slide-toggle [checked]="soPendentes()" (change)="soPendentes.set($event.checked)">
+        Só sistemas fora do mapa
+      </mat-slide-toggle>
+      <span class="espaco"></span>
+      <span class="total">{{ totalMapeados() }} de {{ sistemas().length }} sistemas no mapa</span>
+    } @else {
+      <span class="espaco"></span>
+      <span class="total">{{ balanceadores().length }} balanceadores</span>
+      <button mat-flat-button (click)="abrirBalanceador()">
+        <mat-icon>add</mat-icon> Novo balanceador
+      </button>
+    }
+    <a mat-stroked-button routerLink="/dispositivo/mapa-servicos">
+      <mat-icon>account_tree</mat-icon> Ver mapa
+    </a>
+  </div>
+
+  <mat-tab-group class="abas" [selectedIndex]="aba()" (selectedIndexChange)="aba.set($event)" animationDuration="0ms">
+    <!-- ───────────── Sistemas ───────────── -->
+    <mat-tab>
+      <ng-template mat-tab-label><mat-icon>apps</mat-icon>&nbsp;Sistemas</ng-template>
+
+      <ng-template #sistemaTpl let-row>
+        <span class="nome">
+          <i class="marca" [class.marca--ok]="row.cadastrado"></i>
+          {{ row.sistema }}
+          @if (!row.sistemaAtivo) {
+            <span class="tag">inativo</span>
+          }
+        </span>
+      </ng-template>
+
+      <ng-template #entradasTpl let-row>
+        @if (row.cadastrado) {
+          <span class="texto" [matTooltip]="row.entradasTexto">{{ row.entradasTexto }}</span>
+        } @else {
+          <button mat-button color="primary" (click)="abrirSistema(row)"><mat-icon>add_link</mat-icon> Colocar no mapa</button>
+        }
+      </ng-template>
+
+      <ng-template #painelTpl let-row>
+        @if (row.cadastrado) {
+          <mat-icon [matTooltip]="row.exibePainel ? 'Aparece no painel de TV' : 'Não aparece no painel de TV'">
+            {{ row.exibePainel ? 'tv' : 'tv_off' }}
+          </mat-icon>
+        }
+      </ng-template>
+
+      <mtx-grid class="grade"
+                [data]="linhasSistema()"
+                [columns]="colunasSistema"
+                [loading]="carregando()"
+                [rowStriped]="true"
+                [columnResizable]="true"
+                [showPaginator]="true"
+                [pageSize]="50"
+                [cellTemplate]="{ sistema: sistemaTpl, entradasTexto: entradasTpl, exibePainel: painelTpl }"
+                noResultText="Nenhum sistema encontrado" />
+    </mat-tab>
+
+    <!-- ───────────── Balanceadores ───────────── -->
+    <mat-tab>
+      <ng-template mat-tab-label><mat-icon>alt_route</mat-icon>&nbsp;Balanceadores</ng-template>
+
+      <ng-template #processoTpl let-row>
+        @if (row.codProcesso) {
+          <span>{{ row.processoTexto }}</span>
+        } @else {
+          <span class="fraco"><mat-icon inline>cloud</mat-icon> Externo</span>
+        }
+      </ng-template>
+
+      <ng-template #membrosTpl let-row>
+        @if (row.membros.length) {
+          <span class="texto" [matTooltip]="row.membrosTexto"><b>{{ row.membros.length }}</b> · {{ row.membrosTexto }}</span>
+        } @else {
+          <span class="fraco">Nenhum membro</span>
+        }
+      </ng-template>
+
+      <ng-template #usoTpl let-row>
+        @if (row.usoTexto) {
+          <span class="texto" [matTooltip]="row.usoTexto">{{ row.usoTexto }}</span>
+        } @else {
+          <span class="fraco">Não usado</span>
+        }
+      </ng-template>
+
+      <mtx-grid class="grade"
+                [data]="linhasBalanceador()"
+                [columns]="colunasBalanceador"
+                [loading]="carregando()"
+                [rowStriped]="true"
+                [columnResizable]="true"
+                [showPaginator]="true"
+                [pageSize]="50"
+                [cellTemplate]="{ processoTexto: processoTpl, membrosTexto: membrosTpl, usoTexto: usoTpl }"
+                noResultText="Nenhum balanceador cadastrado" />
+    </mat-tab>
+  </mat-tab-group>
+</div>

@@ -1,0 +1,172 @@
+<div class="row">
+  <div class="col-sm-12">
+    <mat-card>
+      <mat-card-header>
+        <mat-card-title>Configurações — Google Drive</mat-card-title>
+        <mat-card-subtitle>
+          Fallback opcional para exportações que excedem o limite de anexo de e-mail.
+        </mat-card-subtitle>
+      </mat-card-header>
+
+      <mat-card-content class="gdc-content">
+
+        <mat-accordion class="gdc-help">
+          <mat-expansion-panel>
+            <mat-expansion-panel-header>
+              <mat-panel-title>
+                <mat-icon class="gdc-help-icon">help_outline</mat-icon>
+                Como configurar
+              </mat-panel-title>
+            </mat-expansion-panel-header>
+
+            <!-- Passo a passo: modo OAuth (login com conta Google) -->
+            <div *ngIf="form.get('modoAuth')!.value === 'OAUTH_USUARIO'" class="gdc-help-content">
+              <h4>1) Criar as credenciais OAuth no Google Cloud</h4>
+              <ol>
+                <li>Acesse <a href="https://console.cloud.google.com" target="_blank" rel="noopener">console.cloud.google.com</a> e crie um projeto (ou use um existente).</li>
+                <li><b>APIs e Serviços &gt; Biblioteca</b> — busque "Google Drive API" e clique em <b>Ativar</b>.</li>
+                <li>
+                  <b>APIs e Serviços &gt; Tela de consentimento OAuth</b>:
+                  <ul>
+                    <li>Tipo de usuário: <b>Externo</b> (não exige Google Workspace).</li>
+                    <li>Preencha nome do app, e-mail de suporte e de contato do desenvolvedor.</li>
+                    <li>Em "Usuários de teste", adicione o e-mail Google de quem vai autorizar.</li>
+                    <li><b>Importante:</b> enquanto o app estiver em modo <i>Teste</i>, o acesso expira a cada 7 dias. Depois de testar, publique o app (não precisa da verificação completa do Google para uso interno).</li>
+                  </ul>
+                </li>
+                <li>
+                  <b>APIs e Serviços &gt; Credenciais &gt; Criar Credenciais &gt; ID do cliente OAuth</b>:
+                  <ul>
+                    <li>Tipo de aplicativo: <b>Aplicativo da Web</b>.</li>
+                    <li>Em "URIs de redirecionamento autorizados", adicione a URL completa do campo <b>Redirect URI</b> abaixo (ex: <code>https://seu-servidor/nti/api/googleDrive/oauth/callback</code>).</li>
+                  </ul>
+                </li>
+                <li>Copie o <b>Client ID</b> e o <b>Client Secret</b> gerados e cole nos campos abaixo.</li>
+              </ol>
+
+              <h4>2) Liberar o endpoint de callback (configuração do backend)</h4>
+              <p>
+                O endpoint <code>/api/googleDrive/oauth/callback</code> é chamado pelo <b>navegador</b>, via redirect do Google —
+                ele não carrega o JWT da aplicação. Se o filtro de autenticação exigir token em todo <code>/api/**</code>,
+                esse caminho precisa ser adicionado às rotas públicas na configuração de segurança do backend
+                (peça isso ao time de desenvolvimento se a autorização abaixo retornar erro 401/403).
+              </p>
+
+              <h4>3) Preencher e autorizar</h4>
+              <ol>
+                <li>Preencha Client ID, Client Secret e Redirect URI abaixo e clique em <b>Salvar</b>.</li>
+                <li>Clique em <b>Autorizar Google Drive</b> — abre uma aba com o login do Google.</li>
+                <li>Entre com a conta que vai "doar" o Drive, aceite o aviso de "app não verificado" (Avançado &gt; Acessar [nome do app]) e conceda a permissão.</li>
+                <li>A aba mostra "Autorização concluída com sucesso!" — pode fechar e recarregar esta tela.</li>
+              </ol>
+            </div>
+
+            <!-- Passo a passo: modo Service Account -->
+            <div *ngIf="form.get('modoAuth')!.value === 'SERVICE_ACCOUNT'" class="gdc-help-content">
+              <h4>Configurar uma Service Account (conta-robô)</h4>
+              <ol>
+                <li>No <a href="https://console.cloud.google.com" target="_blank" rel="noopener">Google Cloud Console</a>, criar/selecionar um projeto e habilitar a "Google Drive API".</li>
+                <li><b>IAM e Administrador &gt; Contas de Serviço &gt; Criar Conta de Serviço</b>.</li>
+                <li>Nessa conta de serviço, criar uma chave (<b>Chaves &gt; Adicionar Chave &gt; JSON</b>) — isso baixa um arquivo <code>.json</code>. É esse arquivo que vai no campo "Caminho do JSON de Credenciais" abaixo (caminho no servidor onde a aplicação roda, não no seu computador).</li>
+                <li>No Google Drive (qualquer conta), criar uma pasta dedicada para os exports e compartilhá-la com o e-mail da conta de serviço (campo <code>client_email</code> dentro do JSON, algo como <code>nome@projeto.iam.gserviceaccount.com</code>), com permissão de <b>Editor</b>.</li>
+                <li>Pegar o ID dessa pasta pela URL (<code>drive.google.com/drive/folders/{{ '{' }}ID{{ '}' }}</code>) e colocar no campo "Pasta de Destino" abaixo.</li>
+              </ol>
+            </div>
+
+            <mat-divider class="gdc-help-divider"></mat-divider>
+            <p class="gdc-help-note">
+              <mat-icon inline>info</mat-icon>
+              Sem Google Workspace, use "Qualquer pessoa com o link" no tipo de permissão — a opção "Restrito ao domínio" só funciona com Workspace configurado.
+            </p>
+          </mat-expansion-panel>
+        </mat-accordion>
+
+        <form [formGroup]="form" class="gdc-form">
+
+          <mat-slide-toggle formControlName="habilitado" color="primary" class="gdc-toggle">
+            Habilitado
+          </mat-slide-toggle>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Modo de Autenticação</mat-label>
+            <mat-select formControlName="modoAuth">
+              <mat-option value="OAUTH_USUARIO">OAuth — login com conta Google (recomendado sem Workspace)</mat-option>
+              <mat-option value="SERVICE_ACCOUNT">Service Account (arquivo de credenciais)</mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <!-- Modo Service Account -->
+          <mat-form-field appearance="outline" class="full-width" *ngIf="form.get('modoAuth')!.value === 'SERVICE_ACCOUNT'">
+            <mat-label>Caminho do JSON de Credenciais</mat-label>
+            <input matInput formControlName="credenciaisPath" placeholder="/opt/ntiapi/config/google-drive-credentials.json">
+          </mat-form-field>
+
+          <!-- Modo OAuth -->
+          <ng-container *ngIf="form.get('modoAuth')!.value === 'OAUTH_USUARIO'">
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Client ID</mat-label>
+              <input matInput formControlName="oauthClientId" autocomplete="off">
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Client Secret</mat-label>
+              <input matInput type="password" formControlName="oauthClientSecret" autocomplete="off"
+                placeholder="Deixe como está para não alterar">
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Redirect URI</mat-label>
+              <input matInput formControlName="oauthRedirectUri" autocomplete="off"
+                placeholder="https://seu-servidor/nti/api/googleDrive/oauth/callback">
+            </mat-form-field>
+
+            <div class="gdc-auth-status" [ngClass]="{ 'autorizado': config?.autorizado, 'nao-autorizado': !config?.autorizado }">
+              <mat-icon>{{ config?.autorizado ? 'check_circle' : 'error_outline' }}</mat-icon>
+              <span *ngIf="config?.autorizado">
+                Autorizado{{ config?.autorizadoEm ? ' em ' + (config?.autorizadoEm | date:'dd/MM/yyyy HH:mm') : '' }}
+              </span>
+              <span *ngIf="!config?.autorizado">Ainda não autorizado</span>
+              <button mat-stroked-button color="primary" type="button" (click)="autorizar()" [disabled]="autorizando">
+                {{ config?.autorizado ? 'Reautorizar' : 'Autorizar Google Drive' }}
+              </button>
+            </div>
+          </ng-container>
+
+          <mat-divider class="gdc-divider"></mat-divider>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Pasta de Destino (ID)</mat-label>
+            <input matInput formControlName="pastaId" placeholder="ID da pasta na URL do Drive (opcional)">
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Tipo de Permissão do Link</mat-label>
+            <mat-select formControlName="tipoPermissao">
+              <mat-option value="anyone">Qualquer pessoa com o link</mat-option>
+              <mat-option value="domain">Restrito ao domínio do Google Workspace</mat-option>
+            </mat-select>
+            <mat-hint *ngIf="form.get('tipoPermissao')!.value === 'domain'">
+              Só funciona se a organização tiver um Google Workspace configurado no domínio abaixo.
+            </mat-hint>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full-width" *ngIf="form.get('tipoPermissao')!.value === 'domain'">
+            <mat-label>Domínio do Google Workspace</mat-label>
+            <input matInput formControlName="dominio" placeholder="seudominio.com.br">
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Expurgo Automático (dias)</mat-label>
+            <input matInput type="number" formControlName="expurgoDias">
+            <mat-hint>Dias até o arquivo ser removido automaticamente do Drive.</mat-hint>
+          </mat-form-field>
+
+        </form>
+      </mat-card-content>
+
+      <mat-card-actions class="gdc-actions">
+        <button mat-raised-button color="primary" (click)="salvar()">Salvar</button>
+      </mat-card-actions>
+    </mat-card>
+  </div>
+</div>

@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 
 import { environment } from '../../environments/environment';
-import { User } from './interface';
+import { Usuario } from './interface';
 
 @Injectable({
   providedIn: 'root'
@@ -15,7 +15,7 @@ export class ConfiguracaoService {
   getAll() {
     let url:string = this.apiUrl;
       url = url +'/';
-    return this.http.get<User[]>(`${url}`);
+    return this.http.get<Usuario[]>(`${url}`);
  }
 
  getConfig(configuracao:string){

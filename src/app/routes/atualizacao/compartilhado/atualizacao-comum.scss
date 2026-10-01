@@ -1,0 +1,44 @@
+// Tons semânticos do módulo de atualizações. A cor fica no ponto e na borda; o texto usa a cor do tema.
+:host {
+  display: inline-flex;
+}
+
+.chip {
+  --tom: #78838a;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 1px 9px 1px 7px;
+  border: 1px solid color-mix(in srgb, var(--tom) 55%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--tom) 12%, transparent);
+  color: var(--mat-sys-on-surface, inherit);
+  font-size: .75rem;
+  font-weight: 500;
+  line-height: 1.6;
+  white-space: nowrap;
+}
+
+.ponto {
+  width: 7px;
+  height: 7px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--tom);
+}
+
+.chip[data-tom='info'] {
+  --tom: #1976d2;
+}
+
+.chip[data-tom='alerta'] {
+  --tom: #e08a00;
+}
+
+.chip[data-tom='critico'] {
+  --tom: #d32f2f;
+}
+
+.chip[data-tom='sucesso'] {
+  --tom: #2e7d32;
+}

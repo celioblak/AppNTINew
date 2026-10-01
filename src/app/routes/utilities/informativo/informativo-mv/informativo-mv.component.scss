@@ -1,3 +1,63 @@
 .file-input {
   display: none;
 }
+
+// ─── Filtros ──────────────────────────────────────────────────────────────────
+
+.filter-card {
+  .mat-mdc-card-content {
+    padding: 12px 16px 4px;
+  }
+}
+
+.filter-form {
+  width: 100%;
+}
+
+.filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.filter-field {
+  min-width: 200px;
+
+  &--description {
+    flex: 2 1 240px;
+  }
+
+  &--date {
+    flex: 1 1 200px;
+  }
+}
+
+.filter-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding-top: 4px;
+
+  button {
+    white-space: nowrap;
+  }
+}
+
+// ─── Responsivo ───────────────────────────────────────────────────────────────
+
+@media (max-width: 768px) {
+  .filter-row {
+    flex-direction: column;
+  }
+
+  .filter-field {
+    width: 100%;
+    min-width: unset;
+  }
+
+  .filter-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}

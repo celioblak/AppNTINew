@@ -1,0 +1,135 @@
+$borda: var(--mat-sys-outline-variant, rgba(127, 127, 127, 0.3));
+
+.analise-titulo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.analise-intro {
+  margin: 0 0 16px;
+  opacity: 0.8;
+}
+
+.analise-sprint {
+  margin-bottom: 16px;
+  overflow: hidden;
+  border: 1px solid $borda;
+  border-radius: 8px;
+}
+
+.analise-sprint-cabecalho {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: var(--mat-sys-surface-container, rgba(127, 127, 127, 0.08));
+}
+
+.analise-sprint-fim {
+  margin-left: 8px;
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+.analise-ticket {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px;
+  border-top: 1px solid $borda;
+  border-left: 3px solid transparent;
+
+  &.respondido {
+    border-left-color: var(--mat-sys-primary, #1976d2);
+  }
+}
+
+.analise-ticket-info {
+  flex: 1 1 260px;
+  min-width: 0;
+}
+
+.analise-ticket-linha {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.analise-ticket-id {
+  font-weight: 600;
+}
+
+.analise-ticket-titulo {
+  margin-top: 2px;
+  overflow-wrap: anywhere;
+}
+
+.analise-ticket-status {
+  margin-top: 2px;
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+.analise-criticidade {
+  padding: 1px 8px;
+  font-size: 11px;
+  background: rgba(127, 127, 127, 0.15);
+  border-radius: 10px;
+
+  &[data-nivel='1'] {
+    color: #b71c1c;
+    background: #fdecea;
+  }
+
+  &[data-nivel='2'] {
+    color: #e65100;
+    background: #fff3e0;
+  }
+}
+
+.analise-ticket-resposta {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-end;
+}
+
+mat-button-toggle mat-icon {
+  width: 18px;
+  height: 18px;
+  margin-right: 4px;
+  font-size: 18px;
+  vertical-align: middle;
+}
+
+.toggle-entregue.mat-button-toggle-checked {
+  color: #1b5e20;
+  background: #e8f5e9;
+}
+
+.toggle-nao-entregue.mat-button-toggle-checked {
+  color: #b71c1c;
+  background: #fdecea;
+}
+
+.analise-motivo {
+  width: 280px;
+  max-width: 100%;
+}
+
+.analise-contador {
+  margin-right: auto;
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+.analise-salvando {
+  display: inline-block;
+  margin-right: 6px;
+  vertical-align: middle;
+}

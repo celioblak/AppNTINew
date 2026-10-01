@@ -7,6 +7,7 @@ import {
 } from '@angular-devkit/core';
 import { ProjectDefinition } from '@angular-devkit/core/src/workspace';
 import {
+  FileOperator,
   Rule,
   SchematicsException,
   Tree,
@@ -15,6 +16,7 @@ import {
   branchAndMerge,
   chain,
   filter,
+  forEach,
   mergeWith,
   move,
   noop,
@@ -38,7 +40,9 @@ import {
 import { InsertChange } from '@schematics/angular/utility/change';
 import {
   MODULE_EXT,
+  MODULE_EXT_LEGACY,
   ROUTING_MODULE_EXT,
+  ROUTING_MODULE_EXT_LEGACY,
   buildRelativePath,
   findModule,
 } from '@schematics/angular/utility/find-module';
@@ -79,7 +83,7 @@ function buildRelativeComponentPath(options: ComponentOptions, modulePath: strin
     `/${options.path}/` +
     (options.flat ? '' : strings.dasherize(options.name) + '/') +
     strings.dasherize(options.name) +
-    '.component';
+    (options.type ? '.' + options.type : '');
 
   return buildRelativePath(modulePath, componentPath);
 }
@@ -133,7 +137,7 @@ function addComponent(host: Tree, modulePath: string, fileName: string, symbolNa
  */
 function addImportDeclaration(host: Tree, modulePath: string, fileName: string, filePath: string) {
   const source = readIntoSourceFile(host, modulePath);
-  const changes = insertImport(source as any, modulePath, fileName, filePath);
+  const changes = insertImport(source, modulePath, fileName, filePath);
   const declarationRecorder = host.beginUpdate(modulePath);
 
   if (changes instanceof InsertChange) {
@@ -198,7 +202,9 @@ function addDeclarationToNgModule(options: ComponentOptions): Rule {
 
     const modulePath = options.module;
     const relativePath = buildRelativeComponentPath(options, modulePath);
-    const classifiedName = strings.classify(`${options.pageName}Component`);
+    const classifiedName = strings.classify(
+      `${options.pageName}${options.type ? '.' + options.type : ''}`
+    );
 
     addImportDeclaration(host, modulePath, classifiedName, relativePath);
 
@@ -238,7 +244,9 @@ function addRouteDeclarationToNgModule(options: ComponentOptions, routingModuleP
     }
 
     const relativePath = buildRelativeComponentPath(options, routingModulePath);
-    const classifiedName = strings.classify(`${options.pageName}Component`);
+    const classifiedName = strings.classify(
+      `${options.pageName}${options.type ? '.' + options.type : ''}`
+    );
 
     if (!options.entryComponent) {
       addImportDeclaration(host, routingModulePath, classifiedName, relativePath);
@@ -326,11 +334,15 @@ export function buildComponent(
     }
 
     options.module = findModuleFromOptions(host, options) || '';
+    // Schematic templates require a defined type value
+    options.type ??= '';
 
     // Route module path
     const routingModulePath = options.standalone
       ? options.module
-      : options.module.replace('.module', '-routing.module');
+      : options.module.endsWith(MODULE_EXT)
+        ? options.module.replace(MODULE_EXT, ROUTING_MODULE_EXT)
+        : options.module.replace(MODULE_EXT_LEGACY, ROUTING_MODULE_EXT_LEGACY);
 
     const parsedPath = parseName(options.path, options.name);
     options.name = parsedPath.name;
@@ -351,6 +363,7 @@ export function buildComponent(
     const baseTemplateContext = {
       ...strings,
       'if-flat': (s: string) => (options.flat ? '' : s),
+      'ngext': options.ngHtml ? '.ng' : '',
       ...options,
     };
 
@@ -374,6 +387,16 @@ export function buildComponent(
       // Treat the template options as any, because the type definition for the template options
       // is made unnecessarily explicit. Every type of object can be used in the EJS template.
       applyTemplates({ indentTextContent, resolvedFiles, ...baseTemplateContext }),
+      !options.type
+        ? forEach((file => {
+            return file.path.includes('..')
+              ? {
+                  content: file.content,
+                  path: file.path.replace('..', '.'),
+                }
+              : file;
+          }) as FileOperator)
+        : noop(),
       // TODO(devversion): figure out why we cannot just remove the first parameter
       // See for example: angular-cli#schematics/angular/component/index.ts#L160
       move(null as any, parsedPath.path),
@@ -405,13 +428,10 @@ export function findModuleFromOptions(host: Tree, options: ComponentOptions): Pa
     return undefined;
   }
 
-  const moduleExt = options.moduleExt || MODULE_EXT;
-  const routingModuleExt = options.routingModuleExt || ROUTING_MODULE_EXT;
-
   if (!options.module) {
     const pathToCheck = (options.path || '') + '/' + options.name;
 
-    return normalize(findModule(host, pathToCheck, moduleExt, routingModuleExt));
+    return normalize(findModule(host, pathToCheck, options.moduleExt, options.routingModuleExt));
   } else {
     const modulePath = normalize(`/${options.path}/${options.module}`);
     const componentPath = normalize(`/${options.path}/${options.name}`);
@@ -427,14 +447,21 @@ export function findModuleFromOptions(host: Tree, options: ComponentOptions): Pa
     }
 
     const candidatesDirs = [...candidateSet].sort((a, b) => b.length - a.length);
-    for (const c of candidatesDirs) {
-      const candidateFiles = ['', `${moduleBaseName}.ts`, `${moduleBaseName}${moduleExt}`].map(x =>
-        join(c, x)
+    const candidateFiles: string[] = ['', `${moduleBaseName}.ts`];
+    if (options.moduleExt) {
+      candidateFiles.push(`${moduleBaseName}${options.moduleExt}`);
+    } else {
+      candidateFiles.push(
+        `${moduleBaseName}${MODULE_EXT}`,
+        `${moduleBaseName}${MODULE_EXT_LEGACY}`
       );
+    }
 
+    for (const c of candidatesDirs) {
       for (const sc of candidateFiles) {
-        if (host.exists(sc)) {
-          return normalize(sc);
+        const scPath = join(c, sc);
+        if (host.exists(scPath)) {
+          return normalize(scPath);
         }
       }
     }

@@ -294,3 +294,53 @@ mat-card-content > .grid-wrapper:first-of-type {
     min-height: 180px;
   }
 }
+
+::ng-deep .tooltip-multiline {
+  white-space: pre-line;
+  max-width: 320px;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.toggle-ativos {
+  display: flex;
+  align-items: center;
+  margin-left: 8px;
+  white-space: nowrap;
+}
+
+.filter-container.mobile-layout .toggle-ativos {
+  margin-left: 0;
+  margin-top: 8px;
+}
+
+/* Wrapper da grid focavel via teclado: mostra ring ao receber foco
+   mas remove o outline padrao feio do navegador */
+.grid-wrapper {
+  outline: none;
+  border-radius: 4px;
+  transition: box-shadow 0.15s ease;
+
+  &:focus {
+    box-shadow: 0 0 0 2px var(--mat-sys-primary, #1976d2);
+  }
+
+  &:focus-visible {
+    box-shadow: 0 0 0 2px var(--mat-sys-primary, #1976d2);
+  }
+}
+
+/* Destaque da linha selecionada - aplicado direto via JS no DOM.
+   Seletores agressivos para vencer a especificidade interna da mtx-grid. */
+:host ::ng-deep .grid-wrapper tr.row-selected,
+:host ::ng-deep .grid-wrapper tr.row-selected > td,
+:host ::ng-deep .grid-wrapper tbody tr.row-selected,
+:host ::ng-deep .grid-wrapper tbody tr.row-selected > td {
+  background-color: rgba(25, 118, 210, 0.22) !important;
+  font-weight: 500 !important;
+}
+
+:host ::ng-deep .grid-wrapper tr.row-selected:hover,
+:host ::ng-deep .grid-wrapper tr.row-selected:hover > td {
+  background-color: rgba(25, 118, 210, 0.32) !important;
+}

@@ -36,7 +36,7 @@ $utilities: functions.map-collect(
 @each $key, $utility in $utilities {
   $values: map.get($utility, values);
 
-  // If the values are a list or string, convert it into a map
+  // Se values for string ou lista simples → transforma em mapa {valor: valor}
   @if meta.type-of($values) == 'string' or meta.type-of(list.nth($values, 1)) != 'list' {
     $values: list.zip($values, $values);
   }
@@ -44,12 +44,11 @@ $utilities: functions.map-collect(
   $properties: map.get($utility, property);
   $property-class-prefix: map.get($utility, class);
 
-  // Utility class maybe empty, (e.g. with position class)
-  $property-class-prefix-hyphen: if(
-    $property-class-prefix == '',
-    $property-class-prefix,
-    $property-class-prefix + '-'
-  );
+  // Solução estável sem deprecation e sem risco de "expected e"
+  $property-class-prefix-hyphen: "";
+  @if $property-class-prefix != "" {
+    $property-class-prefix-hyphen: $property-class-prefix + "-";
+  }
 
   @each $class-modifier, $value in $values {
     .#{$property-class-prefix-hyphen + $class-modifier} {

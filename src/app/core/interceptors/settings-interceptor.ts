@@ -7,13 +7,7 @@ export function settingsInterceptor(req: HttpRequest<unknown>, next: HttpHandler
 
   return next(
     req.clone({
-      //headers: req.headers.append('Accept-Language', settings.getTranslateLang()),
-      headers: req.headers
-            .append('Accept-Language', settings.getTranslateLang())
-            .append( 'Content-Type','application/json',)
-            .append('Access-Control-Allow-Origin','*',)
-            .append('Access-Control-Allow-Methods','GET,HEAD,OPTIONS,POST,PUT',)
-            .append('Access-Control-Allow-Headers', '*',),
+      headers: req.headers.append('Accept-Language', settings.getTranslateLang()),
     })
   );
 }

@@ -1,0 +1,87 @@
+:host {
+  display: block;
+}
+
+// A altura vem do alturaAteRodape; as abas ocupam o que sobra abaixo da barra.
+.cadastro {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.barra {
+  display: flex;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.busca {
+  flex: 0 1 420px;
+}
+
+.espaco {
+  flex: 1;
+}
+
+.total,
+.fraco {
+  font-size: .8rem;
+  color: var(--mat-sys-on-surface-variant, rgba(0, 0, 0, .6));
+}
+
+.abas {
+  flex: 1 1 0;
+  min-height: 300px;
+
+  ::ng-deep .mat-mdc-tab-body-wrapper {
+    flex: 1;
+  }
+
+  ::ng-deep .mat-mdc-tab-body-content {
+    display: flex;
+    flex-direction: column;
+    padding-top: 8px;
+  }
+}
+
+.grade {
+  flex: 1 1 0;
+  min-height: 240px;
+}
+
+.nome {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+
+// Bolinha: verde = sistema no mapa; vazia = falta cadastrar.
+.marca {
+  width: 10px;
+  height: 10px;
+  border: 2px solid var(--mat-sys-outline, #999);
+  border-radius: 50%;
+
+  &--ok {
+    border-color: #2e9e5b;
+    background: #2e9e5b;
+  }
+}
+
+.tag {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--mat-sys-surface-container-high, #e6e8ec);
+  font-size: .7rem;
+  font-weight: 500;
+}
+
+.texto {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

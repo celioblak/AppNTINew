@@ -1,0 +1,479 @@
+:host {
+  display: block;
+
+  // Paleta de situação: tons médios, legíveis no tema claro e no escuro.
+  --mapa-ok: #2e9e5b;
+  --mapa-alerta: #e08a00;
+  --mapa-fora: #d93636;
+  --mapa-manutencao: #7b5cc4;
+  --mapa-desconhecido: #8a8f98;
+
+  --mapa-superficie: var(--mat-sys-surface-container-low, #f7f7f9);
+  --mapa-superficie-alta: var(--mat-sys-surface-container, #eef0f3);
+  --mapa-borda: var(--mat-sys-outline-variant, #d5d8de);
+  --mapa-texto-fraco: var(--mat-sys-on-surface-variant, rgba(0, 0, 0, .6));
+}
+
+// Cada situação define --cor; bordas, pontos e selos leem dela.
+.sit--ok { --cor: var(--mapa-ok); }
+.sit--alerta { --cor: var(--mapa-alerta); }
+.sit--fora { --cor: var(--mapa-fora); }
+.sit--manutencao { --cor: var(--mapa-manutencao); }
+.sit--desconhecido { --cor: var(--mapa-desconhecido); }
+
+.mapa {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+// ───────────── resumo ─────────────
+.resumo {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 10px;
+}
+
+.kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 16px;
+  border: 1px solid var(--mapa-borda);
+  border-left: 5px solid var(--mapa-ok);
+  border-radius: 10px;
+  background: var(--mapa-superficie);
+
+  &__valor {
+    font-size: 1.9rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+
+    small {
+      font-size: .9rem;
+      font-weight: 500;
+      color: var(--mapa-texto-fraco);
+    }
+  }
+
+  &__rotulo {
+    font-size: .8rem;
+    color: var(--mapa-texto-fraco);
+  }
+
+  &--alerta {
+    border-left-color: var(--mapa-alerta);
+    .kpi__valor { color: var(--mapa-alerta); }
+  }
+
+  &--fora {
+    border-left-color: var(--mapa-fora);
+    background: color-mix(in srgb, var(--mapa-fora) 8%, var(--mapa-superficie));
+    .kpi__valor { color: var(--mapa-fora); }
+  }
+
+  &--neutro {
+    border-left-color: var(--mapa-borda);
+  }
+}
+
+// ───────────── barra e avisos ─────────────
+.barra {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.busca {
+  flex: 0 1 340px;
+}
+
+.espaco {
+  flex: 1;
+}
+
+.atualizado {
+  font-size: .8rem;
+  color: var(--mapa-texto-fraco);
+}
+
+.aviso {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: .85rem;
+
+  &--erro {
+    background: color-mix(in srgb, var(--mapa-fora) 12%, transparent);
+    color: var(--mapa-fora);
+  }
+}
+
+.legenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  font-size: .8rem;
+  color: var(--mapa-texto-fraco);
+
+  span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+}
+
+.ponto {
+  display: inline-block;
+  flex-shrink: 0;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--cor, var(--mapa-desconhecido));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--cor, var(--mapa-desconhecido)) 22%, transparent);
+}
+
+.selo {
+  flex-shrink: 0;
+  align-self: flex-start;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--cor) 16%, transparent);
+  color: var(--cor);
+  font-size: .72rem;
+  font-weight: 700;
+  letter-spacing: .5px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.vazio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 48px 16px;
+  border: 2px dashed var(--mapa-borda);
+  border-radius: 12px;
+  color: var(--mapa-texto-fraco);
+
+  mat-icon {
+    width: 48px;
+    height: 48px;
+    font-size: 48px;
+  }
+
+  &--pequeno {
+    padding: 24px 16px;
+  }
+}
+
+// ───────────── organograma ─────────────
+.sistemas {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.sistema {
+  overflow-x: auto;
+  padding: 16px;
+  border: 1px solid var(--mapa-borda);
+  border-top: 4px solid var(--cor);
+  border-radius: 12px;
+  background: var(--mapa-superficie);
+}
+
+// O organograma cresce na largura: com muitos serviços a rolagem é do card, não da página.
+.org {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: max-content;
+  min-width: 100%;
+}
+
+.no {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  min-width: 220px;
+  max-width: 420px;
+  padding: 10px 14px;
+  border: 1px solid var(--mapa-borda);
+  border-left: 5px solid var(--cor, var(--mapa-borda));
+  border-radius: 10px;
+  background: var(--mat-sys-surface, #fff);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 6%);
+
+  &__icone {
+    flex-shrink: 0;
+    color: var(--cor, var(--mapa-texto-fraco));
+  }
+
+  &__corpo {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  &__titulo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 700;
+  }
+
+  &__sub,
+  &__detalhe {
+    font-size: .8rem;
+    color: var(--mapa-texto-fraco);
+    overflow-wrap: anywhere;
+  }
+
+  &__detalhe {
+    font-size: .75rem;
+  }
+
+  &__link {
+    font-size: .75rem;
+    overflow-wrap: anywhere;
+  }
+
+  &__painel {
+    color: var(--mapa-texto-fraco);
+  }
+
+  &--sistema {
+    min-width: 300px;
+    padding: 14px 18px;
+    border-left-width: 6px;
+
+    .no__titulo {
+      font-size: 1.15rem;
+    }
+  }
+
+  &.sit--fora {
+    background: color-mix(in srgb, var(--mapa-fora) 10%, var(--mat-sys-surface, #fff));
+  }
+}
+
+.haste {
+  width: 2px;
+  height: 20px;
+  background: var(--mapa-borda);
+}
+
+// Conectores clássicos de organograma: cada filho sobe até a linha horizontal.
+.filhos {
+  display: flex;
+  justify-content: center;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  li {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    padding: 20px 8px 0;
+
+    // linha horizontal
+    &::before {
+      position: absolute;
+      top: 0;
+      right: 0;
+      left: 0;
+      border-top: 2px solid var(--mapa-borda);
+      content: '';
+    }
+
+    // descida até o card
+    &::after {
+      position: absolute;
+      top: 0;
+      left: 50%;
+      height: 20px;
+      border-left: 2px solid var(--mapa-borda);
+      content: '';
+    }
+
+    &:first-child::before {
+      left: 50%;
+    }
+
+    &:last-child::before {
+      right: 50%;
+    }
+
+    &:only-child::before {
+      display: none;
+    }
+  }
+}
+
+.sem-cadastro {
+  padding: 14px 16px;
+  border: 1px dashed var(--mapa-borda);
+  border-radius: 12px;
+
+  h3 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 4px;
+    font-size: 1rem;
+  }
+
+  p {
+    margin: 0 0 10px;
+    font-size: .85rem;
+    color: var(--mapa-texto-fraco);
+  }
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chip {
+  padding: 4px 12px;
+  border: 1px solid var(--mapa-borda);
+  border-radius: 999px;
+  background: var(--mapa-superficie-alta);
+  color: inherit;
+  font-size: .8rem;
+  text-decoration: none;
+
+  &--pequeno {
+    padding: 1px 8px;
+    font-size: .75rem;
+  }
+}
+
+a.chip:hover {
+  border-color: var(--mat-sys-primary, #3f51b5);
+}
+
+// ───────────── visão por servidor ─────────────
+.servidores {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 12px;
+}
+
+.servidor {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 1px solid var(--mapa-borda);
+  border-top: 4px solid var(--cor);
+  border-radius: 12px;
+  background: var(--mapa-superficie);
+
+  &.sit--fora {
+    background: color-mix(in srgb, var(--mapa-fora) 8%, var(--mapa-superficie));
+  }
+
+  &__topo {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  &__icone {
+    color: var(--cor);
+  }
+
+  &__nome {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-width: 0;
+
+    b {
+      font-size: 1.05rem;
+    }
+
+    span {
+      font-size: .75rem;
+      color: var(--mapa-texto-fraco);
+    }
+  }
+
+  &__detalhe {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: .8rem;
+    color: var(--mapa-texto-fraco);
+  }
+
+  &__vazio {
+    font-size: .8rem;
+    font-style: italic;
+    color: var(--mapa-texto-fraco);
+  }
+
+  &__sistemas {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+    padding-top: 8px;
+    border-top: 1px solid var(--mapa-borda);
+    font-size: .75rem;
+    color: var(--mapa-texto-fraco);
+  }
+}
+
+.metricas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.servicos {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  li {
+    display: grid;
+    grid-template-columns: auto 1fr auto auto;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 8px;
+    border-radius: 6px;
+    background: var(--mat-sys-surface, #fff);
+    font-size: .85rem;
+  }
+
+  &__nome {
+    overflow: hidden;
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__tipo,
+  &__sit {
+    font-size: .75rem;
+    color: var(--mapa-texto-fraco);
+    white-space: nowrap;
+  }
+}

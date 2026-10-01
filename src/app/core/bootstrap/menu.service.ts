@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, WritableSignal } from '@angular/core';
 import { BehaviorSubject, share } from 'rxjs';
 
 export interface MenuTag {
@@ -17,6 +17,7 @@ export interface MenuChildrenItem {
   type: 'link' | 'sub' | 'extLink' | 'extTabLink';
   children?: MenuChildrenItem[];
   permissions?: MenuPermissions;
+  active?: WritableSignal<boolean>;
 }
 
 export interface Menu {
@@ -28,6 +29,7 @@ export interface Menu {
   badge?: MenuTag;
   children?: MenuChildrenItem[];
   permissions?: MenuPermissions;
+  active?: WritableSignal<boolean>;
 }
 
 @Injectable({
@@ -106,36 +108,66 @@ export class MenuService {
   }
 
   /** Get the menu level. */
-  getLevel(routeArr: string[]): string[] {
-    let tmpArr: any[] = [];
-    this.menu$.value.forEach(item => {
-      // Breadth-first traverse
-      let unhandledLayer = [{ item, parentNamePathList: [], realRouteArr: [] }];
-      while (unhandledLayer.length > 0) {
-        let nextUnhandledLayer: any[] = [];
-        for (const ele of unhandledLayer) {
-          const eachItem = ele.item;
-          const currentNamePathList = this.deepClone(ele.parentNamePathList).concat(eachItem.name);
-          const currentRealRouteArr = this.deepClone(ele.realRouteArr).concat(eachItem.route);
-          // Compare the full Array for expandable
-          if (this.isRouteEqual(routeArr, currentRealRouteArr)) {
-            tmpArr = currentNamePathList;
-            break;
-          }
-          if (!this.isLeafItem(eachItem)) {
-            const wrappedChildren = eachItem.children?.map(child => ({
-              item: child,
-              parentNamePathList: currentNamePathList,
-              realRouteArr: currentRealRouteArr,
-            }));
-            nextUnhandledLayer = nextUnhandledLayer.concat(wrappedChildren);
-          }
-        }
-        unhandledLayer = nextUnhandledLayer;
-      }
-    });
-    return tmpArr;
+ /** Get the menu level. */
+/** Get the menu level. */
+getLevel(routeArr: string[]): string[] {
+  // Caso base: sem rota ou menu vazio
+  if (!routeArr?.length || !this.menu$.value?.length) {
+    return [];
   }
+
+  for (const rootItem of this.menu$.value) {
+    // Camada inicial (itens raiz)
+    let unhandledLayer: Array<{
+      item: Menu | MenuChildrenItem;
+      parentNamePathList: string[];
+      realRouteArr: string[];
+    }> = [{
+      item: rootItem,
+      parentNamePathList: [],
+      realRouteArr: [],
+    }];
+
+    while (unhandledLayer.length > 0) {
+      const nextUnhandledLayer: typeof unhandledLayer = [];
+
+      for (const layer of unhandledLayer) {
+        if (!layer?.item) {
+          console.warn("Camada inválida:", layer);
+          continue;
+        }
+
+        const { item, parentNamePathList, realRouteArr } = layer;
+
+        const currentNamePath = [...parentNamePathList, item.name];
+        const currentRealRoute = [...realRouteArr, item.route ?? ''];
+
+        // Encontrou → retorna imediatamente
+        if (this.isRouteEqual(routeArr, currentRealRoute)) {
+          return currentNamePath;
+        }
+
+        // Processa filhos (somente se array válido)
+        if (!this.isLeafItem(item) && Array.isArray(item.children) && item.children.length > 0) {
+          const validChildren = item.children.filter(
+            (child): child is MenuChildrenItem => child != null && typeof child === 'object'
+          );
+
+          const wrapped = validChildren.map(child => ({
+            item: child,
+            parentNamePathList: currentNamePath,
+            realRouteArr: currentRealRoute,
+          }));
+
+          nextUnhandledLayer.push(...wrapped);
+        }
+      }
+
+      unhandledLayer = nextUnhandledLayer;
+    }
+  }
+  return [];
+}
 
   /** Add namespace for translation. */
   addNamespace(menu: Menu[] | MenuChildrenItem[], namespace: string) {

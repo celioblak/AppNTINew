@@ -1,0 +1,202 @@
+/* Padrão das telas de CRUD do sistema (ver escala/feriado) */
+
+:host {
+  display: block;
+  height: calc(100dvh - 1px);
+  overflow: hidden;
+}
+
+.container-fluid {
+  height: 100%;
+  min-height: 0;
+  /* padding-top maior: o rótulo flutuante do mat-form-field (outline) fica
+     acima da borda e era cortado pelo overflow:hidden do container. */
+  padding: 16px 10px 6px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-sizing: border-box;
+
+  * {
+    box-sizing: border-box;
+  }
+}
+
+/* ── Filtros superiores ─────────────────────────────────────────────────── */
+.filter-container {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  margin-bottom: 4px;
+
+  &.mobile-layout {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  mat-slide-toggle {
+    margin-top: 14px;
+  }
+
+  .busca-filter {
+    width: 380px;
+    max-width: 100%;
+  }
+
+  .search-button-wrapper {
+    display: flex;
+    align-items: center;
+    margin-left: auto;
+    margin-top: 4px;
+
+    button {
+      width: 40px;
+      height: 40px;
+    }
+  }
+}
+
+/* ── Card principal ─────────────────────────────────────────────────────── */
+mat-card {
+  flex: 1;
+  min-height: 0;
+  padding: 6px 10px !important;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  margin: 0 !important;
+  border-radius: 6px;
+}
+
+mat-card-content {
+  flex: 1;
+  min-height: 0;
+  padding: 0 !important;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.section-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 2px;
+  margin: 0;
+
+  h3 {
+    font-size: 14.5px;
+    font-weight: 500;
+    margin: 0;
+    line-height: 1.2;
+  }
+}
+
+/* ── Grid ──────────────────────────────────────────────────────────────── */
+.grid-wrapper {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  overflow: hidden;
+}
+
+::ng-deep .mtx-grid {
+  height: 100%;
+}
+
+::ng-deep .mtx-grid .mat-mdc-row,
+::ng-deep .mtx-grid .mat-mdc-header-row {
+  min-height: 34px !important;
+}
+
+::ng-deep .mtx-grid .mat-mdc-cell,
+::ng-deep .mtx-grid .mat-mdc-header-cell {
+  padding: 3px 8px !important;
+  font-size: 12.8px;
+}
+
+::ng-deep .mtx-grid .mat-mdc-header-cell {
+  font-weight: 600;
+}
+
+::ng-deep .mat-mdc-paginator {
+  min-height: 40px !important;
+}
+
+/* ── Células customizadas ──────────────────────────────────────────────── */
+.acoes-cell {
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+  align-items: center;
+
+  button {
+    width: 30px;
+    height: 30px;
+    line-height: 30px;
+
+    mat-icon {
+      font-size: 18px;
+    }
+  }
+}
+
+.perfil-cell {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.chip {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 10px;
+  font-size: 0.72rem;
+  line-height: 1.5;
+  white-space: nowrap;
+  color: var(--mat-sys-on-secondary-container, #1b1b1b);
+  background: var(--mat-sys-secondary-container, rgba(127, 127, 127, 0.18));
+
+  &.admin {
+    color: var(--mat-sys-on-primary, #fff);
+    background: var(--mat-sys-primary, #1976d2);
+  }
+
+  &.plantao {
+    color: var(--mat-sys-on-tertiary, #fff);
+    background: var(--mat-sys-tertiary, #6d4c9f);
+  }
+
+  &.vazio {
+    background: transparent;
+    color: var(--mat-sys-on-surface-variant, rgba(127, 127, 127, 0.9));
+  }
+
+  &.ativo {
+    color: #0f5132;
+    background: #d1e7dd;
+  }
+
+  &.inativo {
+    color: #842029;
+    background: #f8d7da;
+  }
+}
+
+/* ── Mobile ────────────────────────────────────────────────────────────── */
+.container-fluid.mobile {
+  .filter-container .busca-filter {
+    width: 100%;
+  }
+
+  .acoes-cell button {
+    width: 36px;
+    height: 36px;
+    line-height: 36px;
+
+    mat-icon {
+      font-size: 20px;
+    }
+  }
+}

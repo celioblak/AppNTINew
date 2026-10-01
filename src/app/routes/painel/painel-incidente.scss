@@ -1,0 +1,510 @@
+:host {
+  display: block;
+  height: 100%;
+  min-height: 0;
+}
+
+.incidente {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: clamp(10px, 1.5vw, 24px);
+  height: 100%;
+  min-height: 0;
+
+  // Proporção fixa: no painel antigo a tela alternava entre empilhado e lado a
+  // lado conforme a quantidade de chamados, e quem olhava via o layout saltar.
+  &--com-monitoramento {
+    grid-template-columns: 62fr 38fr;
+  }
+
+  &__chamados,
+  &__monitoramento {
+    display: flex;
+    flex-direction: column;
+    gap: clamp(8px, 1.2vh, 18px);
+    min-width: 0;
+    min-height: 0;
+  }
+
+  &__monitoramento {
+    overflow: hidden;
+  }
+
+  /*
+   * Linhas fixas (--linhas = itens por página). O card tem sempre a mesma altura,
+   * com a página cheia ou com um item só: o resto da grade fica vazio, em vez de
+   * o card mudar de tamanho a cada virada de página.
+   */
+  &__grade {
+    display: grid;
+    flex: 1 1 auto;
+    grid-template-rows: repeat(var(--linhas, 10), 1fr);
+    gap: clamp(6px, 1vh, 14px);
+    min-height: 0;
+  }
+}
+
+.secao {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: baseline;
+  gap: 12px;
+
+  &__titulo {
+    margin: 0;
+    color: var(--pn-texto);
+    font-size: clamp(1.1rem, 2.2vh, 2.2rem);
+    font-weight: 700;
+    letter-spacing: 0.5px;
+  }
+
+  &__contador {
+    padding: 0 10px;
+    border-radius: 999px;
+    background: var(--pn-superficie-alta);
+    color: var(--pn-texto-fraco);
+    font-size: clamp(0.9rem, 1.6vh, 1.5rem);
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+  }
+
+}
+
+// Indicador de página: texto legível de longe + bolinhas mostrando quantas faltam.
+.paginacao {
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+  gap: 8px;
+  padding: 3px 12px;
+  border: 1px solid var(--pn-borda);
+  border-radius: 999px;
+  background: var(--pn-superficie-alta);
+
+  &__texto {
+    color: var(--pn-texto);
+    font-size: clamp(0.8rem, 1.5vh, 1.4rem);
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+  }
+
+  &__ponto {
+    width: clamp(6px, 0.9vh, 11px);
+    height: clamp(6px, 0.9vh, 11px);
+    border-radius: 50%;
+    background: var(--pn-neutro);
+
+    &--ativo {
+      background: var(--pn-info);
+      box-shadow: 0 0 0 3px rgb(91 141 239 / 25%);
+    }
+  }
+}
+
+// Sem isto a cor da faixa do card não significa nada para quem só olha a TV.
+.legenda {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  gap: clamp(10px, 1.5vw, 28px);
+  padding: 0 2px;
+  color: var(--pn-texto-fraco);
+  font-size: clamp(0.7rem, 1.3vh, 1.2rem);
+
+  &__item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  &__cor {
+    width: clamp(10px, 1.4vh, 18px);
+    height: clamp(10px, 1.4vh, 18px);
+    border-radius: 3px;
+
+    &--incidente {
+      background: var(--pn-critico);
+    }
+
+    &--requisicao {
+      background: var(--pn-info);
+    }
+
+    &--pendente {
+      background: var(--pn-atencao);
+    }
+
+    &--lock-ok {
+      background: var(--pn-lock-recente);
+    }
+
+    &--lock-alerta {
+      background: var(--pn-lock-atencao);
+    }
+
+    &--lock-critico {
+      background: var(--pn-lock-critico);
+    }
+  }
+}
+
+// Mesmo formato das etiquetas de nível, na cor dos locks.
+.etiqueta--lock {
+  background: var(--pn-lock-critico);
+  color: #ffffff;
+}
+
+.vazio {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  border: 2px dashed var(--pn-borda);
+  border-radius: 10px;
+  color: var(--pn-texto-fraco);
+
+  &__icone {
+    color: var(--pn-ok);
+    font-size: clamp(3rem, 10vh, 8rem);
+    line-height: 1;
+  }
+
+  &__texto {
+    font-size: clamp(1.1rem, 2.4vh, 2.4rem);
+  }
+}
+
+.servidores {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(6px, 1vh, 14px);
+}
+
+.servidor {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(4px, 0.8vh, 10px);
+  padding: clamp(8px, 1.2vh, 16px) clamp(10px, 1vw, 18px);
+  border-left: 8px solid var(--pn-neutro);
+  border-radius: 6px;
+  background: var(--pn-superficie);
+
+  &--alerta {
+    border-left-color: var(--pn-atencao);
+  }
+
+  &--critico {
+    border-left-color: var(--pn-critico);
+  }
+
+  &__topo {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  &__nome {
+    font-size: clamp(1rem, 2vh, 1.9rem);
+    font-weight: 700;
+  }
+}
+
+.etiqueta {
+  padding: 2px 10px;
+  border-radius: 4px;
+  font-size: clamp(0.7rem, 1.2vh, 1.1rem);
+  font-weight: 800;
+  letter-spacing: 1px;
+
+  &--ok {
+    background: rgb(53 193 125 / 25%);
+    background: color-mix(in srgb, var(--pn-ok) 25%, transparent);
+    color: var(--pn-ok);
+  }
+
+  &--alerta {
+    background: rgb(242 181 68 / 25%);
+    background: color-mix(in srgb, var(--pn-atencao) 25%, transparent);
+    color: var(--pn-atencao);
+  }
+
+  &--critico {
+    background: rgb(239 83 80 / 28%);
+    background: color-mix(in srgb, var(--pn-critico) 28%, transparent);
+    color: var(--pn-critico);
+  }
+}
+
+.indicador {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+
+  &__cabecalho {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    color: var(--pn-texto-fraco);
+    font-size: clamp(0.8rem, 1.4vh, 1.3rem);
+
+    b {
+      color: var(--pn-texto);
+      font-size: clamp(0.95rem, 1.8vh, 1.7rem);
+      font-variant-numeric: tabular-nums;
+    }
+  }
+
+  &__nota {
+    color: var(--pn-texto-fraco);
+    font-size: clamp(0.7rem, 1.2vh, 1.1rem);
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.barra {
+  height: clamp(8px, 1.2vh, 16px);
+  border-radius: 999px;
+  background: var(--pn-superficie-alta);
+  overflow: hidden;
+
+  &__valor {
+    height: 100%;
+    transition: width 0.4s ease;
+
+    &--ok {
+      background: var(--pn-ok);
+    }
+
+    &--alerta {
+      background: var(--pn-atencao);
+    }
+
+    &--critico {
+      background: var(--pn-critico);
+    }
+  }
+}
+
+.locks {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(4px, 0.8vh, 10px);
+
+  &__resumo {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    padding: clamp(6px, 1vh, 14px) clamp(10px, 1vw, 18px);
+    border-radius: 6px;
+    background: var(--pn-superficie);
+  }
+
+  &__numero {
+    color: var(--pn-lock-recente);
+    font-size: clamp(1.8rem, 4.5vh, 4rem);
+    font-variant-numeric: tabular-nums;
+    font-weight: 800;
+    line-height: 1;
+  }
+
+  &__texto {
+    color: var(--pn-texto-fraco);
+    font-size: clamp(0.85rem, 1.6vh, 1.5rem);
+  }
+
+  &__ocultos {
+    color: var(--pn-texto-fraco);
+    font-size: clamp(0.75rem, 1.3vh, 1.2rem);
+    text-align: right;
+  }
+}
+
+.lock {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 12px;
+  padding: clamp(4px, 0.8vh, 10px) clamp(10px, 1vw, 18px);
+  border-left: 5px solid var(--pn-lock-recente);
+  border-radius: 4px;
+  background: var(--pn-superficie);
+
+  // Além da borda, o fundo vai ficando mais roxo: de longe a diferença entre
+  // as faixas aparece mesmo quando a borda fina não é notada.
+  &--alerta {
+    border-left-color: var(--pn-lock-atencao);
+    background: color-mix(in srgb, var(--pn-lock-atencao) 22%, var(--pn-superficie));
+  }
+
+  &--critico {
+    border-left-color: var(--pn-lock-critico);
+    background: color-mix(in srgb, var(--pn-lock-critico) 55%, var(--pn-superficie));
+
+    .lock__detalhe {
+      color: var(--pn-texto);
+    }
+  }
+
+  &__usuario {
+    font-size: clamp(0.95rem, 1.8vh, 1.6rem);
+    font-weight: 700;
+  }
+
+  &__tempo {
+    grid-row: span 2;
+    align-self: center;
+    font-size: clamp(0.95rem, 1.8vh, 1.6rem);
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+  }
+
+  &__detalhe {
+    color: var(--pn-texto-fraco);
+    font-size: clamp(0.7rem, 1.3vh, 1.2rem);
+  }
+}
+
+// ───────────── sistemas impactados ─────────────
+// O bloco mais importante da coluna: diz o que caiu e quem sente. A cor da
+// borda é a gravidade (parado = crítico, parcial = atenção) e os sistemas vêm
+// em etiquetas legíveis de longe, com a situação escrita além da cor.
+.impactos {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(6px, 1vh, 12px);
+}
+
+.impacto {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(4px, 0.7vh, 8px);
+  padding: clamp(8px, 1.2vh, 16px) clamp(10px, 1vw, 18px);
+  border-left: 8px solid var(--pn-neutro);
+  border-radius: 6px;
+  background: var(--pn-superficie);
+
+  &--critico {
+    border-left-color: var(--pn-critico);
+    background: color-mix(in srgb, var(--pn-critico) 14%, var(--pn-superficie));
+    animation: impacto-pulso 2.4s ease-in-out infinite;
+  }
+
+  &--alto {
+    border-left-color: var(--pn-atencao);
+  }
+
+  &__topo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  &__icone {
+    font-size: clamp(0.9rem, 1.8vh, 1.6rem);
+    line-height: 1;
+  }
+
+  &__rotulo {
+    color: var(--pn-texto-fraco);
+    font-size: clamp(0.7rem, 1.3vh, 1.15rem);
+    font-weight: 800;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  &--critico &__rotulo {
+    color: var(--pn-critico);
+  }
+
+  &--alto &__rotulo {
+    color: var(--pn-atencao);
+  }
+
+  &__desde {
+    margin-left: auto;
+    color: var(--pn-texto-fraco);
+    font-size: clamp(0.7rem, 1.3vh, 1.15rem);
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__nome {
+    font-size: clamp(1.05rem, 2.2vh, 2rem);
+    font-weight: 800;
+    line-height: 1.15;
+  }
+
+  &__servidor {
+    color: var(--pn-texto-fraco);
+    font-size: 0.7em;
+    font-weight: 600;
+  }
+
+  &__descricao {
+    overflow: hidden;
+    color: var(--pn-texto-fraco);
+    font-size: clamp(0.75rem, 1.4vh, 1.25rem);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__sistemas {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 2px;
+  }
+
+  &__sem-sistema {
+    color: var(--pn-texto-fraco);
+    font-size: clamp(0.7rem, 1.2vh, 1.1rem);
+    font-style: italic;
+  }
+}
+
+.sistema-chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 3px 10px;
+  border: 1px solid var(--pn-borda);
+  border-radius: 999px;
+  background: var(--pn-superficie-alta);
+  font-size: clamp(0.8rem, 1.5vh, 1.35rem);
+
+  span {
+    color: var(--pn-texto-fraco);
+    font-size: 0.85em;
+  }
+
+  &--total {
+    border-color: var(--pn-critico);
+    background: color-mix(in srgb, var(--pn-critico) 30%, var(--pn-superficie));
+
+    span {
+      color: var(--pn-texto);
+    }
+  }
+
+  &--parcial {
+    border-color: var(--pn-atencao);
+  }
+}
+
+@keyframes impacto-pulso {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgb(239 83 80 / 0%);
+  }
+
+  50% {
+    box-shadow: 0 0 0 4px rgb(239 83 80 / 35%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .impacto--critico {
+    animation: none;
+  }
+}

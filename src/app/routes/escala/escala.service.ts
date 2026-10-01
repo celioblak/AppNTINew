@@ -1,9 +1,21 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Observable, throwError, of } from 'rxjs';
 import { catchError, shareReplay, tap } from 'rxjs/operators';
-import { Escala, Plantao, VistaEscala } from '@core';
+import { Ausencia, Escala, PermissaoUsuarioEscala, Plantao, VistaEscala } from '@core';
+
 import { environment } from '@env/environment';
+
+/** Log de auditoria de alteração em plantão de escala publicada */
+export interface LogPlantao {
+  id:          number;
+  idPlantao:   number;
+  acao:        'ADICIONAR' | 'ALTERAR' | 'REMOVER';
+  valorAntigo: string | null;   // "dia=D | idUsuario=U | idTipoPlantao=T"
+  valorNovo:   string | null;
+  alteradoPor: number;          // COD_USUARIO
+  alteradoEm:  string;          // ISO datetime
+}
 
 @Injectable({
   providedIn: 'root'
@@ -21,10 +33,8 @@ export class EscalaService {
   private handleError(error: HttpErrorResponse): Observable<never> {
     console.log('DEBUG - Error completo (EscalaService):', error);
 
-    // Extrai a mensagem do backend diretamente
     let errorMessage = 'Erro desconhecido ao processar a requisição';
 
-    // Verifica se o erro veio do seu backend
     if (error.error && error.error.erro) {
       errorMessage = error.error.erro;
     } else if (error.error && error.error.message) {
@@ -37,9 +47,7 @@ export class EscalaService {
 
     console.log('DEBUG - Mensagem extraída:', errorMessage);
 
-    // Cria um erro que será propagado corretamente
     const customError = new Error(errorMessage);
-    // Adiciona propriedades extras para ajudar no debug
     (customError as any).status = error.status;
     (customError as any).originalError = error;
 
@@ -47,12 +55,10 @@ export class EscalaService {
   }
 
   getEscala(mesEscala: number, forceRefresh = false): Observable<VistaEscala> {
-    // Verificar cache
     if (!forceRefresh && this.vistaCache.has(mesEscala)) {
       return of(this.vistaCache.get(mesEscala)!);
     }
 
-    // Verificar se já existe uma requisição em andamento
     if (!forceRefresh && this.escalaCache.has(mesEscala)) {
       return this.escalaCache.get(mesEscala)!;
     }
@@ -62,8 +68,6 @@ export class EscalaService {
       `${this.apiUrl}/vista/${mesEscala}?idUsuario=${idUsuario}`
     ).pipe(
       tap(vista => {
-        console.log('DEBUG - getEscala response:', vista);
-        // Armazenar no cache
         this.vistaCache.set(mesEscala, vista);
       }),
       shareReplay(1),
@@ -74,12 +78,80 @@ export class EscalaService {
     return request$;
   }
 
-  // Método para atualizar cache local após operações
+  getPermissao(): Observable<PermissaoUsuarioEscala> {
+    return this.http.get<PermissaoUsuarioEscala>(`${this.apiUrl}/permissao`);
+  }
+
+  // ========== MÉTODOS PARA AUSÊNCIAS ==========
+
+  /**
+   * Salva uma ausência (banco de horas, atestado, etc.)
+   */
+  salvarAusencia(ausencia: Ausencia, escalaId?: number): Observable<any> {
+    const idEscala = escalaId;
+
+    if (!idEscala) {
+      console.error('DEBUG - escalaId é null/undefined:', escalaId);
+      return throwError(() => new Error('ID da escala é obrigatório'));
+    }
+
+    const idEscalaNumero = Number(idEscala);
+    if (isNaN(idEscalaNumero)) {
+      console.error('DEBUG - idEscala não é número válido:', idEscala);
+      return throwError(() => new Error('ID da escala deve ser um número válido'));
+    }
+
+    const request = {
+      ausencia: {
+        id: ausencia.id || null,
+        dia: Number(ausencia.dia),
+        idUsuario: Number(ausencia.idUsuario),
+        idTipoAusencia: Number(ausencia.idTipoAusencia),
+        idEscala: idEscalaNumero,
+        mesEscala: Number(ausencia.mesEscala),
+        observacao: ausencia.observacao || null
+      }
+    };
+
+    return this.http.post<any>(
+      `${this.apiUrl}/ausencia`,
+      request
+    ).pipe(
+      tap(response => {
+        if (ausencia.mesEscala) {
+          const ausenciaSalva = response.ausencia || ausencia;
+          if (ausenciaSalva.id) {
+            ausencia.id = ausenciaSalva.id;
+          }
+          this.atualizarCacheLocalAusencia(ausencia.mesEscala, ausenciaSalva, ausencia.id ? 'atualizar' : 'adicionar');
+        }
+      }),
+      catchError(this.handleError)
+    );
+  }
+
+  /**
+   * Remove uma ausência
+   */
+  removerAusencia(ausenciaId: number): Observable<void> {
+
+    return this.http.delete<void>(
+      `${this.apiUrl}/ausencia/${ausenciaId}`,
+      { params: {} }
+    ).pipe(
+      tap(() => {
+        this.escalaCache.clear();
+        this.vistaCache.clear();
+      }),
+      catchError(this.handleError)
+    );
+  }
+
+  // ========== MÉTODOS PARA PLANTÕES (mantidos) ==========
+
   atualizarCacheLocal(mesEscala: number, plantao: Plantao, operacao: 'adicionar' | 'atualizar' | 'remover'): void {
     if (this.vistaCache.has(mesEscala)) {
       const vista = this.vistaCache.get(mesEscala)!;
-
-      console.log('DEBUG - atualizarCacheLocal:', { mesEscala, plantao, operacao, vista });
 
       if (!vista.grid) vista.grid = {};
 
@@ -91,9 +163,38 @@ export class EscalaService {
       } else if (operacao === 'remover') {
         if (vista.grid[plantao.idUsuario]) {
           delete vista.grid[plantao.idUsuario][plantao.dia];
-          // Remover entrada do usuário se vazia
           if (Object.keys(vista.grid[plantao.idUsuario]).length === 0) {
             delete vista.grid[plantao.idUsuario];
+          }
+        }
+      }
+    }
+  }
+
+  /**
+   * Atualiza cache local para ausências
+   */
+  private atualizarCacheLocalAusencia(mesEscala: number, ausencia: Ausencia, operacao: 'adicionar' | 'atualizar' | 'remover'): void {
+    if (this.vistaCache.has(mesEscala)) {
+      const vista = this.vistaCache.get(mesEscala)!;
+
+      // Criar estrutura de ausências se não existir
+      if (!(vista as any).gridAusencias) {
+        (vista as any).gridAusencias = {};
+      }
+
+      const gridAusencias = (vista as any).gridAusencias;
+
+      if (operacao === 'adicionar' || operacao === 'atualizar') {
+        if (!gridAusencias[ausencia.idUsuario]) {
+          gridAusencias[ausencia.idUsuario] = {};
+        }
+        gridAusencias[ausencia.idUsuario][ausencia.dia] = ausencia;
+      } else if (operacao === 'remover') {
+        if (gridAusencias[ausencia.idUsuario]) {
+          delete gridAusencias[ausencia.idUsuario][ausencia.dia];
+          if (Object.keys(gridAusencias[ausencia.idUsuario]).length === 0) {
+            delete gridAusencias[ausencia.idUsuario];
           }
         }
       }
@@ -112,7 +213,6 @@ export class EscalaService {
       request
     ).pipe(
       tap(() => {
-        // Limpar cache após gerar nova escala
         const mesEscala = ano * 100 + mes;
         this.escalaCache.delete(mesEscala);
         this.vistaCache.delete(mesEscala);
@@ -121,25 +221,19 @@ export class EscalaService {
     );
   }
 
-  salvarPlantao(plantao: Plantao, idUsuarioAtual: number, escalaId?: number): Observable<any> {
-    console.log('DEBUG - salvarPlantao chamado:', { plantao, idUsuarioAtual, escalaId });
+  salvarPlantao(plantao: Plantao, escalaId?: number): Observable<any> {
 
-    // Forçar usar escalaId do parâmetro PRIMEIRO
     const idEscala = escalaId;
 
     if (!idEscala) {
-      console.error('DEBUG - escalaId do parâmetro é null/undefined:', escalaId);
       return throwError(() => new Error('ID da escala é obrigatório'));
     }
 
-    // Garantir que é número
     const idEscalaNumero = Number(idEscala);
     if (isNaN(idEscalaNumero)) {
-      console.error('DEBUG - idEscala não é número válido:', idEscala);
       return throwError(() => new Error('ID da escala deve ser um número válido'));
     }
 
-    // Construir request EXATAMENTE como o backend espera
     const request = {
       plantao: {
         id: plantao.id || null,
@@ -148,19 +242,14 @@ export class EscalaService {
         idTipoPlantao: Number(plantao.idTipoPlantao),
         idEscala: idEscalaNumero,
         mesEscala: Number(plantao.mesEscala)
-      },
-      idUsuarioAtual: Number(idUsuarioAtual)
+      }
     };
-
-    console.log('DEBUG - Request final (JSON):', JSON.stringify(request));
 
     return this.http.post<any>(
       `${this.apiUrl}/plantao`,
       request
     ).pipe(
       tap(response => {
-        console.log('DEBUG - salvarPlantao response:', response);
-        // Atualizar cache local
         if (plantao.mesEscala) {
           const plantaoSalvo = response.plantao || plantao;
           if (plantaoSalvo.id) {
@@ -173,18 +262,12 @@ export class EscalaService {
     );
   }
 
-  removerPlantao(plantaoId: number, idUsuario: number): Observable<void> {
-    console.log('DEBUG - removerPlantao chamado:', { plantaoId, idUsuario });
-
+  removerPlantao(plantaoId: number): Observable<void> {
     return this.http.delete<void>(
       `${this.apiUrl}/plantao/${plantaoId}`,
-      {
-        params: { idUsuario: idUsuario.toString() }
-      }
+      { params: {} }
     ).pipe(
       tap(() => {
-        console.log('DEBUG - removerPlantao sucesso');
-        // Limpar cache para forçar recarregamento
         this.escalaCache.clear();
         this.vistaCache.clear();
       }),
@@ -192,10 +275,9 @@ export class EscalaService {
     );
   }
 
-  publicarEscala(mesEscala: number, idUsuarioAtual: number, observacao?: string): Observable<any> {
+  publicarEscala(mesEscala: number,observacao?: string): Observable<any> {
     const request = {
       mesEscala: mesEscala,
-      idUsuarioAtual: idUsuarioAtual,
       observacao: observacao || ''
     };
 
@@ -204,7 +286,6 @@ export class EscalaService {
       request
     ).pipe(
       tap(() => {
-        // Atualizar cache
         if (this.vistaCache.has(mesEscala)) {
           const vista = this.vistaCache.get(mesEscala)!;
           if (vista.escala) {
@@ -216,10 +297,9 @@ export class EscalaService {
     );
   }
 
-  reverterPublicacao(mesEscala: number, idUsuarioAtual: number): Observable<any> {
+  reverterPublicacao(mesEscala: number): Observable<any> {
     const request = {
-      mesEscala: mesEscala,
-      idUsuarioAtual: idUsuarioAtual
+      mesEscala: mesEscala
     };
 
     return this.http.put<any>(
@@ -227,7 +307,6 @@ export class EscalaService {
       request
     ).pipe(
       tap(() => {
-        // Atualizar cache
         if (this.vistaCache.has(mesEscala)) {
           const vista = this.vistaCache.get(mesEscala)!;
           if (vista.escala) {
@@ -239,14 +318,20 @@ export class EscalaService {
     );
   }
 
-  // Método para limpar cache (útil para logout ou mudança de mês)
   limparCache(): void {
     this.escalaCache.clear();
     this.vistaCache.clear();
   }
 
-  // Método para atualizar apenas um plantão no cache
   atualizarPlantaoNoCache(mesEscala: number, plantaoAtualizado: Plantao): void {
     this.atualizarCacheLocal(mesEscala, plantaoAtualizado, 'atualizar');
+  }
+
+  // ========== LOG DE AUDITORIA ==========
+
+  /** Retorna todos os logs de alteração de uma escala (somente após publicação). */
+  getLogEscala(idEscala: number): Observable<LogPlantao[]> {
+    return this.http.get<LogPlantao[]>(`${this.apiUrl}/log/escala/${idEscala}`)
+      .pipe(catchError(this.handleError));
   }
 }

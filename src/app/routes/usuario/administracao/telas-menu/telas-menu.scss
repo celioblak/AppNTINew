@@ -1,0 +1,165 @@
+$contorno: var(--mat-sys-outline-variant, rgba(0, 0, 0, .12));
+$texto-secundario: var(--mat-sys-on-surface-variant, rgba(0, 0, 0, .6));
+
+:host {
+  display: block;
+}
+
+:host ::ng-deep .abas .mat-mdc-tab-body-content {
+  padding-top: 8px;
+  overflow-x: hidden;
+}
+
+// A altura vem do alturaAteRodape; grade e árvore ocupam o que sobra abaixo da barra.
+.aba {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.barra {
+  display: flex;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.busca {
+  flex: 0 1 420px;
+}
+
+.espaco {
+  flex: 1;
+}
+
+.total,
+.vazio {
+  font-size: .8rem;
+  color: $texto-secundario;
+}
+
+.vazio {
+  padding: 16px;
+  text-align: center;
+}
+
+.grade {
+  flex: 1 1 0;
+  min-height: 240px;
+}
+
+// Botões de ação lado a lado e compactos: a coluna não quebra em duas linhas.
+:host ::ng-deep .grade mtx-grid-cell:has(.mtx-grid-action-button) {
+  white-space: nowrap;
+
+  .mtx-grid-action-button {
+    --mat-icon-button-state-layer-size: 32px;
+    width: 32px;
+    height: 32px;
+    padding: 4px;
+  }
+}
+
+// ---------------------------------------------------------------- árvore
+
+.arvore {
+  flex: 1 1 0;
+  min-height: 240px;
+  overflow: auto;
+  border: 1px solid $contorno;
+  border-radius: 8px;
+}
+
+.linha {
+  display: grid;
+  grid-template-columns: minmax(280px, 1fr) 120px 220px 70px 140px;
+  align-items: center;
+  gap: 8px;
+  min-width: 860px;
+  padding: 2px 8px;
+  border-bottom: 1px solid $contorno;
+
+  &:hover:not(.cabecalho) {
+    background-color: var(--mat-sys-surface-container-high, rgba(0, 0, 0, .04));
+  }
+
+  &.cabecalho {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    padding-top: 8px;
+    padding-bottom: 8px;
+    font-size: .75rem;
+    font-weight: 600;
+    color: $texto-secundario;
+    background-color: var(--mat-sys-surface, #fff);
+  }
+
+  &[data-tipo='M'] .item-rotulo {
+    font-weight: 600;
+  }
+
+  &[data-tipo='R'] {
+    opacity: .75;
+  }
+}
+
+.coluna-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.item-icone {
+  flex-shrink: 0;
+  color: $texto-secundario;
+}
+
+.item-textos {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.item-rotulo,
+.item-detalhe,
+.coluna-tela {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.item-detalhe {
+  font-family: 'Cascadia Mono', Consolas, monospace;
+  font-size: .72rem;
+  color: $texto-secundario;
+}
+
+.sem-traducao {
+  margin-left: 6px;
+  padding: 0 6px;
+  border-radius: 4px;
+  font-size: .65rem;
+  font-weight: 500;
+  color: #ef6c00;
+  border: 1px solid currentColor;
+}
+
+.tipo {
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: .72rem;
+  background-color: var(--mat-sys-surface-container-high, rgba(0, 0, 0, .06));
+}
+
+.coluna-tela,
+.coluna-ordem {
+  font-size: .85rem;
+}
+
+.coluna-acoes {
+  display: flex;
+  justify-content: flex-end;
+}

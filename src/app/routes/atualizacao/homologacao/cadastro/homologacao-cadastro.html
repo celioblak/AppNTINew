@@ -1,0 +1,250 @@
+<div class="pagina cadastro">
+  <div class="barra">
+    <button mat-icon-button type="button" aria-label="Voltar" (click)="voltar()"><mat-icon>arrow_back</mat-icon></button>
+    <h2 class="titulo-pagina">{{ original() ? 'Editar ' + original()!.numero : 'Nova homologação de versão' }}</h2>
+    <span class="espaco"></span>
+    <span class="falta">{{ falta() }}</span>
+    <button mat-flat-button type="button" [disabled]="!!falta() || salvando()" (click)="salvar()">
+      <mat-icon>save</mat-icon> {{ original() ? 'Salvar' : 'Criar' }}
+    </button>
+  </div>
+
+  @if (carregando()) {
+    <mat-progress-bar mode="indeterminate" />
+  }
+
+  @if (catalogo(); as c) {
+    @if (!c.permissoes.gestao) {
+      <p class="aviso">Criar e alterar homologações é da gestão: peça a liberação da tela Gestão de homologações ao administrador.</p>
+    }
+
+    <!-- ============================================================ dados -->
+    <section class="secao">
+      <h3 class="secao__titulo">Dados</h3>
+      <div class="grade">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="largo">
+          <mat-label>Título</mat-label>
+          <input matInput maxlength="200" [(ngModel)]="titulo" placeholder="Ex.: MV Soul 2025.1 — homologação de versão" />
+        </mat-form-field>
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <mat-label>Ambiente onde a versão foi instalada</mat-label>
+          <mat-select [(ngModel)]="codAmbiente" [disabled]="!planejada()">
+            @for (a of c.ambientes; track a.codigo) {
+              <mat-option [value]="a.codigo">{{ a.nome }}</mat-option>
+            }
+          </mat-select>
+          @if (!c.ambientes.length) {
+            <mat-hint>Nenhum ambiente de teste ativo: cadastre em Infraestrutura › Ambientes.</mat-hint>
+          }
+        </mat-form-field>
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <mat-label>Previsão de início</mat-label>
+          <input matInput type="date" [(ngModel)]="previsaoInicio" [disabled]="!planejada()" />
+        </mat-form-field>
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <mat-label>Previsão de fim</mat-label>
+          <input matInput type="date" [(ngModel)]="previsaoFim" [min]="previsaoInicio" [disabled]="!planejada()" />
+          @if (!planejada()) {
+            <mat-hint>Depois de iniciada, use "Alterar previsão" na homologação (exige motivo).</mat-hint>
+          }
+        </mat-form-field>
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <mat-label>Responsável</mat-label>
+          <mat-select [(ngModel)]="codResponsavel" placeholder="Eu">
+            @for (u of c.usuarios; track u.codUsuario) {
+              <mat-option [value]="u.codUsuario">{{ u.nome }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <mat-label>Ticket MV (opcional)</mat-label>
+          <input matInput maxlength="100" [(ngModel)]="ticketMv" />
+        </mat-form-field>
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="largo">
+          <mat-label>Descrição ou objetivo</mat-label>
+          <textarea matInput rows="2" maxlength="4000" [(ngModel)]="descricao"></textarea>
+        </mat-form-field>
+      </div>
+    </section>
+
+    <!-- ============================================================ sistemas, roteiros e escopo -->
+    <section class="secao">
+      <h3 class="secao__titulo">
+        Sistemas
+        <span class="suave">versões do cadastro de sistemas por ambiente (Produção → ambiente homologado); roteiro padrão: nenhum, um ou vários</span>
+      </h3>
+      @for (s of sistemas; track s.codSistema) {
+        @let v = versoes(s);
+        <div class="sistema" [class.sistema--compacto]="!editavel(s)">
+          <div class="sistema__cab">
+            <strong>{{ s.nome }}</strong>
+            <span class="versao" [matTooltip]="s.congeladas ? 'Versões registradas ao iniciar' : 'Acompanha o cadastro até iniciar'">
+              <span class="suave">Produção</span> {{ v.atual || '—' }}
+              <mat-icon inline>arrow_forward</mat-icon>
+              <span class="suave">{{ ambienteNome() }}</span> {{ v.nova || '—' }}
+            </span>
+            @if (!editavel(s)) {
+              <!-- Em andamento, roteiros e escopo não mudam aqui: o sistema cabe numa linha (o escopo muda item a item na homologação). -->
+              <span class="suave" matTooltip="Depois de iniciada, o escopo muda item a item na própria homologação">· {{ roteirosTexto(s) }}</span>
+            }
+            <span class="espaco"></span>
+            @if (!s.salvo && !planejada()) {
+              <span class="novo-sistema">entra agora, com a homologação em andamento</span>
+            }
+            @if (editavel(s) || s.removivel) {
+              <button mat-icon-button type="button" class="pequeno" aria-label="Tirar o sistema" matTooltip="Tirar o sistema (ainda sem resultados)" (click)="tirarSistema(s)">
+                <mat-icon>close</mat-icon>
+              </button>
+            } @else {
+              <mat-icon class="bloqueado" matTooltip="Já tem resultados (ou entrega do fabricante): não sai da homologação. Se não será mais testado, tire os itens do escopo."
+                >lock</mat-icon
+              >
+            }
+          </div>
+          @if (!s.congeladas && codAmbiente && !v.nova) {
+            <p class="aviso-versao">
+              <mat-icon inline>info</mat-icon> Sem versão de {{ s.nome }} em {{ ambienteNome() }}.
+              {{ planejada() ? 'Pode salvar agora; para iniciar, informe' : 'Para incluí-lo com a homologação em andamento, informe antes' }} a versão
+              instalada pelo fabricante em Atualizações › Configuração › Sistemas por ambiente.
+            </p>
+          } @else if (!s.congeladas && v.nova && v.nova === v.atual) {
+            <p class="aviso-versao">
+              <mat-icon inline>info</mat-icon> A versão em {{ ambienteNome() }} é a mesma de Produção: atualize o cadastro quando o fabricante instalar a
+              nova.
+            </p>
+          }
+
+          @if (editavel(s)) {
+            <div class="roteiros">
+              <span class="rotulo">Roteiros padrão:</span>
+              @for (r of catalogoDo(s.codSistema)?.roteiros ?? []; track r.codRoteiro) {
+                @if (r.ativo || s.codRoteiros.includes(r.codRoteiro)) {
+                  <mat-checkbox [checked]="s.codRoteiros.includes(r.codRoteiro)" (change)="alternarRoteiro(s, r.codRoteiro, $event.checked)">
+                    {{ r.nome }} <span class="suave">({{ r.qtdItens }} itens)</span>
+                  </mat-checkbox>
+                }
+              } @empty {
+                <span class="suave">
+                  {{ s.nome }} não tem roteiro padrão: a homologação começa vazia. Inclua os itens nela marcando "nesta e no roteiro padrão"
+                  para reaproveitar depois, ou cadastre em Roteiros de homologação.
+                </span>
+              }
+              @if ((catalogoDo(s.codSistema)?.roteiros?.length ?? 0) && !s.codRoteiros.length) {
+                <span class="suave">Nenhum marcado: só itens incluídos nesta homologação (útil quando o roteiro não vai se repetir).</span>
+              }
+            </div>
+
+            @if (semModulo(s)) {
+              <p class="aviso-versao">
+                <mat-icon inline>info</mat-icon> {{ semModulo(s) }} agrupamento(s) dos roteiros escolhidos ainda sem módulo: aparecem em "Sem módulo" até
+                serem classificados em Roteiros de homologação (pode seguir mesmo assim).
+              </p>
+            }
+            @if (arvore(s).length) {
+              <details class="escopo">
+                <summary>
+                  Escopo: {{ totalNoEscopo(s) }} de {{ itensAtivos(s).length }} itens — desmarque o que não se aplica a esta versão{{
+                    catalogoDo(s.codSistema)?.trabalhaModulo ? ' (um módulo inteiro, um agrupamento ou item a item)' : ''
+                  }}
+                </summary>
+                @for (r of arvore(s); track r.codRoteiro) {
+                  @if (arvore(s).length > 1) {
+                    <p class="rotulo">{{ r.nome }}</p>
+                  }
+                  @for (g of gruposEscopo(s, r); track g.nome) {
+                  @if (g.nome) {
+                    <mat-checkbox class="modulo-escopo" [checked]="agrupamentoMarcado(s, itensDoGrupo(g.itens))" (change)="alternarAgrupamento(s, itensDoGrupo(g.itens), $event.checked)">
+                      <strong>Módulo {{ g.nome }}</strong>
+                    </mat-checkbox>
+                  }
+                  @for (a of g.itens; track a.codAgrupamento) {
+                    @if (a.ativo) {
+                      <div class="agrupamento" [class.agrupamento--modulo]="!!g.nome">
+                        <mat-checkbox [checked]="agrupamentoMarcado(s, a.itens)" (change)="alternarAgrupamento(s, a.itens, $event.checked)">
+                          <strong>{{ a.nome }}</strong>
+                          @if (a.tela) {
+                            <span class="suave"> · {{ a.tela }}</span>
+                          }
+                        </mat-checkbox>
+                        <div class="itens">
+                          @for (i of a.itens; track i.codRoteiroItem) {
+                            @if (i.ativo) {
+                              <mat-checkbox [checked]="!s.fora.has(i.codRoteiroItem)" (change)="alternarItem(s, i.codRoteiroItem, $event.checked)">
+                                {{ i.titulo }}
+                                @if (i.critico) {
+                                  <span class="critico">crítico</span>
+                                }
+                              </mat-checkbox>
+                            }
+                          }
+                        </div>
+                      </div>
+                    }
+                  }
+                  }
+                }
+              </details>
+            }
+          }
+        </div>
+      }
+
+      @if (planejada() || original()?.situacao === 'EM_ANDAMENTO') {
+        <div class="incluir">
+          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+            <mat-label>Incluir sistema</mat-label>
+            <mat-select [(ngModel)]="sistemaParaIncluir">
+              @for (s of sistemasDisponiveis(); track s.codSistema) {
+                <mat-option [value]="s.codSistema">{{ s.nome }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+          <button mat-stroked-button type="button" [disabled]="!sistemaParaIncluir" (click)="incluirSistema()"><mat-icon>add</mat-icon> Incluir</button>
+          <span class="suave">
+            @if (!planejada()) {
+              Com a homologação em andamento, o sistema entra com a versão já registrada e os testes liberados.
+            }
+            Sistema novo que não aparece? Cadastre em Atualizações › Configuração › Sistemas.
+          </span>
+        </div>
+      }
+    </section>
+
+    <!-- ============================================================ participação -->
+    <section class="secao">
+      <h3 class="secao__titulo">Participação</h3>
+      <mat-radio-group [(ngModel)]="participacao" class="participacao" aria-label="Participação">
+        <mat-radio-button value="TODOS">Todos com acesso à tela Homologação ({{ qtdComAcesso() }} usuários hoje)</mat-radio-button>
+        <mat-radio-button value="DESIGNADOS">Só os designados</mat-radio-button>
+      </mat-radio-group>
+      @if (participacao === 'TODOS' && qtdSemAcesso()) {
+        <p class="suave">{{ qtdSemAcesso() }} usuários ativos não têm a tela Homologação: para participarem, libere em Gerenciar Acesso (nada é liberado automaticamente).</p>
+      }
+      @if (participacao === 'DESIGNADOS') {
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="busca-usuario">
+          <mat-icon matPrefix>search</mat-icon>
+          <mat-label>Procurar usuário</mat-label>
+          <input matInput [(ngModel)]="buscaUsuario" />
+        </mat-form-field>
+        <p class="suave">{{ designados.size }} designado{{ designados.size === 1 ? '' : 's' }}. Quem não tem a tela Homologação aparece bloqueado: libere em Gerenciar Acesso antes.</p>
+        <div class="usuarios">
+          @for (u of usuariosFiltrados(); track u.codUsuario) {
+            <mat-checkbox
+              [checked]="designados.has(u.codUsuario)"
+              [disabled]="!u.temAcesso && !designados.has(u.codUsuario)"
+              (change)="alternarDesignado(u.codUsuario, $event.checked)"
+              [matTooltip]="u.temAcesso ? '' : 'Sem acesso à tela Homologação: libere em Gerenciar Acesso'">
+              {{ u.nome }}
+              @if (!u.temAcesso) {
+                <span class="sem-acesso">sem acesso</span>
+              }
+            </mat-checkbox>
+          }
+        </div>
+      }
+      <mat-slide-toggle [(ngModel)]="participantesIncluemItens">
+        Participantes também incluem itens "só nesta homologação" (sem isso, só a gestão)
+      </mat-slide-toggle>
+    </section>
+  }
+</div>

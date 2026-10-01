@@ -1,0 +1,394 @@
+<div class="sprint-management-container">
+  <!-- Cabeçalho -->
+  <div class="header">
+    <h1>Gerenciamento de Sprint</h1>
+  </div>
+
+  <!-- Mensagem de erro -->
+  <div *ngIf="erro" class="error-message">
+    <mat-icon>error</mat-icon>
+    <span>{{ erro }}</span>
+    <button mat-button (click)="carregarSprints()">
+      <mat-icon>refresh</mat-icon> Tentar Novamente
+    </button>
+  </div>
+
+  <!-- Carregando sprints -->
+  <div *ngIf="carregando" class="loading">
+    <mat-spinner diameter="40"></mat-spinner>
+    <p>Carregando sprints...</p>
+  </div>
+
+  <!-- Conteúdo principal -->
+  <div *ngIf="!carregando && !erro" class="content">
+
+    <!-- Card da sprint selecionada -->
+    <div *ngIf="sprintSelecionada" class="sprint-card">
+      <mat-card>
+        <mat-card-header>
+          <mat-card-title>
+            <span class="sprint-id">#{{ sprintSelecionada.id }}</span>
+            Sprint: {{ sprintSelecionada.nome }}
+            <span> {{ formatarData(sprintSelecionada.dataInicio) }} -
+            {{ formatarData(sprintSelecionada.dataFim) }}</span>
+          </mat-card-title>
+        </mat-card-header>
+
+        <mat-card-content>
+          <!-- Navegação -->
+          <div class="sprint-navigation">
+            <button mat-button (click)="sprintAnterior()"
+                    [disabled]="!temAnterior() || carregandoTickets"
+                    class="nav-button anterior">
+              <mat-icon>chevron_left</mat-icon> Anterior
+            </button>
+            <span class="sprint-counter">
+              {{ indiceSprintAtual + 1 }} de {{ sprints.length }}
+            </span>
+            <button mat-button (click)="proximaSprint()"
+                    [disabled]="!temProxima() || carregandoTickets"
+                    class="nav-button proxima">
+              Próxima <mat-icon>chevron_right</mat-icon>
+            </button>
+          </div>
+
+          <mat-divider class="divider"></mat-divider>
+
+          <!-- Filtro + Status da Sprint -->
+          <div class="status-edit-section">
+            <mat-form-field appearance="outline" class="filtro-tickets">
+              <mat-label>Filtrar tickets</mat-label>
+              <input matInput
+                     [(ngModel)]="filtroTexto"
+                     (input)="aplicarFiltro()"
+                     placeholder="Título, ID ou responsável"
+                     autocomplete="off">
+              <button *ngIf="filtroTexto" mat-icon-button matSuffix
+                      (click)="filtroTexto = ''; aplicarFiltro()"
+                      aria-label="Limpar filtro">
+                <mat-icon>close</mat-icon>
+              </button>
+            </mat-form-field>
+
+            <div class="status-label">
+              <mat-icon>flag</mat-icon>
+              <span>Status da Sprint: {{retornaStatus(sprintSelecionada.status)}}</span>
+            </div>
+
+            <div class="status-control">
+              <!-- span recebe o tooltip: botão desabilitado não dispara eventos de mouse -->
+              <span *ngIf="sprintSelecionada.status!='CONCLUIDA'" [matTooltip]="mensagemBloqueioConclusao">
+                <button mat-raised-button color="primary"
+                        [disabled]="ticketsPendentes > 0 || carregandoTickets || atualizandoSprint"
+                        (click)="fecharSprint()">
+                  <mat-icon>add</mat-icon>
+                  Concluir
+                </button>
+              </span>
+              <button *ngIf="sprintSelecionada.status=='CONCLUIDA'" mat-raised-button color="primary" (click)="reabrirSprint()">
+                <mat-icon>add</mat-icon>
+                Reabrir
+              </button>
+              <mat-spinner *ngIf="atualizandoSprint" diameter="20" class="inline-spinner"></mat-spinner>
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+
+    <!-- Estatísticas -->
+    <div *ngIf="sprintSelecionada" class="summary-card">
+      <mat-card>
+        <mat-card-content>
+          <div class="stats-grid">
+            <div class="stat-item">
+              <div class="stat-value">{{ totalTickets }}</div>
+              <div class="stat-label">Total Tickets</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-value success">{{ ticketsConcluidos }}</div>
+              <div class="stat-label">Concluídos</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-value danger">{{ ticketsNaoEntregues }}</div>
+              <div class="stat-label">Não Entregues</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-value warning">{{ ticketsPendentes }}</div>
+              <div class="stat-label">Pendentes</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-value">{{ calcularPercentual() }}%</div>
+              <div class="stat-label">Progresso</div>
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+
+
+    <!-- Botões de exportação -->
+    <div *ngIf="sprintSelecionada && !carregandoTickets" class="export-section">
+      <button mat-raised-button color="primary" (click)="exportarPDF()" [disabled]="exportando">
+        <mat-icon>picture_as_pdf</mat-icon> Exportar como PDF
+      </button>
+      <button mat-stroked-button color="primary" (click)="copiarTickets()" style="margin-left: 8px;">
+        <mat-icon>content_copy</mat-icon> Copiar Tickets
+      </button>
+      <button mat-stroked-button color="primary" (click)="baixarTicketsTxt()" style="margin-left: 8px;">
+        <mat-icon>description</mat-icon> Baixar TXT
+      </button>
+      <mat-spinner *ngIf="exportando" diameter="24" style="display: inline-block; margin-left: 16px; vertical-align: middle;"></mat-spinner>
+    </div>
+
+    <!-- Carregando tickets -->
+    <div *ngIf="carregandoTickets" class="loading">
+      <mat-spinner diameter="30"></mat-spinner>
+      <p>Carregando tickets...</p>
+    </div>
+
+    <!-- Área de gerenciamento dos tickets -->
+    <div *ngIf="!carregandoTickets && sprintSelecionada" class="tickets-wrapper">
+
+      <div class="tickets-columns">
+
+        <!-- Pendentes -->
+        <div class="tickets-column pendentes-column">
+          <div class="tickets-section pendentes-section">
+            <div class="section-header">
+              <h3>
+                <mat-icon class="pendentes-icon">schedule</mat-icon>
+                Pendentes ({{ ticketsPendentesLista.length }})
+              </h3>
+            </div>
+
+            <div class="tickets-list-container">
+              <div class="tickets-content">
+                <div *ngIf="ticketsPendentesLista.length > 0" class="tickets-grid">
+                  <div *ngFor="let ticket of ticketsPendentesLista" class="ticket-card pendente">
+                    <div class="ticket-header">
+                      <span class="ticket-id">{{ ticket.ticket.id || 'Sem ID' }}</span>
+                      <span class="ticket-criticidade" [ngClass]="'criticidade-' + (ticket.criticidade || 0)">
+                        {{ getCriticidadeRotulo(ticket.criticidade || 0) }}
+                      </span>
+                    </div>
+                    <div class="ticket-title">{{ ticket.ticket.titulo || 'Sem título' }}</div>
+
+                    <div class="ticket-edit-area">
+                      <div class="edit-field">
+                        <mat-icon>assignment</mat-icon>
+                        <mat-select [(ngModel)]="ticket.statusEntrega"
+                                    [disabled]="atualizandoTicketId === ticket.ticket.id"
+                                    placeholder="Status">
+                          <mat-option *ngFor="let st of statusTicketOptions" [value]="st">
+                            {{ st }}
+                          </mat-option>
+                        </mat-select>
+                      </div>
+
+                      <div class="edit-field">
+                        <mat-icon>priority_high</mat-icon>
+                        <mat-select [(ngModel)]="ticket.criticidade"
+                                    [disabled]="atualizandoTicketId === ticket.ticket.id"
+                                    placeholder="Prioridade">
+                          <mat-option *ngFor="let opt of criticidadeOptions" [value]="opt.valor">
+                            {{ opt.rotulo }}
+                          </mat-option>
+                        </mat-select>
+                      </div>
+
+                      <button mat-raised-button color="primary"
+                              (click)="atualizarTicket(ticket)"
+                              [disabled]="atualizandoTicketId === ticket.ticket.id"
+                              class="update-btn">
+                        <mat-icon>save</mat-icon>
+                        <span *ngIf="atualizandoTicketId !== ticket.ticket.id">Atualizar</span>
+                        <mat-spinner *ngIf="atualizandoTicketId === ticket.ticket.id"
+                                     diameter="18" class="btn-spinner"></mat-spinner>
+                      </button>
+                    </div>
+
+                    <div class="ticket-footer">
+                      <span *ngIf="ticket.ticket.dataTicket" class="date">
+                        <mat-icon>event</mat-icon> {{ formatarData(ticket.ticket.dataTicket) }}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div *ngIf="ticketsPendentesLista.length === 0" class="empty-section">
+                  <mat-icon>schedule</mat-icon>
+                  <p>Nenhum ticket pendente{{ filtroTexto ? ' com este filtro' : '' }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Não Entregues -->
+        <div class="tickets-column nao-entregues-column">
+          <div class="tickets-section nao-entregues-section">
+            <div class="section-header">
+              <h3>
+                <mat-icon class="nao-entregues-icon">report_problem</mat-icon>
+                Não Entregues ({{ ticketsNaoEntreguesLista.length }})
+              </h3>
+            </div>
+
+            <div class="tickets-list-container">
+              <div class="tickets-content">
+                <div *ngIf="ticketsNaoEntreguesLista.length > 0" class="tickets-grid">
+                  <div *ngFor="let ticket of ticketsNaoEntreguesLista" class="ticket-card nao-entregue">
+                    <div class="ticket-header">
+                      <span class="ticket-id">{{ ticket.ticket.id || 'Sem ID' }}</span>
+                      <span class="ticket-criticidade" [ngClass]="'criticidade-' + (ticket.criticidade || 0)">
+                        {{ getCriticidadeRotulo(ticket.criticidade || 0) }}
+                      </span>
+                    </div>
+                    <div class="ticket-title">{{ ticket.ticket.titulo || 'Sem título' }}</div>
+
+                    <div class="ticket-edit-area">
+                      <div class="edit-field">
+                        <mat-icon>assignment</mat-icon>
+                        <mat-select [(ngModel)]="ticket.statusEntrega"
+                                    [disabled]="atualizandoTicketId === ticket.ticket.id"
+                                    placeholder="Status">
+                          <mat-option *ngFor="let st of statusTicketOptions" [value]="st">
+                            {{ st }}
+                          </mat-option>
+                        </mat-select>
+                      </div>
+
+                      <div class="edit-field">
+                        <mat-icon>priority_high</mat-icon>
+                        <mat-select [(ngModel)]="ticket.criticidade"
+                                    [disabled]="atualizandoTicketId === ticket.ticket.id"
+                                    placeholder="Prioridade">
+                          <mat-option *ngFor="let opt of criticidadeOptions" [value]="opt.valor">
+                            {{ opt.rotulo }}
+                          </mat-option>
+                        </mat-select>
+                      </div>
+
+                      <button mat-raised-button color="primary"
+                              (click)="atualizarTicket(ticket)"
+                              [disabled]="atualizandoTicketId === ticket.ticket.id"
+                              class="update-btn">
+                        <mat-icon>save</mat-icon>
+                        <span *ngIf="atualizandoTicketId !== ticket.ticket.id">Atualizar</span>
+                        <mat-spinner *ngIf="atualizandoTicketId === ticket.ticket.id"
+                                     diameter="18" class="btn-spinner"></mat-spinner>
+                      </button>
+                    </div>
+
+                    <div class="ticket-footer">
+                      <span *ngIf="ticket.ticket.dataTicket" class="date">
+                        <mat-icon>event</mat-icon> {{ formatarData(ticket.ticket.dataTicket) }}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div *ngIf="ticketsNaoEntreguesLista.length === 0" class="empty-section">
+                  <mat-icon>report_problem</mat-icon>
+                  <p>Nenhum ticket não entregue{{ filtroTexto ? ' com este filtro' : '' }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Concluídos -->
+        <div class="tickets-column concluidos-column">
+          <div class="tickets-section concluidos-section">
+            <div class="section-header">
+              <h3>
+                <mat-icon class="concluidos-icon">check_circle</mat-icon>
+                Concluídos ({{ ticketsConcluidosLista.length }})
+              </h3>
+            </div>
+
+            <div class="tickets-list-container">
+              <div class="tickets-content">
+                <div *ngIf="ticketsConcluidosLista.length > 0" class="tickets-grid">
+                  <div *ngFor="let ticket of ticketsConcluidosLista" class="ticket-card concluido">
+                    <div class="ticket-header">
+                      <span class="ticket-id">{{ ticket.ticket.id || 'Sem ID' }}</span>
+                      <span class="ticket-criticidade" [ngClass]="'criticidade-' + (ticket.criticidade || 0)">
+                        {{ getCriticidadeRotulo(ticket.criticidade || 0) }}
+                      </span>
+                    </div>
+                    <div class="ticket-title">{{ ticket.ticket.titulo || 'Sem título' }}</div>
+
+                    <div class="ticket-edit-area">
+                      <div class="edit-field">
+                        <mat-icon>assignment</mat-icon>
+                        <mat-select [(ngModel)]="ticket.statusEntrega"
+                                    [disabled]="atualizandoTicketId === ticket.ticket.id">
+                          <mat-option *ngFor="let st of statusTicketOptions" [value]="st">
+                            {{ st }}
+                          </mat-option>
+                        </mat-select>
+                      </div>
+
+                      <div class="edit-field">
+                        <mat-icon>priority_high</mat-icon>
+                        <mat-select [(ngModel)]="ticket.criticidade"
+                                    [disabled]="atualizandoTicketId === ticket.ticket.id">
+                          <mat-option *ngFor="let opt of criticidadeOptions" [value]="opt.valor">
+                            {{ opt.rotulo }}
+                          </mat-option>
+                        </mat-select>
+                      </div>
+
+                      <button mat-raised-button color="primary"
+                              (click)="atualizarTicket(ticket)"
+                              [disabled]="atualizandoTicketId === ticket.ticket.id"
+                              class="update-btn">
+                        <mat-icon>save</mat-icon>
+                        <span *ngIf="atualizandoTicketId !== ticket.ticket.id">Atualizar</span>
+                        <mat-spinner *ngIf="atualizandoTicketId === ticket.ticket.id"
+                                     diameter="18" class="btn-spinner"></mat-spinner>
+                      </button>
+                    </div>
+
+                    <div class="ticket-footer">
+                      <span *ngIf="ticket.ticket.dataTicket" class="date">
+                        <mat-icon>event</mat-icon> {{ formatarData(ticket.ticket.dataTicket) }}
+                      </span>
+                      <span *ngIf="ticket.dataEntregaReal" class="date delivered">
+                        <mat-icon>check_circle</mat-icon> {{ formatarData(ticket.dataEntregaReal) }}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div *ngIf="ticketsConcluidosLista.length === 0" class="empty-section">
+                  <mat-icon>check_circle</mat-icon>
+                  <p>Nenhum ticket concluído{{ filtroTexto ? ' com este filtro' : '' }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Sem tickets na sprint -->
+      <div *ngIf="ticketsPendentesLista.length === 0 && ticketsNaoEntreguesLista.length === 0 && ticketsConcluidosLista.length === 0"
+           class="empty-tickets">
+        <mat-icon>inbox</mat-icon>
+        <h3>Nenhum ticket nesta sprint</h3>
+        <p>Utilize a funcionalidade de adicionar tickets para começar.</p>
+      </div>
+    </div>
+
+    <!-- Sem sprints -->
+    <div *ngIf="sprints.length === 0 && !carregando" class="empty-sprints">
+      <mat-icon>assignment_late</mat-icon>
+      <h3>Nenhuma sprint encontrada</h3>
+      <p>Consulte o administrador para criar uma sprint.</p>
+    </div>
+
+  </div>
+</div>

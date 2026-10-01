@@ -1,0 +1,48 @@
+<mat-card class="historico-card">
+
+  <mat-card-header class="historico-header">
+    <div class="historico-header-title">
+      <mat-card-title>Histórico de Execuções</mat-card-title>
+      <mat-card-subtitle>{{ dataDialog.nomeAgendamento }}</mat-card-subtitle>
+    </div>
+
+    <div class="historico-header-actions">
+      <span class="historico-last-update" *ngIf="ultimaAtualizacao">
+        Atualizado às {{ ultimaAtualizacao | date:'HH:mm:ss' }}
+      </span>
+
+      <mat-slide-toggle [(ngModel)]="autoAtualizar" (change)="onToggleAutoAtualizar()" color="primary">
+        Auto (5s)
+      </mat-slide-toggle>
+
+      <button mat-icon-button (click)="carregar()" [disabled]="carregando" matTooltip="Atualizar agora">
+        <mat-icon [class.spin]="carregando">refresh</mat-icon>
+      </button>
+    </div>
+  </mat-card-header>
+
+  <mat-card-content class="historico-content">
+    <div class="grid-scroll" (click)="onCliqueContainer($event)">
+      <mtx-grid
+        class="historico-grid"
+        [data]="execucoes"
+        [columns]="columns"
+        [rowStriped]="true"
+        [showPaginator]="true"
+        [pageSize]="15"
+        [noResultText]="'Nenhuma execução registrada ainda'"
+      />
+    </div>
+  </mat-card-content>
+
+  <mat-card-actions class="historico-actions">
+    <button mat-stroked-button type="button" color="warn"
+            [disabled]="execucoes.length === 0"
+            (click)="excluirTodoHistorico()"
+            matTooltip="Exclui o histórico deste agendamento (a execução mais recente e as em andamento são preservadas)">
+      <mat-icon>delete_sweep</mat-icon> Limpar histórico
+    </button>
+    <button mat-stroked-button type="button" (click)="closeDialog()">Fechar</button>
+  </mat-card-actions>
+
+</mat-card>

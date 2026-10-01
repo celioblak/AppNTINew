@@ -1,0 +1,108 @@
+<mat-tab-group class="sessoes-tabs" mat-stretch-tabs="false" mat-align-tabs="start" animationDuration="0ms" preserveContent>
+  <mat-tab>
+    <ng-template mat-tab-label>
+      <mat-icon class="m-r-8">dns</mat-icon>
+      Sessões
+    </ng-template>
+
+    <div class="aba-sessoes" alturaAteRodape>
+      <mat-card class="m-b-8">
+        <mat-card-content>
+          <form>
+            <mat-form-field class="m-r-8" appearance="outline">
+              <mat-label>Status</mat-label>
+              <mat-select  name="status" [(value)]="_selectedStatus" placeholder="Status">
+                <mat-option value="lock">Lock</mat-option>
+                <mat-option value="ativa">Ativa</mat-option>
+                <mat-option value="inativa">Inativa</mat-option>
+                <mat-option value="exclusiva">Exclusiva</mat-option>
+                <mat-option value="todas">Todas</mat-option>
+              </mat-select>
+            </mat-form-field>
+            <mat-form-field class="m-r-8" appearance="outline">
+              <mat-label>Filtro</mat-label>
+              <mat-select  name="filtro" [(value)]="_selectedFiltro" placeholder="Filtro">
+                <mat-option value="username">Username</mat-option>
+                <mat-option value="sid">Sid</mat-option>
+                <mat-option value="program">Program</mat-option>
+                <mat-option value="action">Action</mat-option>
+                <mat-option value="terminal">Terminal</mat-option>
+              </mat-select>
+            </mat-form-field>
+            <mat-form-field class="m-r-8" appearance="outline">
+              <mat-label>Valor Pesquisa</mat-label>
+              <input [(ngModel)]="_valorPesquisa" matInput name="vlPesquisar">
+            </mat-form-field>
+            <button aria-label="Activate floating action style google search link" mat-fab (click)="search()">
+              <mat-icon role="img" class="mat-icon notranslate material-icons mat-ligature-font mat-icon-no-color" aria-hidden="true" data-mat-icon-type="font">
+                search
+              </mat-icon>
+            </button>
+          </form>
+        </mat-card-content>
+      </mat-card>
+
+      <ng-template #lc_userTpl let-row let-index="index" let-col="colDef">
+        <!--<button title="{{row.lc_session}}"
+                *ngIf="row.lc_user!==null"
+                 matButton
+                class="danger"
+                color="warn"
+                (click)="killSessaoLock(row)">
+                {{row.lc_user}}
+    <mat-icon role="img" color="warn">offline_bolt</mat-icon>
+    </button> -->
+      <button *ngIf="row.lc_user !== null"
+              mat-flat-button
+              class="btn-vermelho"
+              (click)="killSessaoLock(row)">
+        {{ row.lc_session }}
+        <span class="mat-caption user-info">{{ row.lc_user }}</span>
+      </button>
+      </ng-template>
+      <ng-template #lc_final_userTpl let-row let-index="index" let-col="colDef">
+        <!--<button title="{{row.lc_final_session}}"
+                *ngIf="row.lc_final_user!==null"
+                mat-stroked-button
+                class="danger"
+                color="warn"
+                (click)="killSessaoLock(row)">
+             {{row.lc_final_user}}
+          <mat-icon role="img" color="warn">offline_bolt</mat-icon>
+        </button> -->
+        <button *ngIf="row.lc_final_user !== null"
+            mat-flat-button
+            class="btn-vermelho"
+              (click)="killSessaoLock(row)">
+        {{ row.lc_final_session }}
+        <span class="mat-caption user-info">({{ row.lc_final_user }})</span>
+        </button>
+      </ng-template>
+
+      <ng-template #toolbarTpl>
+        <input placeholder="Search">
+      </ng-template>
+
+      <mtx-grid id="dtgrid"
+              [data]="list"
+              [columns]="columns"
+              [loading]="isLoading"
+              [rowStriped]="true"
+              [showPaginator]="true"
+              [pageSize]= "50"
+              [cellTemplate]="{lc_user: lc_userTpl,lc_final_user:lc_final_userTpl}"
+              [noResultText]="noResult"
+          />
+    </div>
+  </mat-tab>
+
+  <mat-tab>
+    <ng-template mat-tab-label>
+      <mat-icon class="m-r-8">lock_clock</mat-icon>
+      Inativas bloqueando objetos
+    </ng-template>
+    <ng-template matTabContent>
+      <app-sessoes-lock />
+    </ng-template>
+  </mat-tab>
+</mat-tab-group>

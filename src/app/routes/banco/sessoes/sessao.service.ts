@@ -3,7 +3,7 @@ import { HostListener, Injectable } from '@angular/core';
 import { HttpClient, HttpErrorResponse, HttpHeaders, HttpParams } from '@angular/common/http';
 
 import { Observable, throwError } from 'rxjs';
-import { Sessao } from '@core';
+import { Sessao, SessaoLock } from '@core';
 import { environment } from '@env/environment';
 
 @Injectable({
@@ -27,8 +27,6 @@ export class SessionService {
   return this.http.get<any>(`${url}`,{params});
 }
 
-
-
 pesquisarBind(params:HttpParams) {
   let url:string = this.apiUrl;
   url = url +'/sessaosql/sqlbind';
@@ -41,6 +39,10 @@ pesquisarBind(params:HttpParams) {
   let url:string = this.apiUrl;
   url = url +'/';
   return this.http.get<any>(`${url}`,{params});
+}
+
+pesquisarSessoesLock(params: HttpParams) {
+  return this.http.get<SessaoLock[]>(`${this.apiUrl}/locks`, { params });
 }
 
  matarSessoes(sessao:Sessao) {

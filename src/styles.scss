@@ -1,3 +1,4 @@
+
 /* You can add global styles to this file, and also import other style files */
 @use 'styles/reboot';
 @use 'styles/themes';
@@ -7,28 +8,115 @@
 @use 'styles/plugins';
 @use 'styles/custom';
 
-@import "primeicons/primeicons.css";
+.editor-container {
+  height: calc(100vh - 390px);
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
 
+/* Wrapper do seu componente */
+code-editor-app {
+  flex: 1;
+  min-height: 0;
+  display: block;
+}
 
-/* Estilos do CodeMirror */
-.cm-editor {
+/* CodeMirror interno */
+.editor-host {
+  height: calc(100vh - 390px);
+  width: 100%;
+  overflow: hidden;
+  display: flex;
+}
+
+/* seu componente wrapper */
+code-editor-app {
+  flex: 1;
+  min-height: 0;
   height: 100%;
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', monospace;
-  font-size: 14px;
-  line-height: 1.5;
+  display: flex;
 }
 
+/* CodeMirror real */
+.editor-host {
+  height: calc(100vh - 390px);
+  width: 100%;
+  overflow: hidden;
+  display: flex;
+}
+
+/* seu componente wrapper */
+code-editor-app {
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+  display: flex;
+}
+
+/* CodeMirror real */
+.editor-host {
+  height: calc(100vh - 390px);
+  width: 100%;
+  overflow: hidden;
+  display: flex;
+}
+
+/* seu componente wrapper */
+code-editor-app {
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+  display: flex;
+}
+
+/* CodeMirror real */
+.editor-host {
+  height: calc(100vh - 390px);
+  width: 100%;
+  overflow: hidden;
+  display: flex;
+}
+
+/* Host do seu componente */
+code-editor-app {
+  width: 100%;
+  height: 100%;
+  display: flex;
+}
+
+/* Wrapper do @acrodata */
+code-editor {
+  width: 100% !important;
+  height: 100% !important;
+  display: flex !important;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* CodeMirror root */
+.cm-editor {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100%;
+  display: flex;
+}
+
+/* Scroll interno */
 .cm-scroller {
-  overflow: auto;
+  flex: 1;
+  overflow: auto !important;
 }
 
-/* Estilos para SQL */
-.cm-sql .cm-keyword { color: #569cd6; font-weight: bold; }
-.cm-sql .cm-builtin { color: #4ec9b0; }
-.cm-sql .cm-string { color: #ce9178; }
-.cm-sql .cm-number { color: #b5cea8; }
-.cm-sql .cm-comment { color: #6a9955; font-style: italic; }
-.cm-sql .cm-variable { color: #9cdcfe; }
-.cm-sql .cm-def { color: #dcdcaa; }
-.cm-sql .cm-operator { color: #d4d4d4; }
-.cm-sql .cm-property { color: #9cdcfe; }
+/* Impede expansão horizontal */
+.cm-content {
+  min-width: 0;
+}
+
+/* Tooltip com uma linha por item (ex.: lista de arquivos): respeita as quebras de linha do texto. */
+.tooltip-lista .mdc-tooltip__surface,
+.tooltip-lista .mat-mdc-tooltip-surface {
+  max-width: 480px;
+  white-space: pre-line;
+  text-align: left;
+}

@@ -1,0 +1,113 @@
+.painel {
+  gap: 10px;
+}
+
+.resumo {
+  display: grid;
+  flex-shrink: 0;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px;
+}
+
+.tile {
+  --tom: #78838a;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 8px 12px;
+  border: 1px solid var(--mat-sys-outline-variant, rgba(0, 0, 0, .12));
+  border-left: 3px solid var(--tom);
+  border-radius: 8px;
+  background: var(--mat-sys-surface, transparent);
+  color: var(--mat-sys-on-surface, inherit);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.tile[data-tom='info'] {
+  --tom: #1976d2;
+}
+
+.tile[data-tom='alerta'] {
+  --tom: #e08a00;
+}
+
+.tile[data-tom='critico'] {
+  --tom: #d32f2f;
+}
+
+.tile:hover,
+.tile--ativo {
+  background: color-mix(in srgb, var(--tom) 10%, transparent);
+}
+
+.tile--ativo {
+  border-color: var(--tom);
+}
+
+.tile:focus-visible {
+  outline: 2px solid var(--tom);
+  outline-offset: 2px;
+}
+
+.tile--zero .tile__valor {
+  opacity: .45;
+}
+
+.tile__valor {
+  font-size: 1.4rem;
+  font-weight: 600;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.tile__rotulo {
+  font-size: .75rem;
+  line-height: 1.25;
+  color: var(--mat-sys-on-surface-variant, rgba(0, 0, 0, .6));
+}
+
+.barra {
+  flex-shrink: 0;
+}
+
+.busca {
+  flex: 0 1 320px;
+}
+
+.filtro {
+  flex: 0 1 190px;
+}
+
+.filtro--curto {
+  flex-basis: 150px;
+}
+
+.grade {
+  flex: 1 1 0;
+  min-height: 280px;
+}
+
+.numero {
+  font-weight: 600;
+}
+
+.titulo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.titulo__texto,
+.proximo {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+:host ::ng-deep .grade .mat-mdc-row {
+  cursor: pointer;
+}

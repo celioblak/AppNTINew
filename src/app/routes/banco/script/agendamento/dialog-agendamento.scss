@@ -1,0 +1,151 @@
+.frequencia-toggle {
+  display: flex;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+
+  ::ng-deep .mat-button-toggle-label-content {
+    padding: 0 12px;
+    line-height: 36px;
+  }
+}
+
+.frequencia-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.campo-horario,
+.campo-dia-mes {
+  max-width: 160px;
+}
+
+.full-width {
+  width: 100%;
+}
+
+// ------------------------------------------------------------- Parâmetros
+.parametros-section {
+  margin: 8px 0 12px;
+}
+
+.parametros-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+
+  h4 {
+    margin: 0;
+  }
+}
+
+.parametros-header-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.parametros-hint {
+  font-size: 12px;
+  opacity: 0.7;
+  margin: 6px 0;
+}
+
+.parametros-table-wrapper {
+  overflow-x: auto;
+}
+
+.parametros-table {
+  width: 100%;
+  border-collapse: collapse;
+
+  th {
+    text-align: left;
+    font-size: 12px;
+    font-weight: 600;
+    opacity: 0.75;
+    padding: 2px 6px;
+  }
+
+  td {
+    padding: 0 6px;
+    vertical-align: top;
+  }
+
+  .col-nome { width: 32%; }
+  .col-tipo { width: 20%; }
+  .col-valor { width: 32%; }
+  .col-ordem { width: 10%; }
+  .col-acao { width: 6%; }
+}
+
+.cell-field {
+  width: 100%;
+
+  ::ng-deep .mat-mdc-form-field-subscript-wrapper {
+    display: none; // compacta: sem espaço de hint/erro dentro da tabela
+  }
+}
+
+.cell-field-narrow {
+  max-width: 90px;
+}
+
+.cell-acao {
+  padding-top: 4px !important;
+}
+
+.dias-semana {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  padding: 4px 0;
+}
+
+.cron-preview {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 8px 12px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.04);
+  font-size: 13px;
+
+  mat-icon {
+    opacity: 0.6;
+  }
+
+  code {
+    margin-left: auto;
+    font-size: 11px;
+    opacity: 0.6;
+    background: rgba(0, 0, 0, 0.06);
+    padding: 2px 6px;
+    border-radius: 3px;
+  }
+}
+
+@media (max-width: 600px) {
+  .cron-preview code {
+    margin-left: 0;
+  }
+}
+
+.misfire-option {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 4px 0 8px;
+
+  .misfire-help {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    opacity: 0.6;
+    cursor: help;
+  }
+}

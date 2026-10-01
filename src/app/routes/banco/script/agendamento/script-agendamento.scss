@@ -1,0 +1,19 @@
+// :host ::ng-deep é necessário porque o mtx-grid é um componente próprio
+// (Angular library), com seu próprio encapsulamento de estilo — uma classe
+// "normal" escrita aqui não bateria nas células internas dele. :host na
+// frente garante que isso fica restrito a este componente (não vaza pro
+// resto do app, diferente de um ::ng-deep solto).
+:host ::ng-deep {
+  td.selected,
+  .mat-mdc-cell.selected {
+    background-color: rgba(25, 118, 210, 0.14) !important;
+  }
+
+  // Realce extra na borda da linha inteira, quando o navegador suporta :has()
+  // (Chrome/Edge/Firefox recentes) — degrada bem, sem quebrar nada, em
+  // navegadores mais antigos (só não aplica o contorno).
+  .mat-mdc-row:has(td.selected) {
+    outline: 2px solid rgba(25, 118, 210, 0.45);
+    outline-offset: -2px;
+  }
+}

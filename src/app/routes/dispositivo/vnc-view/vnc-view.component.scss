@@ -1,28 +1,143 @@
-#screen {
-  display: inline-block;
-  min-width: 100%;
-  max-width: 100%;
+// ============================================================================
+// VNC View — Estilos
+// Desktop : INALTERADO
+// Mobile  : overrides dentro de @media (max-width: 599px) APENAS
+// ============================================================================
 
-  min-height: 100%;
-  max-height: 100%;
+// ── Estilos base (desktop + mobile) ─────────────────────────────────────────
 
-  border: 1px solid blue;
+.ultimo-acesso-banner {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  padding: 6px 12px;
+  font-size: 12px;
+  border-radius: 4px;
+  border-left: 3px solid var(--mat-sys-primary);
+  background-color: color-mix(in srgb, var(--mat-sys-primary) 12%, transparent);
+  color: var(--mat-sys-on-surface);
+
+  .banner-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    color: var(--mat-sys-primary);
+    flex-shrink: 0;
+  }
+
+  .banner-date {
+    color: var(--mat-sys-primary);
+  }
 }
 
-.vertical-line {
-            width: 2px;
-            /* Adjust the width as needed */
+.update-painel {
+  margin-top: 8px;
+  padding: 12px 16px;
+  border-radius: 6px;
+  border: 1px solid var(--mat-sys-outline-variant, rgba(128, 128, 128, 0.3));
+  background-color: var(--mat-sys-surface-container, var(--mat-sys-surface));
+  color: var(--mat-sys-on-surface);
+  max-width: 560px;
 
-            height: 100px;
-            /* Adjust the height as needed */
+  &-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 12px;
+    font-size: 13px;
+    border-bottom: 1px solid var(--mat-sys-outline-variant, rgba(128, 128, 128, 0.2));
+    padding-bottom: 8px;
+  }
 
-            background-color: #000;
-            /* Change color if desired */
+  &-body {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+}
 
-            margin: 0 auto;
-            /* Center the line horizontally */
+.update-progresso {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: 4px;
+  background-color: color-mix(in srgb, var(--mat-sys-primary) 10%, transparent);
+  color: var(--mat-sys-on-surface);
+}
 
-            transform: rotate(180deg);
-            /* Rotate the line to make it vertical */
+// ── Overrides APENAS para mobile ─────────────────────────────────────────────
+@media (max-width: 599px) {
 
-        }
+  // Controles: flex-wrap para quebrar linha naturalmente em telas pequenas
+  .vnc-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 2px;
+  }
+
+  // Campo login: largura reduzida
+  .vnc-field-login {
+    width: 110px !important;
+  }
+
+  // Campo host: ocupa espaço disponível
+  .vnc-field-host {
+    min-width: 100px;
+    flex: 1;
+  }
+
+  // Campo porta: compacto
+  .vnc-field-port {
+    width: 80px !important;
+  }
+
+  // Banner: quebra linha e fonte menor
+  .ultimo-acesso-banner {
+    display: flex;
+    flex-wrap: wrap;
+    font-size: 11px;
+    padding: 4px 8px;
+    margin-top: 4px;
+  }
+
+  // Painel update: ocupa largura total
+  .update-painel {
+    max-width: 100%;
+    padding: 8px 10px;
+  }
+
+  // Canvas VNC: altura dinâmica, sem bordas laterais
+  #vncView {
+    margin-top: 4px !important;
+    min-height: 0 !important;
+    height: calc(100dvh - 200px);
+    border-left: none !important;
+    border-right: none !important;
+  }
+
+  // Botões: área de toque mínima de 44px (recomendado para touch)
+  button[mat-icon-button] {
+    width: 44px !important;
+    height: 44px !important;
+    line-height: 44px !important;
+  }
+
+  // Status: menor e compacto no mobile
+  .vnc-status-text {
+    margin-left: 6px !important;
+    font-size: 10px !important;
+    font-weight: 500;
+    max-width: 160px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .vnc-status-msg {
+    display: none;
+  }
+}

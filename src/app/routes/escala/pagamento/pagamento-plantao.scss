@@ -1,0 +1,509 @@
+/* =========================================================
+   ROOT HOST — VIEWPORT REAL (ANTI SCROLL FANTASMA)
+========================================================= */
+
+:host {
+  display: block;
+  height: calc(100dvh - 1px);
+  overflow: hidden;
+}
+
+/* =========================================================
+   REMOVE OVERFLOW GLOBAL DO ANGULAR
+========================================================= */
+
+:host-context(body) {
+  overflow: hidden;
+}
+
+/* =========================================================
+   CONTAINER PRINCIPAL
+========================================================= */
+
+.container-fluid {
+  height: 100%;
+  min-height: 0;
+  padding: 6px 10px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+/* Garante box-model consistente */
+.container-fluid * {
+  box-sizing: border-box;
+}
+
+/* =========================================================
+   FILTROS SUPERIORES
+========================================================= */
+
+.filter-container {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.filter-container.mobile-layout {
+  flex-direction: column;
+}
+
+/* Compactação Angular Material */
+.filter-container mat-form-field {
+  width: 150px;
+}
+
+.filter-container .mes-filter,
+.filter-container .ano-filter {
+  width: 120px;
+}
+
+.filter-container .mat-form-field-wrapper {
+  padding-bottom: 0 !important;
+  margin: 0 !important;
+}
+
+.filter-container .mat-form-field-flex {
+  height: 40px;
+}
+
+.filter-container .mat-form-field-infix {
+  padding: 0.4em 0 0.45em 0 !important;
+}
+
+/* Botão pesquisar/atualizar */
+.search-button-wrapper {
+  display: flex;
+  align-items: center;
+}
+
+.search-button-wrapper button {
+  width: 40px;
+  height: 40px;
+}
+
+/* =========================================================
+   DARK THEME — INPUTS / LABELS (mantido do servidor)
+========================================================= */
+
+::ng-deep .mat-form-field-label {
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+
+::ng-deep .mat-form-field.mat-focused .mat-form-field-label {
+  color: #90caf9 !important;
+}
+
+::ng-deep .mat-input-element {
+  color: rgba(255, 255, 255, 0.92);
+}
+
+/* =========================================================
+   CARD PRINCIPAL
+========================================================= */
+
+mat-card {
+  flex: 1;
+  min-height: 0;
+  padding: 6px 10px !important;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  margin: 0 !important;
+  border-radius: 6px;
+}
+
+/* Remove sombra que gera overflow subpixel */
+::ng-deep .mat-card {
+  box-shadow: none !important;
+}
+
+mat-card-content {
+  flex: 1;
+  min-height: 0;
+  padding: 0 !important;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* =========================================================
+   TÍTULOS DAS SEÇÕES
+========================================================= */
+
+.section-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 2px;
+  margin: 0;
+}
+
+.section-title h3 {
+  font-size: 14.5px;
+  font-weight: 500;
+  margin: 0;
+  line-height: 1.2;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+/* =========================================================
+   GRID PRINCIPAL
+========================================================= */
+
+.grid-wrapper {
+  width: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* ngMatero — cresce com o conteúdo */
+::ng-deep .mtx-grid {
+  width: 100%;
+}
+
+/* =========================================================
+   COMPACTAÇÃO DAS LINHAS
+========================================================= */
+
+::ng-deep .mtx-grid .mat-row,
+::ng-deep .mtx-grid .mat-header-row {
+  min-height: 32px !important;
+}
+
+/* Compactação das células */
+::ng-deep .mtx-grid .mat-cell,
+::ng-deep .mtx-grid .mat-header-cell {
+  padding: 3px 6px !important;
+  font-size: 12.8px;
+}
+
+/* Header mais visível */
+::ng-deep .mtx-grid .mat-header-cell {
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+/* =========================================================
+   AÇÕES (ÍCONES DE EDITAR/REPLICAR/EXCLUIR)
+========================================================= */
+
+.acoes-cell {
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+  align-items: center;
+}
+
+.acoes-cell button {
+  width: 28px;
+  height: 28px;
+  line-height: 28px;
+}
+
+.acoes-cell button mat-icon {
+  font-size: 18px;
+}
+
+/* =========================================================
+   MENU MATERIAL
+========================================================= */
+
+::ng-deep .mat-menu-content {
+  padding-top: 4px !important;
+  padding-bottom: 4px !important;
+}
+
+/* =========================================================
+   PAGINAÇÃO — FIX ALTURA
+========================================================= */
+
+::ng-deep .mat-paginator {
+  min-height: 36px !important;
+  max-height: 36px !important;
+  overflow: hidden;
+}
+
+/* =========================================================
+   MOBILE
+========================================================= */
+
+.container-fluid.mobile {
+  .filter-container {
+    gap: 6px;
+
+    mat-form-field,
+    .mes-filter,
+    .ano-filter {
+      width: 100%; /* Filtros ocupam toda largura no mobile */
+    }
+  }
+
+  .section-title h3 {
+    font-size: 14px;
+  }
+
+  /* Botões de ação maiores para toque */
+  .acoes-cell button {
+    width: 36px;
+    height: 36px;
+    line-height: 36px;
+
+    mat-icon {
+      font-size: 20px;
+    }
+  }
+}
+
+/* =========================================================
+   EXTRAS — PAGAMENTO PLANTÃO
+========================================================= */
+
+/* Filtros */
+.filter-check {
+  display: flex;
+  align-items: center;
+  padding-bottom: 2px;
+}
+
+.search-button-wrapper button {
+  width: 40px;
+  height: 40px;
+}
+
+/* Alertas inline */
+.alert-inline {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px 4px 8px;
+  border-radius: 6px;
+  font-size: 12.5px;
+  font-weight: 500;
+  flex: 1;
+  max-width: 400px;
+}
+
+.alert-inline mat-icon { font-size: 16px; width: 16px; height: 16px; }
+
+.alert-inline--success {
+  background: #e8f5e9;
+  color: #2e7d32;
+  border: 1px solid #a5d6a7;
+}
+
+.alert-inline--error {
+  background: #ffebee;
+  color: #c62828;
+  border: 1px solid #ef9a9a;
+}
+
+/* Abas */
+::ng-deep .mat-tab-group,
+::ng-deep .mat-mdc-tab-group {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+::ng-deep .mat-tab-body-wrapper,
+::ng-deep .mat-mdc-tab-body-wrapper {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+::ng-deep .mat-tab-body,
+::ng-deep .mat-mdc-tab-body {
+  height: 100%;
+  overflow: hidden;
+}
+
+::ng-deep .mat-tab-body-content,
+::ng-deep .mat-mdc-tab-body-content {
+  height: 100%;
+  overflow-y: auto !important;
+  overflow-x: hidden;
+}
+
+::ng-deep .mat-tab-label {
+  height: 40px !important;
+  min-width: 120px !important;
+  padding: 0 12px !important;
+  opacity: 1 !important;
+  font-size: 13px;
+}
+
+.tab-icon {
+  font-size: 16px;
+  width: 16px;
+  height: 16px;
+  margin-right: 5px;
+  vertical-align: middle;
+}
+
+.tab-content {
+  display: flex;
+  flex-direction: column;
+  padding: 4px 0 0 0;
+}
+
+/* Section title */
+.section-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 2px 6px 2px;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.section-title__badges {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.section-title__actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.section-title--sub {
+  padding: 6px 2px 4px 2px;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  margin-top: 4px;
+}
+
+.sub-icon {
+  font-size: 16px;
+  width: 16px;
+  height: 16px;
+  color: rgba(255, 255, 255, 0.6);
+  margin-right: 4px;
+}
+
+/* Badges */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.badge--blue  { background: #1e3a5f; color: #90caf9; }
+.badge--gray  { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.6); }
+.badge--green { background: #1b5e20; color: #81c784; }
+.badge--amber { background: #4e342e; color: #ffcc80; }
+
+/* Chip matrícula */
+.pag-chip {
+  display: inline-block;
+  padding: 2px 8px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 4px;
+  font-size: 12px;
+  color: rgba(255,255,255,0.6);
+}
+
+/* Grid split (remessas) */
+.grid-wrapper--split {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.grid-top    { flex: 1; min-height: 0; overflow: hidden; }
+.grid-bottom { flex: 0 0 220px; min-height: 0; overflow: hidden; display: flex; flex-direction: column; }
+
+/* Checkbox selecionar todos */
+.sel-todos-check {
+  font-size: 12.5px;
+  white-space: nowrap;
+}
+
+/* Modais */
+.pag-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 15, 30, .55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(3px);
+}
+
+.pag-modal {
+  width: 100%;
+  max-width: 460px;
+  margin: 16px;
+  border-radius: 10px !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, .2) !important;
+}
+
+.pag-modal--wide { max-width: 560px; }
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 18px;
+  color: #fff;
+  border-radius: 10px 10px 0 0;
+}
+
+.modal-header mat-icon { font-size: 20px; width: 20px; height: 20px; }
+.modal-header h3 { margin: 0; font-size: 15px; font-weight: 600; }
+.modal-header--blue { background: #1565c0; }
+.modal-header--red  { background: #c62828; }
+
+.modal-body {
+  padding: 16px 18px;
+}
+
+.modal-body p {
+  margin: 0 0 10px;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: inherit;
+}
+
+.modal-info {
+  font-size: 12px !important;
+  color: var(--mat-sys-on-surface-variant, rgba(0,0,0,0.6)) !important;
+  font-style: italic;
+}
+
+.modal-field { width: 100%; margin-top: 6px; }
+
+.modal-field-row {
+  display: flex;
+  gap: 10px;
+
+  .modal-field { flex: 1; }
+  .modal-field--hora { max-width: 130px; }
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 10px 18px 14px;
+  border-top: 1px solid var(--mat-sys-outline-variant, rgba(0,0,0,0.12));
+  border-radius: 0 0 10px 10px;
+}
+
+.req { color: #ef5350; font-size: 11px; font-style: italic; }

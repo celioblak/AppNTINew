@@ -1,3 +1,30 @@
+declare module '@novnc/novnc' {
+  class RFB {
+    constructor(
+      screen: HTMLElement,
+      url: string,
+      options?: {
+        credentials?: { username?: string; password?: string; target?: string };
+        shared?: boolean;
+        repeaterID?: string;
+        wsProtocols?: string[];
+      }
+    );
+
+    disconnect(): void;
+    sendCredentials(credentials: { username?: string; password?: string; target?: string }): void;
+    sendKey(keysym: number, code: string, down: boolean): void;
+    focus(): void;
+    blur(): void;
+    clipboardPasteFrom(text: string): void;
+
+    // Eventos
+    addEventListener(event: string, handler: (event: any) => void): void;
+    removeEventListener(event: string, handler: (event: any) => void): void;
+  }
+
+  export default RFB;
+}
 // eslint-disable-next-line @definitelytyped/no-declare-current-package
 declare module "@novnc/novnc/lib/rfb" {
   /**
@@ -351,18 +378,3 @@ declare module "@novnc/novnc/lib/input/util" {
   function getKey(event: KeyboardEventBase): string;
   function getKeysym(event: KeyboardEventBase): number;
 }
-
-declare module 'ng2-dragula' {
-  import { ModuleWithProviders } from '@angular/core';
-
-  export class DragulaModule {
-    static forRoot(): ModuleWithProviders<DragulaModule>;
-  }
-
-  export class DragulaService {
-    createGroup(name: string, options: any): void;
-    destroy(name: string): void;
-    // Adicione outras assinaturas conforme necessário
-  }
-}
-

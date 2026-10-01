@@ -1,0 +1,234 @@
+:host {
+  display: block;
+}
+
+/*
+ * Tokens do painel. Ficam aqui, no elemento raiz, porque custom properties
+ * atravessam o encapsulamento de estilo do Angular: as telas filhas leem
+ * var(--pn-*) sem precisar importar nada.
+ *
+ * Tema escuro: a TV fica ligada o dia inteiro, e um retângulo branco em sala de
+ * apoio cansa a vista e favorece burn-in.
+ */
+.painel-tv {
+  --pn-fundo: #0f1218;
+  --pn-superficie: #181d27;
+  --pn-superficie-alta: #222836;
+  --pn-borda: #2b3242;
+  --pn-texto: #e9edf5;
+  --pn-texto-fraco: #97a1b5;
+  --pn-ok: #35c17d;
+  --pn-atencao: #f2b544;
+  --pn-critico: #ef5350;
+  --pn-info: #5b8def;
+  --pn-neutro: #4a5568;
+  // Locks em roxo: vermelho, âmbar e azul já são as faixas dos chamados.
+  // Quanto mais tempo em lock, mais forte o tom.
+  --pn-lock-recente: #b9a3e8;
+  --pn-lock-atencao: #9466e0;
+  --pn-lock-critico: #7b3fd1;
+
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  // Margem de segurança: TV corta as bordas (overscan).
+  gap: clamp(8px, 1.5vh, 18px);
+  padding: clamp(10px, 2.2vh, 28px) clamp(12px, 2vw, 32px);
+  background: var(--pn-fundo);
+  color: var(--pn-texto);
+  font-family: 'Segoe UI', system-ui, -apple-system, Roboto, sans-serif;
+  overflow: hidden;
+
+  // Deriva lenta e imperceptível: evita pixel parado por meses na mesma posição.
+  animation: painel-deriva 900s ease-in-out infinite alternate;
+
+  &__conteudo {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  // Visual clássico: exatamente como a TV era antes da repaginação.
+  &--classico {
+    gap: 0;
+    padding: 0;
+    background: #f1f1fd;
+    color: #1b1b1f;
+    font-family: Verdana, Geneva, sans-serif;
+    animation: none;
+
+    .rodape {
+      height: 32px;
+      padding: 0 12px;
+      border: 0;
+      background: #22223b;
+      color: #f4f4f8;
+    }
+  }
+}
+
+.topo {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: clamp(12px, 2vw, 32px);
+
+  &__titulo {
+    margin: 0;
+    font-size: clamp(1.3rem, 3vh, 3rem);
+    font-weight: 800;
+    letter-spacing: 1px;
+  }
+
+  &__estado {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 12px;
+    border-radius: 999px;
+    background: var(--pn-superficie);
+    color: var(--pn-texto-fraco);
+    font-size: clamp(0.8rem, 1.5vh, 1.4rem);
+    font-variant-numeric: tabular-nums;
+
+    // Dado parado é falha silenciosa: precisa saltar aos olhos.
+    &--velho {
+      background: rgb(242 181 68 / 22%);
+      background: color-mix(in srgb, var(--pn-atencao) 22%, var(--pn-superficie));
+      color: var(--pn-atencao);
+      font-weight: 700;
+    }
+  }
+
+  &__relogio {
+    margin-left: auto;
+    font-size: clamp(1.6rem, 4.5vh, 4.5rem);
+    font-variant-numeric: tabular-nums;
+    font-weight: 300;
+    line-height: 1;
+  }
+}
+
+.tarja {
+  flex: 0 0 auto;
+  padding: clamp(4px, 0.8vh, 10px);
+  border-radius: 6px;
+  background: var(--pn-critico);
+  color: #fff;
+  font-size: clamp(0.85rem, 1.6vh, 1.5rem);
+  font-weight: 700;
+  text-align: center;
+}
+
+.ponto {
+  width: clamp(8px, 1.2vh, 14px);
+  height: clamp(8px, 1.2vh, 14px);
+  border-radius: 50%;
+  background: var(--pn-neutro);
+
+  &--conectado {
+    background: var(--pn-ok);
+  }
+
+  &--conectando {
+    background: var(--pn-atencao);
+  }
+
+  &--desconectado {
+    background: var(--pn-critico);
+    animation: painel-pulso 2s infinite;
+  }
+}
+
+.rodape {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 12px;
+  padding-top: clamp(4px, 0.8vh, 10px);
+  border-top: 1px solid var(--pn-borda);
+  color: var(--pn-texto-fraco);
+  font-size: clamp(0.7rem, 1.3vh, 1.2rem);
+
+  &__estado {
+    font-weight: bold;
+    letter-spacing: 0.5px;
+  }
+
+  &__log {
+    flex: 1 1 auto;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  &__atualizacao {
+    margin-left: auto;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.avisos {
+  position: absolute;
+  top: clamp(10px, 2.2vh, 28px);
+  right: clamp(12px, 2vw, 32px);
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 38vw;
+}
+
+.aviso {
+  padding: clamp(8px, 1.2vh, 16px) clamp(12px, 1.2vw, 22px);
+  border-left: 8px solid transparent;
+  border-radius: 8px;
+  background: var(--pn-superficie-alta);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 45%);
+  color: var(--pn-texto);
+  font-size: clamp(1rem, 2vh, 1.9rem);
+  line-height: 1.25;
+
+  strong {
+    display: block;
+    color: var(--pn-texto-fraco);
+    font-size: clamp(0.75rem, 1.4vh, 1.3rem);
+    text-transform: uppercase;
+  }
+
+  &--info {
+    border-left-color: var(--pn-info);
+  }
+
+  &--alerta {
+    border-left-color: var(--pn-atencao);
+  }
+
+  &--erro {
+    border-left-color: var(--pn-critico);
+  }
+}
+
+@keyframes painel-pulso {
+  0% {
+    opacity: 0.4;
+  }
+
+  50% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0.4;
+  }
+}
+
+@keyframes painel-deriva {
+  from {
+    transform: translate(-4px, -3px);
+  }
+
+  to {
+    transform: translate(4px, 3px);
+  }
+}

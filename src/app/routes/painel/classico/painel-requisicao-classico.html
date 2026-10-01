@@ -1,0 +1,77 @@
+<div class="painel-requisicao">
+  <div class="painel-requisicao__colunas">
+    <section class="painel-requisicao__coluna">
+      <header class="painel-requisicao__titulo painel-requisicao__titulo--analise">
+        Aguardando Análise
+      </header>
+      <div class="painel-requisicao__lista">
+        @for (chamado of emAnalise(); track chamado.idChamado) {
+          <div [class]="classeAnalise(chamado)">
+            <b>{{ chamado.idChamado }} {{ titulo(chamado) }}</b>
+          </div>
+        }
+        @for (chamado of pausados(); track chamado.idChamado) {
+          <div class="chamado chamado--pausado">
+            <b>{{ chamado.idChamado }} {{ titulo(chamado) }}</b>
+          </div>
+        }
+      </div>
+    </section>
+
+    <section class="painel-requisicao__coluna">
+      <header class="painel-requisicao__titulo painel-requisicao__titulo--execucao">
+        Aguardando Execução
+      </header>
+      <div class="painel-requisicao__lista">
+        @for (chamado of paraExecucao(); track chamado.idChamado) {
+          <div [class]="classeExecucao(chamado)">
+            <b>{{ chamado.idChamado }} {{ titulo(chamado) }}</b>
+          </div>
+        }
+      </div>
+    </section>
+  </div>
+
+  <footer class="painel-requisicao__totais">
+    <div class="total total--solicitado">
+      <span class="total__numero">{{ totais().totalSolicitado }}</span>
+      <span class="total__rotulo">Solicitado</span>
+    </div>
+    <div class="total total--gestor">
+      <span class="total__numero">{{ totais().totalAprovacaoGestor }}</span>
+      <span class="total__rotulo">Aprovação Gestor</span>
+    </div>
+    <div class="total total--requisitos">
+      <span class="total__numero">{{ totais().totalAnaliseRequisitos }}</span>
+      <span class="total__rotulo">Requisitos</span>
+    </div>
+    <div class="total total--em-analise">
+      <span class="total__numero">{{ totais().totalEmAnalise }}</span>
+      <span class="total__rotulo">Em Análise</span>
+    </div>
+    <div class="total total--pausado">
+      <span class="total__numero">{{ totais().totalPausado }}</span>
+      <span class="total__rotulo">Pausado</span>
+    </div>
+    <div class="total total--validacao">
+      <span class="total__numero">{{ totais().totalValidacao }}</span>
+      <span class="total__rotulo">Validação</span>
+    </div>
+    <div class="total total--reprovado">
+      <span class="total__numero">{{ totais().totalReprovado }}</span>
+      <span class="total__rotulo">Reprovado</span>
+    </div>
+    <div class="total total--para-execucao">
+      <span class="total__numero">{{ totais().totalAguardandoExecucao }}</span>
+      <span class="total__rotulo">Para Execução</span>
+    </div>
+    <div class="total total--em-execucao">
+      <span class="total__numero">{{ totais().totalEmExecucao }}</span>
+      <span class="total__rotulo">Em Execução</span>
+    </div>
+    <div class="total total--geral">
+      <span class="total__numero">{{ totais().total }}</span>
+      <span class="total__rotulo">Total</span>
+    </div>
+  </footer>
+</div>

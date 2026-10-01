@@ -5,18 +5,21 @@ import { from, Observable } from 'rxjs';
 import { ajax } from 'rxjs/ajax';
 import { find, map, switchMap } from 'rxjs/operators';
 import { environment } from '@env/environment';
-import { base64, currentTimestamp, filterObject, AUser } from '@core/authentication';
+import { base64, currentTimestamp, filterObject } from '@core/authentication';
+import { Usuario } from '@core';
 
 class JWT {
-  generate(user: AUser) {
+  generate(user: Usuario) {
     const expiresIn = 3600;
     const refreshTokenExpiresIn = 86400;
 
     return filterObject({
       access_token: this.createToken(user, expiresIn),
       token_type: 'bearer',
-      expires_in: user.refresh_token ? expiresIn : undefined,
-      refresh_token: user.refresh_token ? this.createToken(user, refreshTokenExpiresIn) : undefined,
+      expires_in: user['refresh_token'] ? expiresIn : undefined,
+      refresh_token: user['refresh_token']
+        ? this.createToken(user, refreshTokenExpiresIn)
+        : undefined,
     });
   }
 
@@ -41,8 +44,8 @@ class JWT {
     }
   }
 
-  createToken(user: AUser, expiresIn = 0) {
-    const exp = user.refresh_token ? currentTimestamp() + expiresIn : undefined;
+  createToken(user: Usuario, expiresIn = 0) {
+    const exp = user['refresh_token'] ? currentTimestamp() + expiresIn : undefined;
 
     return [
       base64.encode(JSON.stringify({ typ: 'JWT', alg: 'HS256' })),
@@ -84,7 +87,7 @@ function is(reqInfo: RequestInfo, path: string) {
   providedIn: 'root',
 })
 export class InMemDataService implements InMemoryDbService {
-  private users: AUser[] = [
+  private users: Usuario[] = [
     {
       id: 1,
       username: 'ng-matero',
@@ -160,13 +163,13 @@ export class InMemDataService implements InMemoryDbService {
     const { username, password } = req.body;
 
     return from(this.users).pipe(
-      find(user => user.username === username || user.email === username),
+      find(user => user['username'] === username || user.email === username),
       map(user => {
         if (!user) {
           return { headers, url, status: STATUS.UNAUTHORIZED, body: {} };
         }
 
-        if (user.password !== password) {
+        if (user['password'] !== password) {
           const result = {
             status: STATUS.UNPROCESSABLE_ENTRY,
             error: { errors: { password: ['The provided password is incorrect.'] } },
@@ -176,7 +179,7 @@ export class InMemDataService implements InMemoryDbService {
         }
 
         const currentUser = Object.assign({}, user);
-        delete currentUser.password;
+        delete currentUser['password'];
         return { headers, url, status: STATUS.OK, body: jwt.generate(currentUser) };
       }),
       switchMap(response => reqInfo.utils.createResponse$(() => response))

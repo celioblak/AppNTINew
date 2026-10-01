@@ -1,0 +1,141 @@
+$contorno: var(--mat-sys-outline-variant, rgba(0, 0, 0, .12));
+$texto-secundario: var(--mat-sys-on-surface-variant, rgba(0, 0, 0, .6));
+
+.formulario {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 0 12px;
+}
+
+.inteiro {
+  grid-column: 1 / -1;
+}
+
+.codigo {
+  font-family: 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace;
+  font-size: .85rem;
+}
+
+.vinculo {
+  margin: 8px 0 12px;
+}
+
+.vinculo-cabecalho {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.rotulo {
+  font-size: .8rem;
+  font-weight: 500;
+  color: $texto-secundario;
+}
+
+// ------------------------------------------------ seletor de servidores
+
+.seletor {
+  overflow: hidden;
+  border: 1px solid $contorno;
+  border-radius: 8px;
+}
+
+.seletor-barra {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-bottom: 1px solid $contorno;
+  --mat-form-field-container-height: 36px;
+  --mat-form-field-container-vertical-padding: 6px;
+}
+
+.seletor-busca {
+  flex: 1;
+}
+
+.contador {
+  font-size: .75rem;
+  white-space: nowrap;
+  color: $texto-secundario;
+}
+
+.seletor-lista {
+  max-height: 260px;
+  overflow-y: auto;
+  padding: 0 8px 8px;
+  --mat-checkbox-state-layer-size: 32px;
+}
+
+.grupo {
+  margin-top: 6px;
+  border-bottom: 1px dashed $contorno;
+}
+
+.grupo-nome {
+  font-weight: 600;
+}
+
+.grupo-qtd {
+  margin-left: 6px;
+  padding: 0 6px;
+  border-radius: 10px;
+  font-size: .7rem;
+  background-color: var(--mat-sys-surface-container-high, rgba(0, 0, 0, .06));
+}
+
+.servidor {
+  display: block;
+  margin-left: 24px;
+}
+
+.servidor-detalhe {
+  margin-left: 6px;
+  font-family: 'Cascadia Mono', Consolas, monospace;
+  font-size: .72rem;
+  color: $texto-secundario;
+}
+
+.aviso,
+.erro,
+.vazio {
+  margin: 4px 0 0;
+  font-size: .75rem;
+}
+
+.aviso,
+.vazio {
+  color: $texto-secundario;
+}
+
+.vazio {
+  padding: 12px;
+  text-align: center;
+}
+
+.erro {
+  color: var(--mat-sys-error, #d32f2f);
+}
+
+// ------------------------------------------------ opções
+
+.opcoes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 24px;
+}
+
+.ordem {
+  width: 110px;
+  margin-left: auto;
+}
+
+@media (max-width: 600px) {
+  .formulario {
+    grid-template-columns: 1fr;
+  }
+}

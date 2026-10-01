@@ -1,13 +1,13 @@
-import { AUser } from './interface';
+import { Usuario } from '@core';
 
-export const admin: AUser = {
+export const admin: Usuario = {
   id: 1,
   name: 'Zongbin',
   email: 'nzb329@163.com',
   avatar: 'images/avatar.jpg',
 };
 
-export const guest: AUser = {
+export const guest: Usuario = {
   name: 'unknown',
   email: 'unknown',
   avatar: 'images/avatar-default.jpg',

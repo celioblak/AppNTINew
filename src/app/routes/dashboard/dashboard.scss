@@ -1,0 +1,444 @@
+.mat-mdc-button-base {
+  margin: 4px;
+}
+
+mtx-alert {
+  position: sticky;
+  top: 64px;
+  z-index: 10;
+}
+
+@media (width <= 599px) {
+  mtx-alert {
+    top: 56px;
+  }
+}
+
+mat-card-header {
+  background-color: rgba(171, 178, 185, 0.5);
+}
+
+.containerChamadoUsuario {
+  display: flex;
+  padding-top: 5px;
+}
+
+.chamadoPendente {
+  background-color: light-dark(rgb(249, 231, 159), rgba(241, 249, 159, 0.0));
+  color: light-dark(#005cbb, #ffea03);
+}
+
+/* Ajustes para as cores do mtx-progress */
+.slaVencido .mtx-progress-bar-fill {
+  background-color: red;
+}
+
+.slaDentro .mtx-progress-bar-fill {
+  background-color: #2eb85c;
+}
+
+.slaAVencer .mtx-progress-bar-fill {
+  background-color: #f9b115;
+}
+
+.grab {
+  cursor: pointer;
+}
+
+.glowing-circle {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background-color: #ff4d4d;
+  -webkit-animation: glowing 1s ease-in-out infinite alternate;
+  -moz-animation: glowing 1s ease-in-out infinite alternate;
+  animation: glowing 1s ease-in-out infinite alternate;
+}
+
+@keyframes glowing {
+  from {
+    box-shadow: 0 0 10px rgb(255, 172, 172), 0 0 20px #ff0000, 0 0 30px rgb(255, 0, 0), 0 0 40px #0ff, 0 0 50px #ff0000, 0 0 60px #ff0000, 0 0 70px #ff0000;
+  }
+  to {
+    box-shadow: 0 0 20px #fff, 0 0 30px #ff0000, 0 0 40px #ff0000, 0 0 50px #ff0000, 0 0 60px #ff0000, 0 0 70px #ff0000, 0 0 80px #ff0000;
+  }
+}
+
+.state_red {
+  background: red;
+  border-radius: 50%;
+  margin: 10px;
+  height: 10px;
+  width: 10px;
+  box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.7);
+  transform: scale(1);
+  animation: pulse_red 2s infinite;
+}
+
+@keyframes pulse_red {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.7);
+  }
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 10px rgba(255, 0, 0, 0.7);
+  }
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.7);
+  }
+}
+
+.state_blue {
+  background: blue;
+  border-radius: 50%;
+  margin: 0px;
+  height: 10px;
+  width: 10px;
+  box-shadow: 0 0 0 0 rgba(0, 21, 255, 0.7);
+  transform: scale(1);
+  animation: pulse_blue 2s infinite;
+}
+
+@keyframes pulse_blue {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(0, 21, 255, 0.7);
+  }
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 10px rgba(0, 21, 255, 0.7);
+  }
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(0, 21, 255, 0.7);
+  }
+}
+
+.state_yellow {
+  background: yellow;
+  border-radius: 50%;
+  margin: 10px;
+  height: 20px;
+  width: 20px;
+  box-shadow: 0 0 0 0 rgb(208, 255, 0);
+  transform: scale(1);
+  animation: pulse_yellow 2s infinite;
+}
+
+@keyframes pulse_yellow {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgb(208, 255, 0);
+  }
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 10px rgb(208, 255, 0);
+  }
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgb(208, 255, 0);
+  }
+}
+
+/* Ajuste para as tabelas ocuparem a largura total */
+mat-table {
+  width: 100%;
+}
+
+mat-header-cell, mat-cell {
+  padding: 0 8px;
+}
+.avatar-circular {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.progress-container {
+  position: relative;
+  width: 100%;
+  height: 20px; /* ajuste conforme necessário */
+}
+
+.progress-label {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 12px;
+  line-height: 20px;
+  color: #fff; /* contraste sobre a barra */
+  text-shadow: 0 0 2px #000; /* opcional para melhor leitura */
+  white-space: nowrap;
+}
+
+/* Ajuste da altura da barra de progresso */
+.progress-container {
+  position: relative;
+  width: 100%;
+  height: 24px; /* Defina a altura desejada */
+}
+
+/* Força a altura da barra e do preenchimento */
+::ng-deep .progress-container .mat-progress-bar {
+  height: 24px !important;
+}
+
+::ng-deep .progress-container .mat-progress-bar-fill::after {
+  height: 24px !important;
+}
+
+/* Ajusta o label para centralizar verticalmente */
+.progress-label {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 12px;
+  line-height: 1;
+  color: #fff;
+  text-shadow: 0 0 2px #000;
+  white-space: nowrap;
+  z-index: 1; /* garante que fique sobre a barra */
+}
+
+.custom-progress-container {
+  position: relative;
+  width: 100%;
+  height: 24px;
+  background-color: #e0e0e0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.custom-progress-bar {
+  height: 100%;
+  transition: width 0.3s ease;
+  border-radius: 4px;
+}
+
+/* Cores personalizadas */
+.custom-progress-bar.slaVencido {
+  background-color: #f44336; // vermelho
+}
+.custom-progress-bar.slaDentro {
+  background-color: #4caf50; // verde
+}
+.custom-progress-bar.slaAVencer {
+  background-color: #ff9800; // laranja
+}
+
+.custom-progress-label {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 12px;
+  color: #000;
+  font-weight: bold;
+  text-shadow: 0 0 2px #fff;
+  white-space: nowrap;
+  z-index: 1;
+}
+
+/* Cores personalizadas */
+.custom-progress-bar.slaVencido {
+  background-color: #f44336; // vermelho
+}
+.custom-progress-bar.slaDentro {
+  background-color: #4caf50; // verde
+}
+.custom-progress-bar.slaAVencer {
+  background-color: #ff9800; // laranja
+}
+
+.custom-progress-label {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 12px;
+  color: #000;
+  font-weight: bold;
+  text-shadow: 0 0 2px #fff;
+  white-space: nowrap;
+  z-index: 1;
+}
+
+.avatar-circular {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  cursor: pointer; /* opcional: indica que é interativo */
+}
+
+.avatar-circular:hover {
+  transform: scale(1.1);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.custom-progress-bar {
+  position: relative;
+  overflow: hidden; /* necessário para esconder o brilho fora da área */
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.3),
+      transparent
+    );
+    transform: translateX(-100%);
+    animation: shimmer 2s infinite;
+  }
+}
+
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* Define largura fixa para a coluna ID em todas as tabelas */
+.mat-column-id {
+  width: 60px;
+  max-width: 100px;
+  text-align: center; /* opcional: centraliza o número */
+}
+
+/* ── Controles de auto atualização (auto refresh) ─────────────────────────── */
+/* Ficam na mesma barra dos quantitativos das listas. */
+/* Usa os tokens de sistema do Angular Material para funcionar em tema claro e escuro. */
+.auto-refresh-controls {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-left: auto; /* empurra para a direita da barra de quantitativos */
+  color: var(--mat-sys-on-surface, inherit);
+
+  button mat-icon {
+    margin-right: 4px;
+    vertical-align: middle;
+  }
+
+  .intervalo-auto-refresh {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.9rem;
+    color: var(--mat-sys-on-surface-variant, var(--mat-sys-on-surface, inherit));
+
+    select {
+      padding: 4px 8px;
+      border-radius: 6px;
+      /* color-scheme (definido em html/.theme-dark) faz o <select> nativo
+         e seu menu adaptarem-se automaticamente ao tema. */
+      color: var(--mat-sys-on-surface, CanvasText);
+      background: var(--mat-sys-surface-container-high, Canvas);
+      border: 1px solid var(--mat-sys-outline, rgba(127, 127, 127, 0.5));
+
+      &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+    }
+  }
+
+  .ultima-atualizacao {
+    margin-left: auto;
+    font-size: 0.85rem;
+    color: var(--mat-sys-on-surface-variant, var(--mat-sys-on-surface, inherit));
+  }
+}
+
+/* ── Mobile (≤ 599px) ─────────────────────────────────────────────────────────
+   Tudo dentro da media query: telas maiores continuam iguais. */
+@media (max-width: 599px) {
+  /* Participações: nome e totais quebram linha em vez de estourar a largura */
+  .containerChamadoUsuario {
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+    text-align: left;
+  }
+
+  .mat-mdc-button-base {
+    margin: 3px;
+  }
+
+  /* Controles de atualização automática em linha própria */
+  .auto-refresh-controls {
+    width: 100%;
+    margin-left: 0;
+    justify-content: space-between;
+    gap: 6px;
+
+    .ultima-atualizacao {
+      margin-left: 0;
+      width: 100%;
+      text-align: right;
+    }
+  }
+
+  /* Listas: cada chamado vira um bloco (id + título na 1ª linha; técnicos e SLA abaixo).
+     O cabeçalho sai porque as colunas deixam de ficar alinhadas. */
+  mat-header-row {
+    display: none;
+  }
+
+  mat-row {
+    flex-wrap: wrap;
+    align-items: center;
+    min-height: 0;
+    height: auto;
+    padding: 8px 0;
+    row-gap: 6px;
+  }
+
+  mat-cell {
+    min-height: 0;
+  }
+
+  mat-cell.mat-column-id {
+    flex: 0 0 auto;
+    width: auto;
+    max-width: none;
+    font-weight: 700;
+
+    &::before {
+      content: '#';
+      opacity: 0.6;
+    }
+  }
+
+  mat-cell.mat-column-titulo {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  mat-cell.mat-column-tecnico {
+    flex: 1 1 100%;
+    flex-wrap: wrap;
+  }
+
+  mat-cell.mat-column-sla {
+    flex: 1 1 100%;
+  }
+
+  .avatar-circular {
+    width: 32px;
+    height: 32px;
+  }
+
+  mat-card-header .grab {
+    margin-left: auto;
+  }
+}

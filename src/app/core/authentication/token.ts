@@ -1,8 +1,9 @@
+import { Token } from '@core/interface';
 import { base64, capitalize, currentTimestamp, timeLeft } from './helpers';
-import { AToken } from './interface';
+
 
 export abstract class BaseToken {
-  constructor(protected attributes: AToken) {}
+  constructor(protected attributes: Token) {}
 
   get access_token() {
     return this.attributes.access_token;
@@ -63,7 +64,7 @@ export class JwtToken extends SimpleToken {
     }
   }
 
-  get exp() {
+  override get exp() {
     return this.payload?.exp;
   }
 

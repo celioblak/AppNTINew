@@ -1,0 +1,46 @@
+<div class="row">
+  <div class="col-sm-12">
+    <mat-card class="ultimas-execucoes-card">
+
+      <mat-card-header class="ultimas-execucoes-header">
+        <div class="ultimas-execucoes-header-title">
+          <mat-card-title>Última Execução — Todos os Agendamentos</mat-card-title>
+          <mat-card-subtitle>Acompanhamento geral, sem precisar abrir agendamento por agendamento. Clique numa linha para ver o histórico completo.</mat-card-subtitle>
+        </div>
+
+        <div class="ultimas-execucoes-header-actions">
+          <button mat-stroked-button routerLink="/banco/script-agendamento">
+            <mat-icon>arrow_back</mat-icon> Agendamentos
+          </button>
+
+          <span class="ultimas-execucoes-last-update" *ngIf="ultimaAtualizacao">
+            Atualizado às {{ ultimaAtualizacao | date:'HH:mm:ss' }}
+          </span>
+
+          <mat-slide-toggle [(ngModel)]="autoAtualizar" (change)="onToggleAutoAtualizar()" color="primary">
+            Auto (15s)
+          </mat-slide-toggle>
+
+          <button mat-icon-button (click)="carregar()" [disabled]="carregando" matTooltip="Atualizar agora">
+            <mat-icon [class.spin]="carregando">refresh</mat-icon>
+          </button>
+        </div>
+      </mat-card-header>
+
+      <mat-card-content class="ultimas-execucoes-content">
+        <div class="grid-wrapper" (click)="onCliqueContainer($event)">
+          <mtx-grid
+            [data]="lista"
+            [columns]="columns"
+            [rowStriped]="true"
+            [showPaginator]="true"
+            [pageSize]="20"
+            [noResultText]="'Nenhum agendamento cadastrado'"
+            style="height: calc(100vh - 260px);"
+          />
+        </div>
+      </mat-card-content>
+
+    </mat-card>
+  </div>
+</div>

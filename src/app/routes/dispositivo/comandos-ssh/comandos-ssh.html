@@ -1,0 +1,71 @@
+<div class="comandos-ssh" alturaAteRodape>
+  <div class="barra">
+    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="busca">
+      <mat-icon matPrefix>search</mat-icon>
+      <mat-label>Pesquisar</mat-label>
+      <input matInput placeholder="Título, comando, descrição ou servidor"
+             [ngModel]="filtro()" (ngModelChange)="filtro.set($event)">
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="campo">
+      <mat-label>Categoria</mat-label>
+      <mat-select [ngModel]="filtroCategoria()" (ngModelChange)="filtroCategoria.set($event)">
+        <mat-option [value]="null">Todas</mat-option>
+        @for (categoria of categorias(); track categoria.codCategoria) {
+          <mat-option [value]="categoria.codCategoria">{{ categoria.dsCategoria }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="campo-servidor">
+      <mat-label>Disponível no servidor</mat-label>
+      <mat-select [ngModel]="filtroServidor()" (ngModelChange)="filtroServidor.set($event)">
+        <mat-option [value]="null">Qualquer servidor</mat-option>
+        @for (servidor of servidores(); track servidor.codServidor) {
+          <mat-option [value]="servidor.codServidor">{{ servidor.dsServidor }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    @if (filtro() || filtroCategoria() != null || filtroServidor() != null) {
+      <button mat-stroked-button (click)="limparFiltros()">
+        <mat-icon>filter_alt_off</mat-icon>
+        Limpar
+      </button>
+    }
+
+    <span class="espaco"></span>
+    <span class="total">{{ filtrados().length }} de {{ comandos().length }} comandos</span>
+    <button mat-stroked-button (click)="abrirCategorias()">
+      <mat-icon>category</mat-icon>
+      Categorias
+    </button>
+    <button mat-flat-button (click)="abrirCadastro()">
+      <mat-icon>add</mat-icon>
+      Novo comando
+    </button>
+  </div>
+
+  <ng-template #comandoTpl let-row>
+    <code class="codigo" [matTooltip]="row.dsDescricao || ''">{{ row.dsComando }}</code>
+  </ng-template>
+
+  <ng-template #servidoresTpl let-row>
+    @if (row.snTodosServidores) {
+      <span class="todos">Todos os servidores</span>
+    } @else {
+      <span [matTooltip]="vinculados(row)">{{ rotulo(row) }}</span>
+    }
+  </ng-template>
+
+  <mtx-grid class="grade"
+            [data]="filtrados()"
+            [columns]="colunas"
+            [loading]="carregando()"
+            [rowStriped]="true"
+            [columnResizable]="true"
+            [showPaginator]="true"
+            [pageSize]="50"
+            [cellTemplate]="{ dsComando: comandoTpl, codServidores: servidoresTpl }"
+            noResultText="Nenhum comando encontrado" />
+</div>

@@ -1,29 +1,114 @@
 <div class="row">
-  <div class="col-sm-12" >
-    <div>
-      <button mat-raised-button (click) = "openAdd()">
+  <div class="col-sm-12">
+
+    <!-- ── Filtros ─────────────────────────────────────────────────────── -->
+    <mat-card class="mb-3 filter-card">
+      <mat-card-content>
+        <form [formGroup]="filterForm" class="filter-form">
+          <div class="filter-row">
+
+            <!-- Descrição -->
+            <mat-form-field appearance="outline" class="filter-field filter-field--description">
+              <mat-label>Descrição</mat-label>
+              <input matInput formControlName="descricao" placeholder="Buscar por descrição" />
+              <mat-icon matPrefix>search</mat-icon>
+            </mat-form-field>
+
+            <!-- Data Início -->
+            <mat-form-field appearance="outline" class="filter-field filter-field--date">
+              <mat-label>Data Início (de)</mat-label>
+              <input
+                matInput
+                [mtxDatetimepicker]="filterPickerIni"
+                formControlName="dtInicio"
+                placeholder="dd/mm/aaaa hh:mm"
+                readonly
+                [format]="'dd/MM/yyyy HH:mm'"
+              />
+              <mtx-datetimepicker-toggle [for]="filterPickerIni" matSuffix />
+              <mtx-datetimepicker
+                #filterPickerIni
+                startView="month"
+                [timeInterval]="1"
+                [type]="'datetime'"
+              />
+            </mat-form-field>
+
+            <!-- Data Final -->
+            <mat-form-field appearance="outline" class="filter-field filter-field--date">
+              <mat-label>Data Final (até)</mat-label>
+              <input
+                matInput
+                [mtxDatetimepicker]="filterPickerFim"
+                formControlName="dtFinal"
+                placeholder="dd/mm/aaaa hh:mm"
+                readonly
+                [format]="'dd/MM/yyyy HH:mm'"
+              />
+              <mtx-datetimepicker-toggle [for]="filterPickerFim" matSuffix />
+              <mtx-datetimepicker
+                #filterPickerFim
+                startView="month"
+                [timeInterval]="1"
+                [type]="'datetime'"
+                [min]="filterForm.get('dtInicio')?.value"
+              />
+            </mat-form-field>
+
+            <!-- Botões de ação dos filtros -->
+            <div class="filter-actions">
+              <button
+                mat-raised-button
+                color="primary"
+                type="button"
+                (click)="aplicarFiltros()"
+              >
+                <mat-icon>filter_list</mat-icon>
+                Filtrar
+              </button>
+
+              <button
+                mat-stroked-button
+                type="button"
+                (click)="limparFiltros()"
+              >
+                <mat-icon>clear</mat-icon>
+                Limpar
+              </button>
+            </div>
+          </div>
+        </form>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- ── Barra de ações ──────────────────────────────────────────────── -->
+    <div class="mb-3">
+      <button mat-raised-button color="primary" (click)="openAdd()">
+        <mat-icon>add</mat-icon>
         Adicionar
       </button>
     </div>
 
-      <mtx-grid id="dtgrid"
-            [data]="list"
-            [columns]="columns"
-            [rowStriped]="true"
-            [showPaginator]="true"
-            [pageSize]= "50"
-            [noResultText]="noResult"
-            [multiSelectable]="false"
-            [hideRowSelectionCheckbox]="true"
-            [rowSelectable] ="true"
-            (rowSelectedChange)="changeSelect($event)"
-            [loading]="isLoading"
-            (page)="changeSelectPage($event)"
-            [pageIndex]="query.page"
-            [pageSize]="query.per_page"
-            [length]="total"
-            [pageOnFront]="false"
-            style="height: calc(100vh - 100px);"
-       />
+    <!-- ── Grid ───────────────────────────────────────────────────────── -->
+    <mtx-grid
+      id="dtgrid"
+      [data]="list"
+      [columns]="columns"
+      [rowStriped]="true"
+      [showPaginator]="true"
+      [noResultText]="noResult"
+      [multiSelectable]="false"
+      [hideRowSelectionCheckbox]="true"
+      [rowSelectable]="true"
+      (rowSelectedChange)="changeSelect($event)"
+      [loading]="isLoading"
+      (page)="changeSelectPage($event)"
+      [pageIndex]="query.page"
+      [pageSize]="query.per_page"
+      [length]="total"
+      [pageOnFront]="false"
+      style="height: calc(100vh - 280px);"
+    />
+
   </div>
 </div>

@@ -1,0 +1,85 @@
+<div class="container-fluid" [class.mobile]="isMobile">
+  <!-- Filtros -->
+  <div class="filter-container" [class.mobile-layout]="isMobile">
+    <mat-form-field appearance="outline" class="busca-filter" subscriptSizing="dynamic">
+      <mat-label>Buscar</mat-label>
+      <input matInput [formControl]="buscaCtrl" placeholder="Nome, login, e-mail, matrícula ou GLPI..." />
+      @if (buscaCtrl.value) {
+        <button type="button" mat-icon-button matSuffix aria-label="Limpar busca" (click)="buscaCtrl.setValue('')">
+          <mat-icon>close</mat-icon>
+        </button>
+      }
+    </mat-form-field>
+
+    <mat-slide-toggle [(ngModel)]="somenteAtivos" (change)="onFiltroChange()">
+      Somente ativos
+    </mat-slide-toggle>
+
+    <div class="search-button-wrapper">
+      <button mat-fab color="primary" (click)="carregar()" matTooltip="Atualizar">
+        <mat-icon>refresh</mat-icon>
+      </button>
+    </div>
+  </div>
+
+  <!-- Card principal -->
+  <mat-card>
+    <mat-card-content>
+      <!-- Título com menu de ações -->
+      <div class="section-title">
+        <h3>Usuários</h3>
+        <button mat-icon-button [matMenuTriggerFor]="menuUsuario" aria-label="Ações">
+          <mat-icon>more_vert</mat-icon>
+        </button>
+        <mat-menu #menuUsuario="matMenu">
+          <button mat-menu-item (click)="openAddDialog()">
+            <mat-icon>person_add</mat-icon>
+            <span>Adicionar</span>
+          </button>
+        </mat-menu>
+      </div>
+
+      <!-- Grid -->
+      <div class="grid-wrapper">
+        <mtx-grid
+          [data]="usuariosFiltrados"
+          [columns]="columns"
+          [loading]="carregando"
+          [rowStriped]="true"
+          [showPaginator]="true"
+          [pageSize]="15"
+          [pageSizeOptions]="[15, 30, 50, 100]"
+          [noResultText]="'Nenhum usuário encontrado'"
+        />
+      </div>
+    </mat-card-content>
+  </mat-card>
+</div>
+
+<!-- Coluna: Perfil -->
+<ng-template #perfilTpl let-row>
+  <div class="perfil-cell">
+    @if (row.snAdmin) { <span class="chip admin">Admin</span> }
+    @if (row.snPlantonista) { <span class="chip plantao">Plantonista</span> }
+    @if (!row.snAdmin && !row.snPlantonista) { <span class="chip vazio">—</span> }
+  </div>
+</ng-template>
+
+<!-- Coluna: Situação -->
+<ng-template #situacaoTpl let-row>
+  <span class="chip" [class.ativo]="row.snAtivo" [class.inativo]="!row.snAtivo">
+    {{ row.snAtivo ? 'Ativo' : 'Inativo' }}
+  </span>
+</ng-template>
+
+<!-- Coluna: Ações -->
+<ng-template #acoesTpl let-row>
+  <div class="acoes-cell">
+    <button mat-icon-button color="primary" (click)="openEditDialog(row)" matTooltip="Editar">
+      <mat-icon>edit</mat-icon>
+    </button>
+    <button mat-icon-button color="warn" (click)="openDeleteDialog(row)" matTooltip="Excluir">
+      <mat-icon>delete</mat-icon>
+    </button>
+  </div>
+</ng-template>

@@ -1,9 +1,15 @@
-import { HttpErrorResponse, HttpHandlerFn, HttpRequest } from '@angular/common/http';
+import {
+  HttpContext,
+  HttpContextToken,
+  HttpErrorResponse,
+  HttpHandlerFn,
+  HttpRequest,
+  HttpResponse,
+} from '@angular/common/http';
 import { inject } from '@angular/core';
 import { Router } from '@angular/router';
-import { AuthService } from '@core/authentication';
-import { ToastrService } from 'ngx-toastr';
-import { catchError, throwError } from 'rxjs';
+import { HotToastService } from '@ngxpert/hot-toast';
+import { catchError, tap, throwError } from 'rxjs';
 
 export enum STATUS {
   UNAUTHORIZED = 401,
@@ -12,123 +18,104 @@ export enum STATUS {
   INTERNAL_SERVER_ERROR = 500,
 }
 
-// ✅ Função simplificada - trata string, null e undefined
-const isApiRequest = (url: string | null | undefined): boolean => {
-  if (!url) return false;
-  return url.includes('/api/') ||
-         url.includes('/auth/') ||
-         url.includes('/upload/') ||
-         url.includes('/download/');
-};
+/**
+ * Marca requisições que não devem abrir toast nem redirecionar para o login.
+ * Usado pelas telas que rodam sem usuário logado (painel de TV), onde um erro de
+ * rede não tem ninguém para ver o toast e o redirect tiraria o painel do ar.
+ */
+export const SKIP_ERROR_HANDLER = new HttpContextToken<boolean>(() => false);
+
+/** Atalho para montar o contexto nas chamadas HTTP dessas telas. */
+export function semTratamentoDeErro(): HttpContext {
+  return new HttpContext().set(SKIP_ERROR_HANDLER, true);
+}
+
+const INVALID_TOKEN_MSG = 'Token enviado não é valido';
+const LOGGED_OUT_MSG    = 'Você não esta mais logado';
 
 export function errorInterceptor(req: HttpRequest<unknown>, next: HttpHandlerFn) {
-  const router = inject(Router);
-  const toast  = inject(ToastrService);
-  const authService = inject(AuthService);
+  if (req.context.get(SKIP_ERROR_HANDLER)) {
+    return next(req);
+  }
 
-  const getMessage = (error: HttpErrorResponse) => {
-    if (error.error?.message) return error.error.message;
-    if (error.error?.msg) return error.error.msg;
-    if (error.error?.error) return error.error.error;
-    return `${error.status} ${error.statusText}`;
+  const router = inject(Router);
+  const toast  = inject(HotToastService);
+
+  const errorPages = [{}];
+
+  /**
+   * Extrai a mensagem do ApiErrorResponse.
+   * Prioriza mensagem descritiva antes do código técnico (errorCode).
+   */
+  const getMessage = (error: HttpErrorResponse): string => {
+    const body = error.error;
+    if (!body) return `${error.status} ${error.statusText}`;
+    // body.erro: padrão de vários controllers do backend, ex: { "erro": "NF-e já cadastrada..." }.
+    // body.error cobre respostas Spring Boot: { "error": "mensagem" }
+    return body.message || body.msg || body.erro || body.error || body.errorCode || `${error.status} ${error.statusText}`;
+  };
+
+  /** Verifica se o endpoint é auth/status e o token foi rejeitado pelo backend. */
+  const isInvalidTokenResponse = (url: string, body: unknown): boolean =>
+    url.includes('auth/status') &&
+    (body as Record<string, unknown>)?.['status'] === INVALID_TOKEN_MSG;
+
+  const handleLogout = (): void => {
+    toast.error(LOGGED_OUT_MSG, { duration: 6000 });
+    router.navigateByUrl('/auth/login');
   };
 
   return next(req).pipe(
+    // Intercepta respostas 2xx — o backend pode retornar 200 com token inválido
+    tap(event => {
+      if (
+        event instanceof HttpResponse &&
+        isInvalidTokenResponse(req.url, event.body)
+      ) {
+        handleLogout();
+      }
+    }),
+
     catchError((error: HttpErrorResponse) => {
+      if (error.status === 0) {
+        toast.error('Não foi possível conectar ao servidor. Verifique sua conexão ou tente novamente mais tarde.', {
+          duration: 6000,
+          style: { 'max-width': '480px', 'white-space': 'normal' },
+        });
+        console.error('Erro de rede:', error);
+        return throwError(() => error);
+      }
 
-      // 🔹 TRATAMENTO PARA 403 FORBIDDEN
-      if (error.status === STATUS.FORBIDDEN) {
-        const isApi = isApiRequest(error.url);
+      // Trata token inválido vindo como resposta de erro (4xx/5xx)
+      if (isInvalidTokenResponse(req.url, error.error)) {
+        handleLogout();
+        return throwError(() => error);
+      }
 
-        if (isApi) {
-          // ✅ Para APIs: apenas mostra erro, NÃO redireciona
-          toast.warning(getMessage(error) || 'Permissão negada', 'Acesso Restrito');
-          console.warn(`API access denied: ${req.method} ${req.url}`);
-        } else {
-          // ✅ Para navegação: redireciona para página de erro
-          router.navigateByUrl(`/${STATUS.FORBIDDEN}`, {
-            skipLocationChange: true,
-          });
+      if (errorPages.includes(error.status)) {
+        router.navigateByUrl(`/${error.status}`, { skipLocationChange: true });
+      } else {
+        console.error('Erro na requisição:', error);
+
+        toast.error(getMessage(error), {
+          duration: 8000,
+          dismissible: true,
+          style: {
+            'max-width':   '520px',
+            'white-space': 'normal',
+            'word-break':  'break-word',
+            'line-height': '1.5',
+          },
+        });
+
+        if (error.status === STATUS.UNAUTHORIZED) {
+          router.navigateByUrl('/auth/login');
         }
       }
 
-      // 🔹 TRATAMENTO PARA 404 NOT FOUND
-      else if (error.status === STATUS.NOT_FOUND) {
-        const isApi = isApiRequest(error.url);
-
-        if (isApi) {
-          toast.error(`Recurso não encontrado`, 'Erro 404');
-        } else {
-          router.navigateByUrl(`/${STATUS.NOT_FOUND}`, {
-            skipLocationChange: true,
-          });
-        }
-      }
-
-      // 🔹 TRATAMENTO PARA 401 UNAUTHORIZED (mantenha sua lógica)
-      else if (error.status === STATUS.UNAUTHORIZED) {
-        if (error.url?.includes('/login')) {
-          toast.error(getMessage(error), 'Erro de Login');
-        } else {
-          toast.error('Sua sessão expirou', 'Sessão Expirada');
-          authService.logout();
-        }
-      }
-
-      // 🔹 MANTENHA SUA LÓGICA EXISTENTE PARA OUTROS ERROS
-      else {
-        if (error.error?.message && isORA_Raise_Application_Error(error.error.message)) {
-          toast.error(tratarErroORA(error), 'Erro do Sistema');
-        } else if (error.status === 0) {
-          handleNetworkError(error, toast, authService);
-        } else if (error.status !== 406) {
-          toast.error(getMessage(error), `Erro ${error.status}`);
-        }
-      }
-
-      return throwError(() => error);
+      // Cria um Error com a mensagem legível para o subscriber poder usar err.message
+      const msg = getMessage(error);
+      return throwError(() => Object.assign(new Error(msg), { status: error.status, original: error }));
     })
   );
-}
-
-// ✅ Função auxiliar para erros de rede
-function handleNetworkError(
-  error: HttpErrorResponse,
-  toast: ToastrService,
-  authService: AuthService
-) {
-  if (error.url?.includes('/check')) {
-    toast.error('Servidor está fora do ar', 'Servidor Indisponível');
-    authService.logout();
-  } else if (error.url?.includes('/status')) {
-    toast.error('Servidor está fora do ar', 'Acesso Servidor');
-  } else {
-    toast.error('Não foi possível conectar ao servidor', 'Falha de Conexão');
-  }
-}
-
-// ✅ Mantenha suas funções existentes (sem alterações)
-export function tratarErroORA(error: HttpErrorResponse): string {
-  const msg = error.error?.message || '';
-  if (msg.includes('ORA-')) {
-    try {
-      const oraMatch = msg.match(/ORA-\d+:([^[]+)/);
-      if (oraMatch && oraMatch[1]) {
-        return oraMatch[1].trim();
-      }
-    } catch (e) {
-      console.error('Erro ao processar ORA:', e);
-    }
-  }
-  return msg;
-}
-
-export function isORA_Raise_Application_Error(erro: string): boolean {
-  if (!erro.includes('ORA-')) return false;
-  const match = erro.match(/ORA-(\d+)/);
-  if (match) {
-    const num = parseInt(match[1], 10);
-    return num >= 20000 && num <= 20999;
-  }
-  return false;
 }

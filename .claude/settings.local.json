@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -)",
+      "Bash(./mvnw -o compile)",
+      "Bash(./mvnw -o clean compile)"
+    ]
+  }
+}

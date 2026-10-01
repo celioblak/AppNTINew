@@ -1,0 +1,172 @@
+.titulo-pagina {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.falta {
+  font-size: .8rem;
+  color: var(--mat-sys-on-surface-variant, rgba(0, 0, 0, .6));
+}
+
+.aviso {
+  padding: 6px 10px;
+  margin: 0;
+  font-size: .82rem;
+  background: color-mix(in srgb, #e08a00 13%, transparent);
+  border-radius: 8px;
+}
+
+.grade {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+
+  .largo {
+    grid-column: 1 / -1;
+  }
+}
+
+.sistema {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 0;
+  border-top: 1px solid var(--mat-sys-outline-variant, rgba(0, 0, 0, .1));
+}
+
+.sistema__cab {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+// Sistema que não muda mais aqui (em andamento): uma linha só, como no roteiro da homologação.
+.sistema--compacto {
+  gap: 2px;
+  padding: 4px 0;
+}
+
+.pequeno {
+  --mdc-icon-button-state-layer-size: 30px;
+
+  padding: 3px;
+}
+
+.bloqueado {
+  font-size: 18px;
+  color: var(--mat-sys-on-surface-variant, rgba(0, 0, 0, .45));
+}
+
+.versao {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  font-size: .875rem;
+}
+
+.novo-sistema {
+  padding: 0 8px;
+  font-size: .75rem;
+  background: color-mix(in srgb, #1976d2 14%, transparent);
+  border-radius: 10px;
+}
+
+.aviso-versao {
+  padding: 4px 10px;
+  margin: 0;
+  font-size: .8rem;
+  background: color-mix(in srgb, #e08a00 14%, transparent);
+  border-radius: 8px;
+}
+
+.roteiros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  align-items: center;
+  font-size: .85rem;
+}
+
+.rotulo {
+  margin: 6px 0 2px;
+  font-size: .75rem;
+  font-weight: 600;
+  color: var(--mat-sys-on-surface-variant, rgba(0, 0, 0, .6));
+  text-transform: uppercase;
+  letter-spacing: .03em;
+}
+
+.escopo {
+  padding: 6px 10px;
+  border: 1px solid var(--mat-sys-outline-variant, rgba(0, 0, 0, .12));
+  border-radius: 10px;
+
+  summary {
+    font-size: .85rem;
+    cursor: pointer;
+  }
+}
+
+.agrupamento {
+  margin: 6px 0;
+
+  .itens {
+    display: flex;
+    flex-direction: column;
+    padding-left: 28px;
+  }
+}
+
+.critico {
+  padding: 0 6px;
+  margin-left: 6px;
+  font-size: .7rem;
+  color: #fff;
+  background: #d32f2f;
+  border-radius: 4px;
+}
+
+.incluir {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+
+  mat-form-field {
+    min-width: 260px;
+  }
+}
+
+.participacao {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.busca-usuario {
+  max-width: 360px;
+}
+
+.usuarios {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.sem-acesso {
+  margin-left: 6px;
+  font-size: .72rem;
+  color: #b26a00;
+}
+
+.modulo-escopo {
+  display: block;
+  margin-top: 6px;
+}
+
+.agrupamento--modulo {
+  margin-left: 20px;
+}

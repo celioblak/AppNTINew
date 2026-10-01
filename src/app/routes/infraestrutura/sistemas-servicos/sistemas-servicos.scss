@@ -1,0 +1,74 @@
+// Complementa servidores-servicos.scss (mesma base visual).
+
+.amb-sit {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 8px;
+  border: 1px solid var(--cor);
+  border-radius: 999px;
+  color: inherit;
+  font-size: 0.72rem;
+  font-weight: 600;
+  white-space: nowrap;
+
+  .ponto {
+    width: 8px;
+    height: 8px;
+  }
+
+  small {
+    font-weight: 400;
+    opacity: 0.8;
+  }
+}
+
+.ambientes__topo {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.aba-ambiente {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 12px;
+}
+
+.versao {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  mat-form-field {
+    flex: 1;
+  }
+}
+
+.camada {
+  padding: 1px 8px;
+  border-radius: 6px;
+  background: var(--i-sup-alta);
+  font-size: 0.72rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.marca {
+  padding: 1px 8px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--mat-sys-primary) 14%, transparent);
+  color: var(--mat-sys-primary);
+  font-size: 0.72rem;
+  font-weight: 600;
+
+  &--aux {
+    background: var(--i-sup-alta);
+    color: var(--i-fraco);
+  }
+}
+
+.rodape {
+  display: flex;
+  justify-content: flex-end;
+}

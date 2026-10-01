@@ -1,0 +1,16 @@
+<h2 mat-dialog-title>Selecione o Tipo de Plantão</h2>
+<mat-dialog-content>
+  <div class="tipos-grid">
+    <div *ngFor="let tipo of data.tipos"
+         class="tipo-item"
+         [style.background-color]="tipo.cor"
+         [style.color]="tipo.cor | contrastColor"
+         (click)="selecionar(tipo)">
+      <div class="tipo-nome">{{ tipo.nome }}</div>
+      <div class="tipo-horario">{{ tipo.duracao }}h</div>
+    </div>
+  </div>
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button mat-button mat-dialog-close>Cancelar</button>
+</mat-dialog-actions>

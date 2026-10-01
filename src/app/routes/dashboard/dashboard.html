@@ -1,0 +1,320 @@
+<mat-card id="chamadosUsuario">
+  <mat-card-header>
+    <mat-card-title>Chamados finalizados no mês (Participações)</mat-card-title>
+  </mat-card-header>
+  <mat-card-content>
+    <div class="p-x-8 text-center">
+      <div class="row">
+        @for (chamadoUser of ChamadosUsuarios; track chamadoUser) {
+        <div class="col-sm-6">
+          <div class="containerChamadoUsuario">
+            &nbsp;
+            <img [src]="chamadoUser.foto" class="avatar-circular" alt="foto do usuário" />
+            <div class="containerChamadoUsuario">
+              <span style="color:rgba(86, 101, 115)">
+                <b>&nbsp;{{ chamadoUser.nome }}</b>
+              </span>
+            </div>
+          </div>
+          <div class="containerChamadoUsuario">
+            <b>
+              &nbsp;Total:&nbsp;{{ chamadoUser.total }} &nbsp;Incidente:&nbsp;{{ chamadoUser.total_incidente }}
+              &nbsp;Requisições:&nbsp;{{ chamadoUser.total_requisicao }}
+            </b>
+          </div>
+          <mat-divider />
+        </div>
+        }
+      </div>
+    </div>
+  </mat-card-content>
+</mat-card>
+
+<div class="card flex items-center gap-2 flex-wrap">
+  @if (chamadosAnaRequisitos.length > 0) {
+  <button mat-raised-button (click)="scrooltoElement('analiseRequisitos')" [matBadge]="chamadosAnaRequisitos.length" matBadgeOverlap="false">
+    Análise de Requisitos
+  </button>
+  &nbsp; } @if (chamadosPausado.length > 0) {
+  <button mat-raised-button (click)="scrooltoElement('pausado')" [matBadge]="chamadosPausado.length" matBadgeOverlap="false">
+    Pausado
+  </button>
+  &nbsp; } @if (chamadosParaExecucao.length > 0) {
+  <button mat-raised-button (click)="scrooltoElement('execucao')" [matBadge]="chamadosParaExecucao.length" matBadgeOverlap="false">
+    Para Execução
+  </button>
+  &nbsp; } @if (chamadosEmExecucao.length > 0) {
+  <button mat-raised-button (click)="scrooltoElement('emexecucao')" [matBadge]="chamadosEmExecucao.length" matBadgeOverlap="false">
+    Em Execução
+  </button>
+  &nbsp; } @if (chamadosAprovacaoGestor.length > 0) {
+  <button mat-raised-button (click)="scrooltoElement('aprovacao')" [matBadge]="chamadosAprovacaoGestor.length" matBadgeOverlap="false">
+    Aprovação Gestor
+  </button>
+  &nbsp; } @if (chamadosValidacao.length > 0) {
+  <button mat-raised-button (click)="scrooltoElement('validacao')" [matBadge]="chamadosValidacao.length" matBadgeOverlap="false">
+    Validação
+  </button>
+  &nbsp; } @if (chamados.length > 0) {
+  <button mat-raised-button (click)="scrooltoElement('outros')" [matBadge]="chamados.length" matBadgeOverlap="false">
+    Outros
+  </button>
+  &nbsp; }
+
+  <span class="auto-refresh-controls">
+    <button mat-icon-button title="Atualizar agora (listas + participações)" (click)="atualizarDashboard()">
+      <mat-icon>refresh</mat-icon>
+    </button>
+
+    <button
+      mat-stroked-button
+      type="button"
+      [color]="autoRefreshAtivo() ? 'primary' : undefined"
+      (click)="toggleAutoRefresh()"
+      title="Liga/desliga a atualização automática das listas"
+    >
+      <mat-icon>{{ autoRefreshAtivo() ? 'toggle_on' : 'toggle_off' }}</mat-icon>
+      Auto {{ autoRefreshAtivo() ? 'ON' : 'OFF' }}
+    </button>
+
+    <label class="intervalo-auto-refresh">
+      <select
+        [value]="intervaloSegundos()"
+        [disabled]="!autoRefreshAtivo()"
+        (change)="onIntervaloChange($any($event.target).value)"
+      >
+        @for (op of opcoesIntervalo; track op.valor) {
+          <option [value]="op.valor" [selected]="op.valor === intervaloSegundos()">{{ op.label }}</option>
+        }
+      </select>
+    </label>
+
+    @if (ultimaAtualizacao(); as ts) {
+      <span class="ultima-atualizacao">Atualizado {{ ts | date: 'HH:mm:ss' }}</span>
+    }
+  </span>
+</div>
+
+<br />
+
+@if (chamadosAnaRequisitos.length > 0) {
+<mat-card id="analiseRequisitos">
+  <mat-card-header>
+    <mat-card-title>Análise de Requisitos Pendentes</mat-card-title>
+    &nbsp;
+    <mat-icon class="grab" title="Ir para Menu" (click)="scrooltoElement('chamadosUsuario')">keyboard_arrow_up</mat-icon>
+  </mat-card-header>
+  <mat-card-content>
+    <mat-table [dataSource]="chamadosAnaRequisitos" class="mat-elevation-z0">
+      <!-- ID Column -->
+      <ng-container matColumnDef="id">
+        <mat-header-cell *matHeaderCellDef> Id </mat-header-cell>
+        <mat-cell *matCellDef="let ch"> {{ ch.idChamado }} </mat-cell>
+      </ng-container>
+
+      <!-- Título Column -->
+      <ng-container matColumnDef="titulo">
+        <mat-header-cell *matHeaderCellDef> Título </mat-header-cell>
+        <mat-cell *matCellDef="let ch">
+          <a [href]="ch.url" target="_blank" style="text-decoration:none; display:block;">
+            <span [ngClass]="{ chamadoPendente: ch.snPendente == 'S' }">{{ ch.titulo | titlecase }}</span>
+          </a>
+        </mat-cell>
+      </ng-container>
+
+      <!-- Técnico Column -->
+      <ng-container matColumnDef="tecnico">
+        <mat-header-cell *matHeaderCellDef> Técnico </mat-header-cell>
+        <mat-cell *matCellDef="let ch">
+          <div style="display: flex; gap: 4px;">
+            @for (tecnico of ch.tecnicos; track tecnico) {
+            <img [src]="tecnico.foto" class="avatar-circular" alt="foto do técnico" />
+            }
+          </div>
+        </mat-cell>
+      </ng-container>
+
+      <!-- SLA Column -->
+      <ng-container matColumnDef="sla">
+        <mat-header-cell *matHeaderCellDef> SLA </mat-header-cell>
+        <mat-cell *matCellDef="let ch">
+         <div class="custom-progress-container">
+            <div class="custom-progress-bar" [style.width.%]="slaRequisitosPercentual(ch)"
+            [ngClass]="slaRequisitosCorAnalise(ch)"></div>
+            <span class="custom-progress-label">{{ slaRequisitosTempoAnalise(ch) }} dia(s)</span>
+          </div>
+        </mat-cell>
+      </ng-container>
+
+      <mat-header-row *matHeaderRowDef="displayedColumnsAnaRequisitos"></mat-header-row>
+      <mat-row *matRowDef="let row; columns: displayedColumnsAnaRequisitos"></mat-row>
+    </mat-table>
+  </mat-card-content>
+</mat-card>
+} @if (chamadosPausado.length > 0) {
+<mat-card id="pausado">
+  <mat-card-header>
+    <mat-card-title>Pausado</mat-card-title>
+    &nbsp;
+    <mat-icon class="grab" title="Ir para Menu" (click)="scrooltoElement('chamadosUsuario')">keyboard_arrow_up</mat-icon>
+  </mat-card-header>
+  <mat-card-content>
+    <mat-table [dataSource]="chamadosPausado" class="mat-elevation-z0">
+      <ng-container matColumnDef="id">
+        <mat-header-cell *matHeaderCellDef> Id </mat-header-cell>
+        <mat-cell *matCellDef="let ch"> {{ ch.idChamado }} </mat-cell>
+      </ng-container>
+      <ng-container matColumnDef="titulo">
+        <mat-header-cell *matHeaderCellDef> Título </mat-header-cell>
+        <mat-cell *matCellDef="let ch">
+          <a [href]="ch.url" target="_blank" style="text-decoration:none; display:block;">
+            <span [ngClass]="{ chamadoPendente: ch.snPendente == 'S' }">{{ ch.titulo | titlecase }}</span>
+          </a>
+        </mat-cell>
+      </ng-container>
+      <mat-header-row *matHeaderRowDef="displayedColumnsSimples"></mat-header-row>
+      <mat-row *matRowDef="let row; columns: displayedColumnsSimples"></mat-row>
+    </mat-table>
+  </mat-card-content>
+</mat-card>
+} @if (chamadosParaExecucao.length > 0) {
+<mat-card id="execucao">
+  <mat-card-header>
+    <mat-card-title>Execução Pendente</mat-card-title>
+    &nbsp;
+    <mat-icon class="grab" title="Ir para Menu" (click)="scrooltoElement('chamadosUsuario')">keyboard_arrow_up</mat-icon>
+  </mat-card-header>
+  <mat-card-content>
+    <mat-table [dataSource]="chamadosParaExecucao" class="mat-elevation-z0">
+      <ng-container matColumnDef="id">
+        <mat-header-cell *matHeaderCellDef> Id </mat-header-cell>
+        <mat-cell *matCellDef="let ch"> {{ ch.idChamado }} </mat-cell>
+      </ng-container>
+      <ng-container matColumnDef="titulo">
+        <mat-header-cell *matHeaderCellDef> Título </mat-header-cell>
+        <mat-cell *matCellDef="let ch">
+          <a [href]="ch.url" target="_blank" style="text-decoration:none; display:block;">
+            <span [ngClass]="{ chamadoPendente: ch.snPendente == 'S' }">{{ ch.titulo | titlecase }}</span>
+          </a>
+        </mat-cell>
+      </ng-container>
+      <mat-header-row *matHeaderRowDef="displayedColumnsSimples"></mat-header-row>
+      <mat-row *matRowDef="let row; columns: displayedColumnsSimples"></mat-row>
+    </mat-table>
+  </mat-card-content>
+</mat-card>
+} @if (chamadosEmExecucao.length > 0) {
+<mat-card id="emexecucao">
+  <mat-card-header>
+    <mat-card-title>Em Execução</mat-card-title>
+    &nbsp;
+    <mat-icon class="grab" title="Ir para Menu" (click)="scrooltoElement('chamadosUsuario')">keyboard_arrow_up</mat-icon>
+  </mat-card-header>
+  <mat-card-content>
+    <mat-table [dataSource]="chamadosEmExecucao" class="mat-elevation-z0">
+      <ng-container matColumnDef="id">
+        <mat-header-cell *matHeaderCellDef> Id </mat-header-cell>
+        <mat-cell *matCellDef="let ch"> {{ ch.idChamado }} </mat-cell>
+      </ng-container>
+      <ng-container matColumnDef="titulo">
+        <mat-header-cell *matHeaderCellDef> Título </mat-header-cell>
+        <mat-cell *matCellDef="let ch">
+          <a [href]="ch.url" target="_blank" style="text-decoration:none; display:block;">
+            <span [ngClass]="{ chamadoPendente: ch.snPendente == 'S' }">{{ ch.titulo | titlecase }}</span>
+          </a>
+        </mat-cell>
+      </ng-container>
+      <ng-container matColumnDef="tecnico">
+        <mat-header-cell *matHeaderCellDef> Técnico </mat-header-cell>
+        <mat-cell *matCellDef="let ch">
+          <div style="display: flex; gap: 4px;">
+            @for (tecnico of ch.tecnicos; track tecnico) {
+           <img [src]="tecnico.foto" class="avatar-circular" alt="foto do técnico" />
+            }
+          </div>
+        </mat-cell>
+      </ng-container>
+      <mat-header-row *matHeaderRowDef="displayedColumnsEmExecucao"></mat-header-row>
+      <mat-row *matRowDef="let row; columns: displayedColumnsEmExecucao"></mat-row>
+    </mat-table>
+  </mat-card-content>
+</mat-card>
+} @if (chamadosAprovacaoGestor.length > 0) {
+<mat-card id="aprovacao">
+  <mat-card-header>
+    <mat-card-title>Aguardando Aprovação do Gestor</mat-card-title>
+    &nbsp;
+    <mat-icon class="grab" title="Ir para Menu" (click)="scrooltoElement('chamadosUsuario')">keyboard_arrow_up</mat-icon>
+  </mat-card-header>
+  <mat-card-content>
+    <mat-table [dataSource]="chamadosAprovacaoGestor" class="mat-elevation-z0">
+      <ng-container matColumnDef="id">
+        <mat-header-cell *matHeaderCellDef> Id </mat-header-cell>
+        <mat-cell *matCellDef="let ch"> {{ ch.idChamado }} </mat-cell>
+      </ng-container>
+      <ng-container matColumnDef="titulo">
+        <mat-header-cell *matHeaderCellDef> Título </mat-header-cell>
+        <mat-cell *matCellDef="let ch">
+          <a [href]="ch.url" target="_blank" style="text-decoration:none; display:block;">
+            <span [ngClass]="{ chamadoPendente: ch.snPendente == 'S' }">{{ ch.titulo | titlecase }}</span>
+          </a>
+        </mat-cell>
+      </ng-container>
+      <mat-header-row *matHeaderRowDef="displayedColumnsSimples"></mat-header-row>
+      <mat-row *matRowDef="let row; columns: displayedColumnsSimples"></mat-row>
+    </mat-table>
+  </mat-card-content>
+</mat-card>
+} @if (chamadosValidacao.length > 0) {
+<mat-card id="validacao">
+  <mat-card-header>
+    <mat-card-title>Aguardando Validação</mat-card-title>
+    &nbsp;
+    <mat-icon class="grab" title="Ir para Menu" (click)="scrooltoElement('chamadosUsuario')">keyboard_arrow_up</mat-icon>
+  </mat-card-header>
+  <mat-card-content>
+    <mat-table [dataSource]="chamadosValidacao" class="mat-elevation-z0">
+      <ng-container matColumnDef="id">
+        <mat-header-cell *matHeaderCellDef> Id </mat-header-cell>
+        <mat-cell *matCellDef="let ch"> {{ ch.idChamado }} </mat-cell>
+      </ng-container>
+      <ng-container matColumnDef="titulo">
+        <mat-header-cell *matHeaderCellDef> Título </mat-header-cell>
+        <mat-cell *matCellDef="let ch">
+          <a [href]="ch.url" target="_blank" style="text-decoration:none; display:block;">
+            <span [ngClass]="{ chamadoPendente: ch.snPendente == 'S' }">{{ ch.titulo | titlecase }}</span>
+          </a>
+        </mat-cell>
+      </ng-container>
+      <mat-header-row *matHeaderRowDef="displayedColumnsSimples"></mat-header-row>
+      <mat-row *matRowDef="let row; columns: displayedColumnsSimples"></mat-row>
+    </mat-table>
+  </mat-card-content>
+</mat-card>
+} @if (chamados.length > 0) {
+<mat-card id="outros">
+  <mat-card-header>
+    <mat-card-title>Outras Requisições</mat-card-title>
+    &nbsp;
+    <mat-icon class="grab" title="Ir para Menu" (click)="scrooltoElement('chamadosUsuario')">keyboard_arrow_up</mat-icon>
+  </mat-card-header>
+  <mat-card-content>
+    <mat-table [dataSource]="chamados" class="mat-elevation-z0">
+      <ng-container matColumnDef="id">
+        <mat-header-cell *matHeaderCellDef> Id </mat-header-cell>
+        <mat-cell *matCellDef="let ch"> {{ ch.idChamado }} </mat-cell>
+      </ng-container>
+      <ng-container matColumnDef="titulo">
+        <mat-header-cell *matHeaderCellDef> Título </mat-header-cell>
+        <mat-cell *matCellDef="let ch">
+          <a [href]="ch.url" target="_blank" style="text-decoration:none; display:block;">
+            <span [ngClass]="{ chamadoPendente: ch.snPendente == 'S' }">{{ ch.titulo | titlecase }}</span>
+          </a>
+        </mat-cell>
+      </ng-container>
+      <mat-header-row *matHeaderRowDef="displayedColumnsSimples"></mat-header-row>
+      <mat-row *matRowDef="let row; columns: displayedColumnsSimples"></mat-row>
+    </mat-table>
+  </mat-card-content>
+</mat-card>
+}

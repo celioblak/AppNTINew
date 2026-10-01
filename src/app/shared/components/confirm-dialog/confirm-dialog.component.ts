@@ -36,7 +36,7 @@ export interface ConfirmDialogData {
     mat-dialog-content p {
       margin: 20px 0;
       font-size: 16px;
-      color: #555;
+      color: light-dark(#2c3e50, #ffffff);
       line-height: 1.5;
     }
     mat-dialog-actions {

@@ -1,1 +1,2 @@
-export * from './disable-control.directive';
+export * from './altura-ate-rodape';
+export * from './disable-control';

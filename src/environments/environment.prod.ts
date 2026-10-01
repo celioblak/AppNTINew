@@ -8,3 +8,4 @@ export const environment = {
   //webSockerBaseUrl:'ws:/'+window.location.host + '/ntiapi/socket',
   useHash: false,
 };
+

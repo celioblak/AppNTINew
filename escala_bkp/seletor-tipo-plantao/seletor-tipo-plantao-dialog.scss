@@ -1,0 +1,36 @@
+.tipos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 12px;
+  padding: 8px;
+}
+
+.tipo-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  text-align: center;
+  font-weight: bold;
+  border: 1px solid rgba(0,0,0,0.1);
+}
+
+.tipo-item:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+}
+
+.tipo-nome {
+  font-size: 1em;
+  margin-bottom: 4px;
+}
+
+.tipo-horario {
+  font-size: 0.8em;
+  opacity: 0.8;
+}

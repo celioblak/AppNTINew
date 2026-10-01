@@ -1,0 +1,63 @@
+<div class="row">
+  <div class="col-sm-12">
+    <mat-card>
+      <mat-card-content>
+
+        <div class="section-title">
+          <h3>Agendamentos de Exportação</h3>
+          <button mat-icon-button [matMenuTriggerFor]="menuAgendamento" aria-label="Ações do agendamento">
+            <mat-icon>more_vert</mat-icon>
+          </button>
+          <mat-menu #menuAgendamento="matMenu">
+            <button mat-menu-item (click)="openAddDialog()">
+              <mat-icon>add</mat-icon>
+              <span>Adicionar</span>
+            </button>
+            <button [disabled]="!selecionado.codAgendamento" mat-menu-item (click)="openEditDialog()">
+              <mat-icon>edit</mat-icon>
+              <span>Editar</span>
+            </button>
+            <button [disabled]="!selecionado.codAgendamento || selecionado.ativo" mat-menu-item (click)="ativar()">
+              <mat-icon>play_circle</mat-icon>
+              <span>Ativar</span>
+            </button>
+            <button [disabled]="!selecionado.codAgendamento || !selecionado.ativo" mat-menu-item (click)="desativar()">
+              <mat-icon>pause_circle</mat-icon>
+              <span>Pausar</span>
+            </button>
+            <button [disabled]="!selecionado.codAgendamento" mat-menu-item (click)="executarAgora()">
+              <mat-icon>bolt</mat-icon>
+              <span>Executar Agora</span>
+            </button>
+            <button [disabled]="!selecionado.codAgendamento" mat-menu-item (click)="abrirHistorico()">
+              <mat-icon>history</mat-icon>
+              <span>Histórico de Execuções</span>
+            </button>
+            <button mat-menu-item routerLink="/banco/script-agendamento/ultimas-execucoes">
+              <mat-icon>fact_check</mat-icon>
+              <span>Últimas Execuções (Todos)</span>
+            </button>
+            <button [disabled]="!selecionado.codAgendamento" mat-menu-item (click)="openDeleteDialog()">
+              <mat-icon>delete</mat-icon>
+              <span>Excluir</span>
+            </button>
+          </mat-menu>
+        </div>
+
+        <div class="grid-wrapper">
+          <mtx-grid
+            [data]="list"
+            [columns]="columns"
+            [rowStriped]="true"
+            [showPaginator]="true"
+            [pageSize]="20"
+            [noResultText]="noResult"
+            (rowClick)="onRowClick($event)"
+            style="height: calc(100vh - 260px);"
+          />
+        </div>
+
+      </mat-card-content>
+    </mat-card>
+  </div>
+</div>

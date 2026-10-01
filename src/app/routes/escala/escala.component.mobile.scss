@@ -1,0 +1,339 @@
+/* =====================================================================
+   ESCALA — MOBILE (≤ 767px) E TELAS DE TOQUE
+   Arquivo separado do escala.component.scss (que já está no limite de tamanho do build)
+   e carregado depois dele em styleUrls, para prevalecer sobre os estilos-base e as
+   regras mobile antigas. Tudo que muda layout fica em media queries: o desktop continua igual.
+   ===================================================================== */
+
+/* Painel de ações da célula: só é renderizado em telas de toque (acoesToque no TS) */
+.toque-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 1100;
+  animation: fadeIn 0.15s ease;
+}
+
+.toque-painel {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1101;
+  max-height: 80dvh;
+  overflow-y: auto;
+  padding: 14px 16px calc(14px + env(safe-area-inset-bottom));
+  background: light-dark(#ffffff, #2d2d2d);
+  color: light-dark(#2c3e50, #ffffff);
+  border-radius: 16px 16px 0 0;
+  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.35);
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  animation: toque-subir 0.18s ease-out;
+}
+
+.toque-cabecalho {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 6px;
+}
+
+.toque-nome {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.toque-dia {
+  font-size: 13px;
+  opacity: 0.8;
+}
+
+.toque-detalhes {
+  margin: 0 0 12px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: light-dark(#44474e, #d0d0d0);
+}
+
+.toque-acoes {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.toque-btn {
+  min-height: 44px;
+  padding: 10px 14px;
+  border: none;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  text-align: left;
+  color: #ffffff;
+  cursor: pointer;
+}
+
+.toque-plantao { background: #2196f3; }
+.toque-ausencia { background: #ff9800; }
+.toque-remover { background: #dc3545; }
+
+.toque-fechar {
+  background: light-dark(#e9ecef, #44474e);
+  color: light-dark(#2c3e50, #ffffff);
+  text-align: center;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes toque-subir {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+
+/* ---------- Telas de toque (celular e tablet; mouse não entra aqui) ---------- */
+@media (hover: none) and (pointer: coarse) {
+  /* Botões que só aparecem ao passar o mouse: no toque as ações ficam no painel inferior */
+  .acoes-celula,
+  .remover {
+    display: none !important;
+  }
+
+  /* Arrastar o dedo sobre plantões e tipos rola a grade (a regra antiga "touch-action: none" travava a rolagem) */
+  .celula,
+  .plantao,
+  .ausencia,
+  .item-tipo {
+    touch-action: manipulation;
+  }
+
+  /* Sem arrastar e soltar no toque: o aviso "Arraste para a escala" não se aplica */
+  .tipos-wrapper .card-cabecalho .subtitulo {
+    display: none;
+  }
+
+  /* Evita o efeito de hover "grudado" depois do toque */
+  .plantao:hover,
+  .ausencia:hover,
+  .item-tipo:hover,
+  .card:hover {
+    transform: none;
+  }
+}
+
+/* ---------- Layout até 767px ---------- */
+@media (max-width: 767px) {
+  .escala-container {
+    padding: 4px;
+  }
+
+  /* Cabeçalho: título compacto e controles em grade de 2 colunas, com altura de toque */
+  .escala-header {
+    padding: 8px;
+    gap: 8px;
+    align-items: stretch;
+  }
+
+  .header-title h2 {
+    font-size: 16px;
+  }
+
+  .subtitle {
+    display: none;
+  }
+
+  .header-controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    width: 100%;
+  }
+
+  .header-controls > * {
+    width: 100%;
+    min-width: 0;
+    min-height: 36px;
+    margin: 0;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    font-size: 13px;
+    white-space: normal;
+  }
+
+  .header-controls .btn-nav,
+  .header-controls .btn-toggle-tipos,
+  .header-controls .btn-imagem,
+  .header-controls .btn-historico,
+  .header-controls .btn-log,
+  .header-controls .btn-publicar,
+  .header-controls .btn-reverter,
+  .header-controls .checkbox-filtro {
+    padding: 6px 8px;
+  }
+
+  .header-controls .checkbox-filtro .checkbox-label {
+    font-size: 13px;
+    white-space: normal;
+  }
+
+  .header-controls .checkbox-filtro input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+  }
+
+  /* Totais, alertas e situação ocupam a linha inteira */
+  .header-controls .total-plantones,
+  .header-controls .alerta-conflitos,
+  .header-controls .status-publicada {
+    grid-column: 1 / -1;
+    margin-top: 0;
+  }
+
+  /* Grade: rola dentro do cartão com o cabeçalho dos dias e a coluna de nomes fixos */
+  .table-container {
+    max-height: 75dvh;
+    overflow: auto;
+  }
+
+  .escala-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 12;
+    background: light-dark(#e9ecef, #2d3748);
+  }
+
+  .escala-table thead th.col-funcionario {
+    left: 0;
+    z-index: 13;
+  }
+
+  /* Tamanhos em px: as regras antigas em "em" se multiplicavam e deixavam o texto com ~5px */
+  .col-funcionario {
+    width: 118px;
+    min-width: 118px;
+    max-width: 118px;
+  }
+
+  .funcionario-info,
+  .funcionario-header {
+    font-size: 12px;
+    padding: 0 6px;
+    gap: 4px;
+  }
+
+  .nome-funcionario {
+    font-size: 11px;
+    line-height: 1.2;
+  }
+
+  .header-nome {
+    font-size: 11px;
+  }
+
+  .header-contador {
+    font-size: 10px;
+    min-width: 0;
+  }
+
+  .contador-plantones {
+    font-size: 10px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 3px;
+  }
+
+  .col-dia {
+    width: 36px;
+    min-width: 36px;
+  }
+
+  .escala-table tr,
+  .col-dia,
+  .celula {
+    height: 34px;
+  }
+
+  .escala-table thead tr,
+  .escala-table thead .col-dia {
+    height: 38px;
+  }
+
+  .dia-numero,
+  .escala-table thead .dia-numero {
+    font-size: 12px;
+  }
+
+  .label-dia,
+  .label-dia.normal {
+    font-size: 9px;
+  }
+
+  .label-dia.feriado-texto {
+    font-size: 7px;
+  }
+
+  .tipo-plantao,
+  .ausencia .sigla-ausencia {
+    font-size: 12px !important;
+  }
+
+  .ferias-texto {
+    font-size: 8px !important;
+  }
+
+  .plantao,
+  .item-tipo {
+    touch-action: manipulation;
+  }
+
+  /* Cards de tipos e resumo */
+  .tipos-ausencia .grid-tipos,
+  .tipos-plantao .grid-tipos {
+    grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
+    gap: 6px;
+  }
+
+  .tipos-plantao .item-tipo {
+    min-width: 0;
+    max-width: none;
+    min-height: 48px;
+    aspect-ratio: auto;
+  }
+
+  .tipos-ausencia .item-tipo-ausencia .nome-tipo-ausencia {
+    font-size: 9px;
+  }
+
+  .card-cabecalho h3 {
+    font-size: 14px;
+  }
+
+  .item-resumo {
+    font-size: 13px;
+    min-height: 28px;
+    padding: 4px 0;
+  }
+
+  /* Painéis de histórico e log na largura da tela */
+  .historico-painel,
+  .log-painel {
+    width: 100vw !important;
+    max-width: 100vw;
+  }
+
+  .btn-fechar-painel,
+  .btn-recarregar {
+    min-width: 40px;
+    min-height: 40px;
+  }
+
+  .cnt {
+    min-height: 32px;
+    font-size: 13px;
+  }
+}

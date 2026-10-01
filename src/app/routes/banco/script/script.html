@@ -1,0 +1,93 @@
+<div class="script-page">
+
+  <!-- Filtro -->
+  <div class="row">
+    <div class="col-sm-12">
+      <mat-card>
+        <mat-card-content>
+          <form class="filter-form">
+            <mat-form-field appearance="outline">
+              <mat-label>Valor Pesquisa</mat-label>
+              <input #filterValue matInput name="vlPesquisar" (keyup.enter)="filterBy(filterValue)">
+            </mat-form-field>
+            <button aria-label="Pesquisar" mat-fab (click)="filterBy(filterValue)">
+              <mat-icon>search</mat-icon>
+            </button>
+          </form>
+        </mat-card-content>
+      </mat-card>
+    </div>
+  </div>
+
+  <!-- Lista de Scripts + Detalhe -->
+  <div class="script-layout" [class.mobile-layout]="isMobile">
+
+    <div class="script-list-column">
+      <div class="section-title">
+        <h3>Scripts</h3>
+        <button mat-raised-button color="primary" (click)="openAddDialogAdicionar()">
+          <mat-icon>add</mat-icon> Adicionar
+        </button>
+      </div>
+      <mtx-grid id="dtgrid"
+        class="script-grid"
+        [data]="list"
+        [columns]="columns"
+        [rowStriped]="true"
+        [showPaginator]="true"
+        [pageSize]="50"
+        [noResultText]="noResult"
+        [rowSelectable]="!snEdicao"
+        [multiSelectable]="false"
+        [hideRowSelectionCheckbox]="true"
+        (rowSelectedChange)="changeSelect($event)"
+      />
+    </div>
+
+    <div class="script-detail-column" *ngIf="dados.codSql || snEdicao">
+
+      <div class="editor-host" *ngIf="dados.tipoSql !== 'PROCEDURE' && dados.tipoSql !== 'FUNCTION'">
+        <code-editor-app
+          [value]="dados.sql || ''"
+          [readonly]="!snEdicao"
+          [enableFormat]="true"
+          >
+        </code-editor-app>
+      </div>
+
+      <mat-form-field appearance="outline" style="width: 100%;" *ngIf="dados.tipoSql === 'PROCEDURE' || dados.tipoSql === 'FUNCTION'">
+        <mat-label>Nome qualificado do objeto PL/SQL (schema.pacote.nome)</mat-label>
+        <input matInput [(ngModel)]="dados.sql" [readonly]="!snEdicao" name="sqlPlsql" autocomplete="off">
+      </mat-form-field>
+
+      <textarea
+        readonly
+        [(ngModel)]="dados.funcao"
+        rows="4"
+        class="custom-textarea"
+        placeholder="Descrição / função do script"
+      >
+      </textarea>
+
+      <div class="detail-actions">
+        <ng-container *ngIf="!snEdicao">
+          <button mat-raised-button (click)="copysql()">Copiar</button>
+          <button mat-raised-button (click)="habilitarEdicao()">Editar</button>
+          <button mat-raised-button color="warn" (click)="openAddDialogConfirDelecao()">Excluir</button>
+        </ng-container>
+        <ng-container *ngIf="snEdicao">
+          <button mat-raised-button color="primary" (click)="salvarEdicao()">Salvar</button>
+          <button mat-raised-button (click)="cancelaEditar()">Cancelar</button>
+        </ng-container>
+      </div>
+
+    </div>
+
+    <div class="script-detail-column empty-state" *ngIf="!dados.codSql && !snEdicao">
+      <mat-icon>touch_app</mat-icon>
+      <p>Selecione um script na lista ao lado para ver detalhes, ou clique em "Adicionar" para gerenciar SQL e parâmetros num só lugar.</p>
+    </div>
+
+  </div>
+
+</div>

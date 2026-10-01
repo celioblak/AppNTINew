@@ -1,0 +1,144 @@
+.matero-sidebar-notice {
+  display: block;
+  height: 100%;
+  width: 100%;
+  overflow-x: hidden;
+
+  .central {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 12px 12px 0;
+    box-sizing: border-box;
+  }
+
+  .central__topo {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+
+    h3 {
+      flex: 1;
+      margin: 0;
+      font-weight: 500;
+    }
+  }
+
+  .ao-vivo {
+    margin-left: 6px;
+    font-size: 11px;
+    font-weight: 400;
+    color: #2e7d32;
+  }
+
+  .filtros {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 8px 0;
+
+    .busca {
+      flex: 1 1 220px;
+      min-width: 0;
+    }
+
+    .gravidade {
+      flex: 0 0 160px;
+    }
+  }
+
+  .lista {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding-bottom: 12px;
+  }
+
+  .item {
+    border: 1px solid var(--mat-sys-outline-variant);
+    border-left: 4px solid var(--mat-sys-primary);
+    border-radius: 8px;
+    background: var(--mat-sys-surface);
+
+    &--erro {
+      border-left-color: var(--mat-sys-error);
+    }
+
+    &--alerta {
+      border-left-color: #e65100;
+    }
+
+    &--lida:not(.item--aberto) {
+      opacity: 0.65;
+    }
+  }
+
+  .item__cabecalho {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    width: 100%;
+    padding: 8px 10px;
+    border: none;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .item--erro .item__cabecalho mat-icon {
+    color: var(--mat-sys-error);
+  }
+
+  .item--alerta .item__cabecalho mat-icon {
+    color: #e65100;
+  }
+
+  .item--info .item__cabecalho mat-icon {
+    color: var(--mat-sys-primary);
+  }
+
+  .item__texto {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-width: 0;
+
+    small {
+      font-size: 11px;
+      color: var(--mat-sys-on-surface-variant);
+    }
+  }
+
+  .item__titulo {
+    font-size: 13px;
+    font-weight: 500;
+    overflow-wrap: anywhere;
+  }
+
+  .nao-lida {
+    flex-shrink: 0;
+    width: 8px;
+    height: 8px;
+    margin-top: 6px;
+    border-radius: 50%;
+    background: var(--mat-sys-primary);
+  }
+
+  .item__corpo {
+    padding: 0 12px 10px 42px;
+    font-size: 13px;
+    overflow-wrap: anywhere;
+    color: var(--mat-sys-on-surface);
+  }
+
+  .vazio {
+    padding: 16px 4px;
+    color: var(--mat-sys-on-surface-variant);
+    font-size: 13px;
+  }
+}

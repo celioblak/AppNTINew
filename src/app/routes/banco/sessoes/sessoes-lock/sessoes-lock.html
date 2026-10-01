@@ -1,0 +1,190 @@
+<mat-card class="m-b-8">
+  <mat-card-content>
+    <form class="filtros" (ngSubmit)="pesquisar()">
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="campo">
+        <mat-label>Status da sessão</mat-label>
+        <mat-select name="status" [(ngModel)]="filtro.status">
+          <mat-option value="INACTIVE">Inativa (sem atividade)</mat-option>
+          <mat-option value="ACTIVE">Ativa (executando)</mat-option>
+          <mat-option value="">Todas</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="campo">
+        <mat-label>Usuário do banco</mat-label>
+        <input matInput name="username" [(ngModel)]="filtro.username">
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="campo">
+        <mat-label>Usuário do SO</mat-label>
+        <input matInput name="osuser" [(ngModel)]="filtro.osuser">
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="campo">
+        <mat-label>Máquina</mat-label>
+        <input matInput name="machine" [(ngModel)]="filtro.machine">
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="campo">
+        <mat-label>Programa / módulo</mat-label>
+        <input matInput name="program" [(ngModel)]="filtro.program">
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="campo">
+        <mat-label>Schema do objeto</mat-label>
+        <input matInput name="owner" [(ngModel)]="filtro.owner">
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="campo">
+        <mat-label>Nome do objeto</mat-label>
+        <input matInput name="objectName" [(ngModel)]="filtro.objectName">
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="campo">
+        <mat-label>Tipo do objeto</mat-label>
+        <mat-select name="objectType" [(ngModel)]="filtro.objectType">
+          <mat-option value="">Todos</mat-option>
+          @for (tipo of tiposObjeto; track tipo) {
+            <mat-option [value]="tipo">{{ tipo }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="campo-sm">
+        <mat-label>Instância</mat-label>
+        <input matInput type="number" min="1" name="instId" [(ngModel)]="filtro.instId">
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="campo-sm">
+        <mat-label>SID</mat-label>
+        <input matInput type="number" min="1" name="sid" [(ngModel)]="filtro.sid">
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="campo">
+        <mat-label>Sem atividade há ao menos</mat-label>
+        <input matInput type="number" min="0" name="minutosOciosaMin" [(ngModel)]="filtro.minutosOciosaMin">
+        <span matTextSuffix>min</span>
+      </mat-form-field>
+
+      <mat-slide-toggle name="somenteBloqueando" [(ngModel)]="filtro.somenteBloqueando">
+        Só as que estão travando outras sessões
+      </mat-slide-toggle>
+
+      <div class="acoes">
+        <button mat-flat-button type="submit" [disabled]="carregando()">
+          <mat-icon>search</mat-icon>
+          Pesquisar
+        </button>
+        <button mat-stroked-button type="button" (click)="limpar()">
+          <mat-icon>filter_alt_off</mat-icon>
+          Limpar
+        </button>
+      </div>
+    </form>
+  </mat-card-content>
+</mat-card>
+
+<div class="resumo">
+  <div class="resumo-item">
+    <span class="resumo-valor">{{ resumo().sessoes }}</span>
+    <span class="resumo-rotulo">{{ resumo().sessoes === 1 ? 'sessão segurando lock' : 'sessões segurando lock' }}</span>
+  </div>
+  <div class="resumo-item">
+    <span class="resumo-valor">{{ resumo().objetos }}</span>
+    <span class="resumo-rotulo">{{ resumo().objetos === 1 ? 'objeto bloqueado' : 'objetos bloqueados' }}</span>
+  </div>
+  <div class="resumo-item" [class.resumo-critico]="resumo().travando > 0">
+    <span class="resumo-valor">{{ resumo().travando }}</span>
+    <span class="resumo-rotulo">travando outras sessões ({{ resumo().aguardando }} aguardando)</span>
+  </div>
+  <div class="resumo-item">
+    <span class="resumo-valor">{{ resumo().sessoes ? formatarDuracao(resumo().maiorOciosa) : '—' }}</span>
+    <span class="resumo-rotulo">maior tempo sem atividade</span>
+  </div>
+  @if (ultimaAtualizacao(); as atualizacao) {
+    <span class="resumo-atualizacao">Atualizado às {{ atualizacao | date: 'HH:mm:ss' }}</span>
+  }
+</div>
+
+<ng-template #situacaoTpl let-row>
+  <span class="situacao"
+        [class.critico]="row.gravidade === 'CRITICO'"
+        [class.atencao]="row.gravidade === 'ATENCAO'"
+        [matTooltip]="row.mensagem">
+    <mat-icon>{{ row.gravidade === 'CRITICO' ? 'block' : row.gravidade === 'ATENCAO' ? 'warning' : 'lock' }}</mat-icon>
+    {{ row.situacao }}
+  </span>
+</ng-template>
+
+<ng-template #sessaoTpl let-row>
+  <span class="sessao-id" [matTooltip]="'SID ' + row.sid + ', serial ' + row.serial + ', instância ' + row.instId">
+    {{ row.sid }},{{ row.serial }}<span class="sessao-inst">&#64;{{ row.instId }}</span>
+  </span>
+</ng-template>
+
+<ng-template #objetoTpl let-row>
+  <span class="objeto-owner">{{ row.owner }}.</span><strong>{{ row.objectName }}</strong>
+  @if (row.objectType !== 'TABLE') {
+    <span class="tag">{{ row.objectType }}</span>
+  }
+</ng-template>
+
+<ng-template #lockTpl let-row>
+  <span [class.lock-tabela]="row.lockedMode >= 4" [matTooltip]="row.explicacaoLock">{{ row.descricaoLock }}</span>
+</ng-template>
+
+<ng-template #ociosaTpl let-row>
+  {{ formatarDuracao(row.segundosOciosa) }}
+  @if (row.status !== 'INACTIVE') {
+    <span class="tag">{{ row.status === 'ACTIVE' ? 'executando' : row.status }}</span>
+  }
+</ng-template>
+
+<ng-template #tempoLockTpl let-row>
+  {{ formatarDuracao(row.segundosLock) }}
+</ng-template>
+
+<ng-template #transacaoTpl let-row>
+  @if (row.inicioTransacao) {
+    {{ row.inicioTransacao | date: 'dd/MM/yyyy HH:mm:ss' }}
+  } @else {
+    <span class="vazio">—</span>
+  }
+</ng-template>
+
+<ng-template #undoTpl let-row>
+  @if (row.registrosUndo !== null) {
+    <span matTooltip="Registros de undo da transação: aproximação do volume que será desfeito se a sessão for derrubada">
+      {{ row.registrosUndo | number }}
+    </span>
+  } @else {
+    <span class="vazio">—</span>
+  }
+</ng-template>
+
+<ng-template #logonTpl let-row>
+  {{ row.logonTime | date: 'dd/MM/yyyy HH:mm' }}
+</ng-template>
+
+<mtx-grid class="grid-locks"
+          [data]="lista()"
+          [columns]="columns"
+          [loading]="carregando()"
+          [rowStriped]="true"
+          [columnResizable]="true"
+          [showPaginator]="true"
+          [pageSize]="50"
+          [rowClassFormatter]="rowClassFormatter"
+          [cellTemplate]="{
+            gravidade: situacaoTpl,
+            sid: sessaoTpl,
+            objectName: objetoTpl,
+            lockedMode: lockTpl,
+            segundosOciosa: ociosaTpl,
+            segundosLock: tempoLockTpl,
+            inicioTransacao: transacaoTpl,
+            registrosUndo: undoTpl,
+            logonTime: logonTpl
+          }"
+          [noResultText]="textoSemResultado"
+/>

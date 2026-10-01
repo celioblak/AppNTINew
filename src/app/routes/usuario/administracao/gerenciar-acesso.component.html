@@ -1,0 +1,193 @@
+<div class="acesso-container">
+
+  <!-- HEADER -->
+  <div class="acesso-header">
+    <div>
+      <h1><mat-icon class="h-icon">admin_panel_settings</mat-icon> Gerenciamento de Acesso</h1>
+      <p class="h-sub">Conceda ou revogue o acesso de usuários às telas do sistema.</p>
+    </div>
+    <button type="button" mat-icon-button (click)="carregarUsuarios()" matTooltip="Recarregar">
+      <mat-icon>refresh</mat-icon>
+    </button>
+  </div>
+
+  <div class="acesso-layout">
+
+    <!-- ═══════════════════════════════════
+         COLUNA ESQUERDA — Usuários
+    ═══════════════════════════════════ -->
+    <div class="coluna col-usuarios">
+
+      <div class="col-header">
+        <h2><mat-icon>group</mat-icon> Usuários</h2>
+        <span class="badge">{{ usuariosFiltrados.length }}</span>
+      </div>
+
+      <div class="col-busca">
+        <mat-form-field appearance="outline" class="busca-field">
+          <mat-label>Buscar usuário</mat-label>
+          <mat-icon matPrefix>search</mat-icon>
+          <input matInput [formControl]="buscaUsuario" placeholder="Nome, login ou e-mail...">
+          <button *ngIf="buscaUsuario.value" type="button" mat-icon-button matSuffix
+                  (click)="buscaUsuario.setValue('')">
+            <mat-icon>close</mat-icon>
+          </button>
+        </mat-form-field>
+      </div>
+
+      <div class="col-body">
+        <div *ngIf="carregandoUsuarios" class="estado">
+          <mat-spinner diameter="32"></mat-spinner><span>Carregando...</span>
+        </div>
+
+        <div *ngFor="let u of usuariosFiltrados"
+             class="usuario-item"
+             [class.selecionado]="usuarioSelecionado?.codUsuario === u.codUsuario"
+             (click)="selecionarUsuario(u)">
+          <img [src]="getFoto(u)" class="avatar-circular" [alt]="u.nome"
+               (error)="onImgError($event, u.nome)" />
+          <div class="usuario-info">
+            <span class="usuario-nome">{{ u.nome }}</span>
+            <span class="usuario-login">{{ u.login }}</span>
+          </div>
+          <div class="usuario-badges">
+            <span *ngIf="u.snadmin" class="badge-admin" matTooltip="Administrador">ADM</span>
+          </div>
+          <mat-icon class="chevron">chevron_right</mat-icon>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════
+         COLUNA DIREITA — Telas / Permissões
+    ═══════════════════════════════════ -->
+    <div class="coluna col-telas">
+
+      <!-- Sem usuário selecionado -->
+      <div *ngIf="!usuarioSelecionado" class="estado-vazio-telas">
+        <mat-icon>manage_accounts</mat-icon>
+        <p>Selecione um usuário para gerenciar os acessos.</p>
+      </div>
+
+      <!-- Com usuário selecionado -->
+      <ng-container *ngIf="usuarioSelecionado">
+
+        <!-- Cabeçalho do usuário -->
+        <div class="usuario-header-telas">
+          <img [src]="getFoto(usuarioSelecionado)" class="avatar-circular lg"
+               [alt]="usuarioSelecionado.nome"
+               (error)="onImgError($event, usuarioSelecionado.nome)" />
+          <div>
+            <div class="usuario-nome-lg">{{ usuarioSelecionado.nome }}</div>
+            <div class="usuario-login-lg">{{ usuarioSelecionado.login }} · {{ usuarioSelecionado.email }}</div>
+          </div>
+        </div>
+
+        <!-- Estatísticas -->
+        <div class="stats-bar">
+          <div class="stat" [class.ativo]="filtroTelas === 'todas'" (click)="setFiltroTelas('todas')">
+            <span class="stat-val">{{ telas.length }}</span>
+            <span class="stat-label">Total</span>
+          </div>
+          <div class="stat success" [class.ativo]="filtroTelas === 'com'" (click)="setFiltroTelas('com')">
+            <mat-icon>check_circle</mat-icon>
+            <span class="stat-val">{{ totalComAcesso }}</span>
+            <span class="stat-label">Com acesso</span>
+          </div>
+          <div class="stat danger" [class.ativo]="filtroTelas === 'sem'" (click)="setFiltroTelas('sem')">
+            <mat-icon>cancel</mat-icon>
+            <span class="stat-val">{{ totalSemAcesso }}</span>
+            <span class="stat-label">Sem acesso</span>
+          </div>
+        </div>
+
+        <!-- Busca de telas -->
+        <div class="col-busca">
+          <mat-form-field appearance="outline" class="busca-field">
+            <mat-label>Buscar tela</mat-label>
+            <mat-icon matPrefix>search</mat-icon>
+            <input matInput [formControl]="buscaTela" placeholder="Nome ou rota...">
+            <button *ngIf="buscaTela.value" type="button" mat-icon-button matSuffix
+                    (click)="buscaTela.setValue('')">
+              <mat-icon>close</mat-icon>
+            </button>
+          </mat-form-field>
+        </div>
+
+        <!-- Lista de telas -->
+        <div class="col-body telas-body">
+          <div *ngIf="carregandoTelas" class="estado">
+            <mat-spinner diameter="32"></mat-spinner><span>Carregando telas...</span>
+          </div>
+
+          <div *ngIf="!carregandoTelas && telasFiltradas.length === 0" class="estado">
+            <mat-icon>search_off</mat-icon><span>Nenhuma tela encontrada.</span>
+          </div>
+
+          <div *ngFor="let tela of telasFiltradas"
+               class="tela-item"
+               [class.com-acesso]="tela.comAcesso">
+
+            <div class="tela-icon-wrap" [class.liberado]="tela.comAcesso">
+              <mat-icon>{{ tela.comAcesso ? 'lock_open' : 'lock' }}</mat-icon>
+            </div>
+
+            <div class="tela-info">
+              <span class="tela-nome">{{ tela.dsTela }}</span>
+              <span class="tela-rota">{{ tela.rota || '—' }}</span>
+            </div>
+
+            <div class="tela-action">
+              <mat-spinner *ngIf="atualizandoTelaId === tela.codTela" diameter="20"></mat-spinner>
+              <mat-slide-toggle
+                *ngIf="atualizandoTelaId !== tela.codTela"
+                [checked]="tela.comAcesso"
+                [color]="'primary'"
+                (change)="toggleAcesso(tela)"
+                [matTooltip]="tela.comAcesso ? 'Revogar acesso' : 'Conceder acesso'">
+              </mat-slide-toggle>
+            </div>
+          </div>
+        </div>
+
+        <mat-divider></mat-divider>
+
+        <!-- Copiar acessos -->
+        <div class="copiar-section">
+          <h3><mat-icon>copy_all</mat-icon> Copiar acessos para outros usuários</h3>
+          <div class="copiar-row">
+            <mat-form-field appearance="outline" class="select-destino">
+              <mat-label>Usuários destino</mat-label>
+              <mat-select [(ngModel)]="usuariosCopiasDestino"
+                          [ngModelOptions]="{standalone: true}"
+                          multiple>
+                <mat-option *ngFor="let u of usuariosParaCopia()" [value]="u.codUsuario">
+                  <div class="option-usuario">
+                    <img [src]="getFoto(u)" class="option-avatar"
+                         [alt]="u.nome" (error)="onImgError($event, u.nome)" />
+                    {{ u.nome }}
+                  </div>
+                </mat-option>
+              </mat-select>
+              <mat-hint *ngIf="usuariosCopiasDestino.length > 0">
+                {{ usuariosCopiasDestino.length }} usuário(s) selecionado(s)
+              </mat-hint>
+            </mat-form-field>
+            <button type="button" mat-raised-button color="accent"
+                    [disabled]="!usuariosCopiasDestino.length || copiando"
+                    (click)="copiarAcessos()">
+              <mat-spinner *ngIf="copiando" diameter="18"></mat-spinner>
+              <mat-icon *ngIf="!copiando">content_copy</mat-icon>
+              Copiar
+              <span *ngIf="usuariosCopiasDestino.length > 1" class="badge-count-btn">
+                {{ usuariosCopiasDestino.length }}
+              </span>
+            </button>
+          </div>
+        </div>
+
+      </ng-container>
+    </div>
+
+  </div>
+</div>

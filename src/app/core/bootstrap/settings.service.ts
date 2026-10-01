@@ -80,12 +80,10 @@ export class SettingsService {
       {
       this.htmlElement.classList.remove('light-theme');
       this.htmlElement.classList.add('theme-dark');
-      this.htmlElement.classList.add('my-app-dark');// tema PrimeNG
 
     } else {
       this.htmlElement.classList.remove('theme-dark');
       this.htmlElement.classList.remove('light-theme');
-      this.htmlElement.classList.remove('my-app-dark');// tema PrimeNG
     }
   }
 

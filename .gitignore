@@ -1,9 +1,11 @@
+# See http://help.github.com/ignore-files/ for more about ignoring files.
+
 # compiled output
 /dist
 /tmp
 /out-tsc
-/app-builds
-/.angular
+# Only exists if Bazel was run
+/bazel-out
 
 # dependencies
 /node_modules
@@ -27,8 +29,11 @@ speed-measure-plugin*.json
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/extensions.json
+.history/*
 
 # misc
+/.angular/cache
+/.nx/cache
 /.sass-cache
 /connect.lock
 /coverage
@@ -42,8 +47,5 @@ testem.log
 .DS_Store
 Thumbs.db
 
-# Angular cache
-.angular/cache
-
-# environment files (não suba chaves reais!)
-src/environments/environment.prod.ts  ← comente esta linha se tiver segredos
+# log do yarn
+yarn-error.log

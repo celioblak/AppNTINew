@@ -1,0 +1,89 @@
+<div class="pagina">
+  @if (carregando()) {
+    <mat-progress-bar mode="indeterminate" />
+  }
+
+  <mat-tab-group animationDuration="0ms">
+    <!-- ───────────── Ambientes ───────────── -->
+    <mat-tab>
+      <ng-template mat-tab-label><mat-icon>layers</mat-icon>&nbsp;Ambientes</ng-template>
+
+      <div class="barra">
+        <p class="dica">Fases do ciclo em que os serviços rodam. Cada serviço tem um ambiente (ou herda o do servidor).</p>
+        <span class="espaco"></span>
+        <button mat-flat-button (click)="editarAmbiente()"><mat-icon>add</mat-icon> Novo ambiente</button>
+      </div>
+
+      <div class="cartoes">
+        @for (a of ambientes(); track a.codigo) {
+          <article class="cartao" [class.cartao--inativo]="!a.ativo" [style.--cor]="a.cor || '#8a8f98'">
+            <header>
+              <span class="marca"></span>
+              <div class="titulo">
+                <b>{{ a.nome }}</b>
+                <code>{{ a.codigo }}</code>
+              </div>
+              @if (a.producao) {
+                <span class="tag tag--producao" matTooltip="Queda aparece no painel de TV">Produção</span>
+              }
+              @if (!a.ativo) {
+                <span class="tag">Inativo</span>
+              }
+            </header>
+            @if (a.descricao) {
+              <p class="descricao">{{ a.descricao }}</p>
+            }
+            <footer>
+              <span class="uso">{{ usoTexto(a) }}</span>
+              <span class="espaco"></span>
+              <button mat-icon-button matTooltip="Editar" (click)="editarAmbiente(a)"><mat-icon>edit</mat-icon></button>
+              <button mat-icon-button color="warn" [disabled]="emUso(a)" (click)="excluirAmbiente(a)"
+                      [matTooltip]="emUso(a) ? 'Em uso: troque o ambiente desses cadastros ou apenas inative' : 'Excluir'">
+                <mat-icon>delete</mat-icon>
+              </button>
+            </footer>
+          </article>
+        }
+      </div>
+    </mat-tab>
+
+    <!-- ───────────── Hospedagens ───────────── -->
+    <mat-tab>
+      <ng-template mat-tab-label><mat-icon>cloud</mat-icon>&nbsp;Hospedagens</ng-template>
+
+      <div class="barra">
+        <p class="dica">Onde as máquinas estão: datacenter próprio ou nuvem (com provedor e região).</p>
+        <span class="espaco"></span>
+        <button mat-flat-button (click)="editarHospedagem()"><mat-icon>add</mat-icon> Nova hospedagem</button>
+      </div>
+
+      <div class="cartoes">
+        @for (h of hospedagens(); track h.codHospedagem) {
+          <article class="cartao" [class.cartao--inativo]="!h.ativo">
+            <header>
+              <mat-icon class="icone">{{ h.tipo === 'CLOUD' ? 'cloud' : 'domain' }}</mat-icon>
+              <div class="titulo">
+                <b>{{ h.nome }}</b>
+                <span class="sub">
+                  {{ h.tipo === 'CLOUD' ? 'Nuvem' : 'Datacenter próprio' }}{{ h.provedor ? ' · ' + h.provedor : '' }}{{ h.regiao ? ' · ' + h.regiao : '' }}
+                </span>
+              </div>
+              @if (!h.ativo) {
+                <span class="tag">Inativa</span>
+              }
+            </header>
+            <footer>
+              <span class="uso">{{ h.servidores ? h.servidores + ' servidor(es)' : 'Não usada' }}</span>
+              <span class="espaco"></span>
+              <button mat-icon-button matTooltip="Editar" (click)="editarHospedagem(h)"><mat-icon>edit</mat-icon></button>
+              <button mat-icon-button color="warn" [disabled]="!!h.servidores" (click)="excluirHospedagem(h)"
+                      [matTooltip]="h.servidores ? 'Em uso: mude a hospedagem desses servidores ou apenas inative' : 'Excluir'">
+                <mat-icon>delete</mat-icon>
+              </button>
+            </footer>
+          </article>
+        }
+      </div>
+    </mat-tab>
+  </mat-tab-group>
+</div>

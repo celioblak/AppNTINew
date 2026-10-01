@@ -1,0 +1,36 @@
+<div class="grupo-servidor" alturaAteRodape>
+  <div class="barra">
+    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="busca">
+      <mat-icon matPrefix>search</mat-icon>
+      <mat-label>Pesquisar</mat-label>
+      <input matInput placeholder="Nome do grupo ou de um servidor"
+             [ngModel]="filtro()" (ngModelChange)="filtro.set($event)">
+    </mat-form-field>
+
+    <span class="espaco"></span>
+    <span class="total">{{ filtrados().length }} de {{ grupos().length }} grupos</span>
+    <button mat-flat-button (click)="abrirCadastro()">
+      <mat-icon>add</mat-icon>
+      Novo grupo
+    </button>
+  </div>
+
+  <ng-template #servidoresTpl let-row>
+    @if (row.servidores.length) {
+      <span class="servidores" [matTooltip]="row.servidores.join(', ')">{{ row.servidores.join(', ') }}</span>
+    } @else {
+      <span class="vazio">Nenhum servidor</span>
+    }
+  </ng-template>
+
+  <mtx-grid class="grade"
+            [data]="filtrados()"
+            [columns]="colunas"
+            [loading]="carregando()"
+            [rowStriped]="true"
+            [columnResizable]="true"
+            [showPaginator]="true"
+            [pageSize]="50"
+            [cellTemplate]="{ servidores: servidoresTpl }"
+            noResultText="Nenhum grupo encontrado" />
+</div>

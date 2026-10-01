@@ -4,12 +4,18 @@
   <mat-card >
     <mat-list class="d-flex">
       <mat-list-item style="height: 100%;">
-        <code-editor #codeMirror
+        <!--<code-editor #codeMirror
         [(ngModel)]="data.sqlFullText"
         style="height: 100%;"
         [readonly]="true"
         [lineWrapping]="true"
-        />
+        /> -->
+        <div class="editor-host">
+          <code-editor-app
+           [value]="data.sqlFullText"
+            >
+          </code-editor-app>
+        </div>
       </mat-list-item>
       <mat-divider [vertical]="true" />
       <mat-list-item style="height: 100%;">

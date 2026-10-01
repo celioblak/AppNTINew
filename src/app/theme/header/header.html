@@ -1,0 +1,27 @@
+<mat-toolbar>
+  @if (showToggle()) {
+    <button matIconButton (click)="toggleSidenav.emit()">
+      <mat-icon>menu</mat-icon>
+    </button>
+  }
+
+  @if (showBranding()) {
+    <app-branding />
+  }
+
+  <span class="flex-fill"></span>
+
+  <a href="https://docs.google.com/spreadsheets/d/1qMhiV0V61_4GVUNQTFDgtVUVN3bD__q1mq2zB2acvCk/edit?usp=sharing" target="_blank" mat-icon-button matTooltip="Planilha de Bugs" >
+    <mat-icon>open_in_new</mat-icon>
+  </a>
+
+  <button matIconButton class="hide-small" (click)="toggleFullscreen()">
+    <mat-icon>fullscreen</mat-icon>
+  </button>
+  <app-notification class="hide-small" />
+  <app-user />
+
+  <button matIconButton class="hide-small" matTooltip="Central de notificações" (click)="toggleSidenavNotice.emit()">
+    <mat-icon>list</mat-icon>
+  </button>
+</mat-toolbar>

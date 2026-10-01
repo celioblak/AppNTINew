@@ -1,0 +1,86 @@
+<h2 mat-dialog-title class="analise-titulo">
+  <mat-icon>fact_check</mat-icon>
+  Análise de entrega da sprint
+</h2>
+
+<mat-dialog-content class="analise-conteudo">
+  <p class="analise-intro">
+    @if (totalTickets === 1) {
+      Este ticket sob sua responsabilidade é de uma sprint já encerrada e continua com a entrega pendente.
+    } @else {
+      Estes {{ totalTickets }} tickets sob sua responsabilidade são de sprints já encerradas e continuam com a entrega pendente.
+    }
+    Informe o que realmente foi entregue.
+  </p>
+
+  @for (grupo of grupos; track grupo.sprintId) {
+    <section class="analise-sprint">
+      <header class="analise-sprint-cabecalho">
+        <div>
+          <strong>{{ grupo.sprintNome }}</strong>
+          <span class="analise-sprint-fim">terminou em {{ grupo.sprintDataFim | date: 'dd/MM/yyyy' }}</span>
+        </div>
+        @if (grupo.itens.length > 1) {
+          <div>
+            <button mat-button type="button" [disabled]="salvando" (click)="marcarSprint(grupo, 'ENTREGUE')">
+              Todos entregues
+            </button>
+            <button mat-button type="button" [disabled]="salvando" (click)="marcarSprint(grupo, 'NAO_ENTREGUE')">
+              Nenhum entregue
+            </button>
+          </div>
+        }
+      </header>
+
+      @for (item of grupo.itens; track item.ticketId) {
+        <div class="analise-ticket" [class.respondido]="item.resposta">
+          <div class="analise-ticket-info">
+            <div class="analise-ticket-linha">
+              <span class="analise-ticket-id">{{ item.ticketId }}</span>
+              @if (item.descricaoCriticidade) {
+                <span class="analise-criticidade" [attr.data-nivel]="item.criticidade">
+                  {{ item.descricaoCriticidade }}
+                </span>
+              }
+            </div>
+            <div class="analise-ticket-titulo">{{ item.titulo || 'Sem título' }}</div>
+            <div class="analise-ticket-status">Status do ticket: {{ item.statusTicket || '—' }}</div>
+          </div>
+
+          <div class="analise-ticket-resposta">
+            <mat-button-toggle-group
+              [(ngModel)]="item.resposta"
+              [disabled]="salvando"
+              [attr.aria-label]="'Entrega do ticket ' + item.ticketId"
+            >
+              <mat-button-toggle value="ENTREGUE" class="toggle-entregue">
+                <mat-icon>check_circle</mat-icon>Entregue
+              </mat-button-toggle>
+              <mat-button-toggle value="NAO_ENTREGUE" class="toggle-nao-entregue">
+                <mat-icon>cancel</mat-icon>Não entregue
+              </mat-button-toggle>
+            </mat-button-toggle-group>
+
+            @if (item.resposta === 'NAO_ENTREGUE') {
+              <mat-form-field appearance="outline" subscriptSizing="dynamic" class="analise-motivo">
+                <mat-label>Motivo (opcional)</mat-label>
+                <input matInput maxlength="500" [(ngModel)]="item.motivo" [disabled]="salvando" />
+              </mat-form-field>
+            }
+          </div>
+        </div>
+      }
+    </section>
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <span class="analise-contador">{{ totalRespondidos }} de {{ totalTickets }} respondido(s)</span>
+  <button mat-button type="button" [disabled]="salvando" (click)="responderDepois()">Responder depois</button>
+  <button mat-flat-button color="primary" type="button" [disabled]="!totalRespondidos || salvando" (click)="salvar()">
+    @if (salvando) {
+      <mat-spinner class="analise-salvando" diameter="16" />
+    }
+    Salvar análise
+  </button>
+</mat-dialog-actions>

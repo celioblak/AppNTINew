@@ -1,0 +1,52 @@
+@use 'sass:math';
+@use 'variables';
+
+@mixin make-grid-columns($i: 1, $list: '.col') {
+  @each $breakpoint, $infix in variables.$breakpoint-infixs {
+    // Substitui o if depreciado por @if (sem warning e sem erro de parsing)
+    $infix-hyphen: '';
+    @if $infix != '' {
+      $infix-hyphen: '-#{$infix}';
+    }
+
+    @if ($infix-hyphen != '') {
+      $list: '#{$list}, .col#{$infix-hyphen}';
+    }
+
+    @for $i from 1 through variables.$grid-columns {
+      $list: '#{$list}, .col#{$infix-hyphen}-#{$i}';
+    }
+  }
+
+  #{$list} {
+    position: relative;
+    width: 100%;
+    padding-right: calc(var(--gutter) * 0.5);
+    padding-left: calc(var(--gutter) * 0.5);
+  }
+}
+
+@mixin loop-grid-columns($columns: $grid-columns, $breakpoint-infix: '') {
+  // Substitui o if depreciado por @if
+  $infix: '';
+  @if $breakpoint-infix != '' {
+    $infix: '-#{$breakpoint-infix}';
+  }
+
+  .col#{$infix} {
+    flex-grow: 1;
+    flex-basis: 0;
+    max-width: 100%;
+  }
+
+  @for $i from 1 through $columns {
+    .col#{$infix}-#{$i} {
+      flex: 0 0 math.percentage(math.div($i, $columns));
+      max-width: math.percentage(math.div($i, $columns));
+    }
+
+    .offset#{$infix}-#{$i} {
+      margin-left: math.percentage(math.div($i, $columns));
+    }
+  }
+}

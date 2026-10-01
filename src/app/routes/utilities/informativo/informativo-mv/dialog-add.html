@@ -1,94 +1,159 @@
-
 <mat-card>
-  <mat-card-header class="m-b-16">
-    <mat-card-title>Informativo</mat-card-title>
+  <mat-card-header class="mb-3">
+    <mat-card-title>
+      {{ informativo.codMensagem ? 'Editar Informativo' : 'Novo Informativo' }}
+    </mat-card-title>
   </mat-card-header>
 
   <mat-card-content>
     <form [formGroup]="reactiveForm" class="form-field-full">
       <div class="row">
-        <div class="col-sm-12 col-xl-12">
-          <mat-form-field>
+        <!-- Descrição -->
+        <div class="col-12 mb-3">
+          <mat-form-field appearance="outline" class="w-100">
             <mat-label>Descrição</mat-label>
-            <input matInput placeholder="Descricao do Informativo"
-            formControlName="descricao" required
-            (dateChange) = "dataChange($event)">
+            <textarea
+              matInput
+              placeholder="Digite a descrição do informativo"
+              formControlName="descricao"
+              rows="3">
+            </textarea>
             @if (reactiveForm.get('descricao')?.invalid) {
               <mat-error>Informe a descrição</mat-error>
             }
           </mat-form-field>
         </div>
-        <div class="col-sm-4 col-xl-43">
-          <mat-form-field>
-              <mat-label>Data e Hora de Inicio</mat-label>
-              <mtx-datetimepicker-toggle [for]="datetimePickerStart" matSuffix />
-              <mtx-datetimepicker
-                        #datetimePickerStart
-                        startView="month"
-                        [timeInterval]="1"
-                        />
-              <input [mtxDatetimepicker]="datetimePickerStart"
-                     (dateChange) = "dataChange($event)"
-                autocomplete="false" formControlName="dtInicio" matInput required>
-              @if (reactiveForm.get('dtInicio')?.errors?.required) {
-                <mat-error>obrigatorio</mat-error>
-              }
-              @if (reactiveForm.get('dtInicio')?.errors?.mtxDatetimepickerMin) {
-                <mat-error>min</mat-error>
-              }
-              @if (reactiveForm.get('dtInicio')?.errors?.mtxDatetimepickerMax) {
-                <mat-error>max</mat-error>
-              }
-         </mat-form-field>
-        </div>
-        <div class="col-sm-4 col-xl-4">
-          <mat-form-field>
-              <mat-label>Data e Hora Final</mat-label>
-              <mtx-datetimepicker-toggle [for]="datetimePickerEnd" matSuffix />
-              <mtx-datetimepicker #datetimePickerEnd
-                startView="month"
-                [timeInterval]="1"
-               />
-              <input [mtxDatetimepicker]="datetimePickerEnd"
-                     [min]="informativo.dtInicio"
-                     (dateChange) = "dataChange($event)"
-                     autocomplete="false"
-                     formControlName="dtFinal"
-                     matInput required>
-              @if (reactiveForm.get('dtFinal')?.errors?.required) {
-                <mat-error>obrigatorio</mat-error>
-              }
-              @if (reactiveForm.get('dtFinal')?.errors?.mtxDatetimepickerMin) {
-                <mat-error>min</mat-error>
-              }
-              @if (reactiveForm.get('dtFinal')?.errors?.mtxDatetimepickerMax) {
-                <mat-error>max</mat-error>
-              }
-         </mat-form-field>
+
+        <!-- Data Início -->
+        <div class="col-md-6 col-12 mb-3">
+          <mat-form-field appearance="outline" class="w-100">
+            <mat-label>Data e Hora de Início</mat-label>
+            <input
+              matInput
+              [mtxDatetimepicker]="datetimePickerStart"
+              [min]="min"
+              [max]="max"
+              (dateChange)="dataChange($event)"
+              formControlName="dtInicio"
+              placeholder="Selecione a data e hora"
+              readonly
+              [format]="'dd/MM/yyyy HH:mm'"
+            />
+            <mtx-datetimepicker-toggle [for]="datetimePickerStart" matSuffix />
+            <mtx-datetimepicker
+              #datetimePickerStart
+              startView="month"
+              [timeInterval]="1"
+              [type]="'datetime'"
+              [startAt]="start"
+            />
+            @if (reactiveForm.get('dtInicio')?.errors?.['required']) {
+              <mat-error>Obrigatório</mat-error>
+            }
+          </mat-form-field>
         </div>
 
-        <div class="col-sm-12 col-xl-12">
-          <div>
-            <input type="file" class="file-input" (change)="onFileSelected($event)" #fileUpload>
-            <div class="file-upload">
-                <button mat-mini-fab color="primary" class="upload-btn"
-                  (click)="fileUpload.click()">
-                    <mat-icon>attach_file</mat-icon>
-                </button>
-                &nbsp;<b> {{ fileName || "Nenhum informativo (Imagem) enviada" }} </b>
-            </div>
+        <!-- Data Final -->
+        <div class="col-md-6 col-12 mb-3">
+          <mat-form-field appearance="outline" class="w-100">
+            <mat-label>Data e Hora Final</mat-label>
+            <input
+              matInput
+              [mtxDatetimepicker]="datetimePickerEnd"
+              [min]="reactiveForm.get('dtInicio')?.value"
+              (dateChange)="dataChange($event)"
+              formControlName="dtFinal"
+              placeholder="Selecione a data e hora"
+              readonly
+              [format]="'dd/MM/yyyy HH:mm'"
+            />
+            <mtx-datetimepicker-toggle [for]="datetimePickerEnd" matSuffix />
+            <mtx-datetimepicker
+              #datetimePickerEnd
+              startView="month"
+              [timeInterval]="1"
+              [type]="'datetime'"
+              [startAt]="start"
+            />
+            @if (reactiveForm.get('dtFinal')?.errors?.['required']) {
+              <mat-error>Obrigatório</mat-error>
+            }
+          </mat-form-field>
+        </div>
+
+        <!-- Validação de intervalo -->
+        @if (reactiveForm.errors?.['dateRange']) {
+          <div class="col-12 mb-2">
+            <mat-error class="d-block">
+              Data final deve ser maior que data inicial
+            </mat-error>
           </div>
-            <div class="imagem-upload">
-              <img class="imagem" width="650" height="450">
-            </div>
+        }
+
+        <!-- Upload de Imagem -->
+        <div class="col-12 mb-3">
+          <div class="upload-container">
+            <input type="file" class="d-none" (change)="onFileSelected($event)" #fileUpload accept="image/*">
+
+            <button
+              mat-stroked-button
+              color="primary"
+              (click)="fileUpload.click()"
+              type="button"
+              class="mb-2"
+            >
+              <mat-icon>attach_file</mat-icon>
+              Selecionar Imagem
+            </button>
+
+            @if (fileName) {
+              <div class="d-flex align-items-center mb-2">
+                <mat-icon class="me-2 text-muted">description</mat-icon>
+                <span class="text-truncate">{{ fileName }}</span>
+              </div>
+            }
+          </div>
+
+          <!-- Pré-visualização com placeholder padrão -->
+          <div class="image-preview mt-2">
+            @if (imagemBase64 && imagemBase64 !== '') {
+              <img
+                [src]="imagemBase64"
+                alt="Pré-visualização"
+                class="w-100 preview-img"
+              />
+            } @else {
+              <div class="no-image-placeholder">
+                <mat-icon>image</mat-icon>
+                <p>Nenhuma imagem selecionada</p>
+              </div>
+            }
+          </div>
         </div>
       </div>
-      <div class="d-flex justify-content-end">
-        <button mat-flat-button (click) = "salvar()">Salvar</button>
-        <label>&#160;&#160;&#160;</label>
-        <button mat-flat-button mat-dialog-close="cancelado">Cancelar</button>
+
+      <!-- Botões -->
+      <div class="row mt-3">
+        <div class="col-12 text-end">
+          <button
+            mat-button
+            mat-dialog-close="cancelado"
+            type="button"
+            class="me-2"
+          >
+            Cancelar
+          </button>
+          <button
+            mat-raised-button
+            color="primary"
+            (click)="salvar()"
+            [disabled]="!reactiveForm.valid || !imagemBase64"
+            type="button"
+          >
+            {{ informativo.codMensagem ? 'Atualizar' : 'Salvar' }}
+          </button>
+        </div>
       </div>
     </form>
   </mat-card-content>
 </mat-card>
-

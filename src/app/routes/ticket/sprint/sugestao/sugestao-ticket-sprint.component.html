@@ -1,0 +1,270 @@
+<div class="sugestao-container">
+
+  <!-- HEADER -->
+  <div class="sugestao-header">
+    <div class="header-info">
+      <h1>
+        <mat-icon class="header-icon">lightbulb</mat-icon>
+        Sugestão de Tickets para Sprint
+      </h1>
+      <p class="header-sub">
+        Sugira tickets para considerar na próxima sprint.
+        Apenas tickets não finalizados podem ser sugeridos.
+      </p>
+    </div>
+    <button mat-icon-button (click)="carregarTudo()" title="Atualizar">
+      <mat-icon>refresh</mat-icon>
+    </button>
+  </div>
+
+  <!-- LAYOUT PRINCIPAL -->
+  <div class="sugestao-layout">
+
+    <!-- ════════════════════════════════════════════
+         COLUNA ESQUERDA — Tickets disponíveis
+    ════════════════════════════════════════════ -->
+    <div class="coluna coluna-tickets">
+
+      <div class="coluna-header">
+        <h2>
+          <mat-icon>list_alt</mat-icon>
+          Tickets Disponíveis
+          <span class="badge">{{ ticketsFiltrados.length }}</span>
+        </h2>
+      </div>
+
+      <!-- Filtros -->
+      <div class="filtros-bar">
+        <mat-form-field appearance="outline" class="busca-field">
+          <mat-label>Buscar ticket</mat-label>
+          <mat-icon matPrefix>search</mat-icon>
+          <input matInput [formControl]="buscaControl" placeholder="ID, título ou descrição...">
+          <button *ngIf="buscaControl.value" mat-icon-button matSuffix
+                  (click)="buscaControl.setValue('')">
+            <mat-icon>close</mat-icon>
+          </button>
+        </mat-form-field>
+
+        <div class="filtros-prioridade">
+          <button type="button" class="chip-prioridade alta"
+                  [class.ativo]="filtroPrioridade === 'ALTA'"
+                  (click)="toggleFiltroPrioridade('ALTA')">
+            <mat-icon>arrow_upward</mat-icon>
+            Alta ({{ contarPorPrioridade('ALTA') }})
+          </button>
+          <button type="button" class="chip-prioridade media"
+                  [class.ativo]="filtroPrioridade === 'MEDIA'"
+                  (click)="toggleFiltroPrioridade('MEDIA')">
+            <mat-icon>remove</mat-icon>
+            Média ({{ contarPorPrioridade('MEDIA') }})
+          </button>
+          <button type="button" class="chip-prioridade baixa"
+                  [class.ativo]="filtroPrioridade === 'BAIXA'"
+                  (click)="toggleFiltroPrioridade('BAIXA')">
+            <mat-icon>arrow_downward</mat-icon>
+            Baixa ({{ contarPorPrioridade('BAIXA') }})
+          </button>
+          <button *ngIf="filtroPrioridade || buscaControl.value"
+                  type="button" class="chip-limpar"
+                  (click)="limparFiltros()">
+            <mat-icon>clear_all</mat-icon>
+            Limpar
+          </button>
+        </div>
+      </div>
+
+      <!-- Lista -->
+      <div class="lista-scroll">
+
+        <div *ngIf="carregandoTickets" class="estado-vazio">
+          <mat-spinner diameter="36"></mat-spinner>
+          <span>Carregando tickets...</span>
+        </div>
+
+        <div *ngIf="!carregandoTickets && ticketsFiltrados.length === 0" class="estado-vazio">
+          <mat-icon>inbox</mat-icon>
+          <p>Nenhum ticket disponível</p>
+          <small>Ajuste os filtros ou recarregue a lista</small>
+        </div>
+
+        <div *ngFor="let ticket of ticketsFiltrados"
+             class="ticket-item"
+             [class.ja-sugerido]="jaFoiSugerido(ticket.id)">
+
+          <div class="ticket-item-info">
+            <div class="ticket-item-top">
+              <span class="ticket-id">#{{ ticket.id }}</span>
+              <span class="ticket-prioridade"
+                    [class.alta]="ticket.prioridade === 'ALTA'"
+                    [class.media]="ticket.prioridade === 'MEDIA'"
+                    [class.baixa]="ticket.prioridade === 'BAIXA'">
+                {{ ticket.prioridade }}
+              </span>
+              <span *ngIf="jaFoiSugerido(ticket.id)" class="badge-sugerido">
+                <mat-icon>check_circle</mat-icon> Sugerido
+              </span>
+            </div>
+            <div class="ticket-titulo">{{ ticket.titulo }}</div>
+            <div *ngIf="ticket.descricao" class="ticket-descricao">
+              {{ ticket.descricao | slice:0:120 }}{{ (ticket.descricao?.length ?? 0) > 120 ? '...' : '' }}
+            </div>
+          </div>
+
+          <button mat-icon-button class="btn-sugerir"
+                  [disabled]="jaFoiSugerido(ticket.id) || adicionandoTicketId === ticket.id"
+                  [matTooltip]="jaFoiSugerido(ticket.id) ? 'Já sugerido' : 'Sugerir para próxima sprint'"
+                  (click)="sugerirTicket(ticket)">
+            <mat-spinner *ngIf="adicionandoTicketId === ticket.id" diameter="20"></mat-spinner>
+            <mat-icon *ngIf="adicionandoTicketId !== ticket.id">
+              {{ jaFoiSugerido(ticket.id) ? 'check_circle' : 'add_circle' }}
+            </mat-icon>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════════════════════════════════════════
+         COLUNA DIREITA — Sugestões registradas
+    ════════════════════════════════════════════ -->
+    <div class="coluna coluna-sugestoes">
+
+      <div class="coluna-header">
+        <h2>
+          <mat-icon>lightbulb</mat-icon>
+          Sugestões Registradas
+          <span class="badge badge-sugestao">{{ sugestoes.length }}</span>
+        </h2>
+      </div>
+
+      <div class="lista-scroll">
+
+        <div *ngIf="carregandoSugestoes" class="estado-vazio">
+          <mat-spinner diameter="36"></mat-spinner>
+          <span>Carregando sugestões...</span>
+        </div>
+
+        <div *ngIf="!carregandoSugestoes && sugestoes.length === 0" class="estado-vazio">
+          <mat-icon>lightbulb_outline</mat-icon>
+          <p>Nenhuma sugestão registrada</p>
+          <small>Selecione tickets na coluna ao lado para sugerir</small>
+        </div>
+
+        <div *ngFor="let s of sugestoes" class="sugestao-item">
+
+          <div class="sugestao-item-info">
+            <div class="sugestao-item-top">
+              <span class="ticket-id">#{{ s.ticketId }}</span>
+              <span class="sugestao-meta">
+                <mat-icon class="meta-icon">person</mat-icon>
+                {{ s.sugeridoPorNome || 'Usuário' }}
+              </span>
+              <span class="sugestao-meta">
+                <mat-icon class="meta-icon">schedule</mat-icon>
+                {{ formatarData(s.sugeridoEm) }}
+              </span>
+            </div>
+            <div class="sugestao-titulo">
+              {{ s.titulo || 'Ticket #' + s.ticketId }}
+            </div>
+            <div *ngIf="s.justificativa" class="sugestao-justificativa">
+              <mat-icon class="justif-icon">comment</mat-icon>
+              {{ s.justificativa }}
+            </div>
+          </div>
+
+          <button mat-icon-button class="btn-remover"
+                  [disabled]="removendoId === s.id"
+                  matTooltip="Remover sugestão"
+                  (click)="removerSugestao(s)">
+            <mat-spinner *ngIf="removendoId === s.id" diameter="20"></mat-spinner>
+            <mat-icon *ngIf="removendoId !== s.id">remove_circle</mat-icon>
+          </button>
+        </div>
+      </div>
+
+      <!-- Info rodapé -->
+      <div class="coluna-footer">
+        <mat-icon>info</mat-icon>
+        <span>As sugestões ficam disponíveis nas telas de Criar e Gerenciar Sprint.</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ════════════════════════════════════════════
+       HISTÓRICO DE SUGESTÕES
+  ════════════════════════════════════════════ -->
+  <div class="historico-section">
+
+    <div class="historico-header" (click)="toggleHistorico()">
+      <div class="historico-titulo">
+        <mat-icon>history</mat-icon>
+        <span>Histórico de Sugestões</span>
+        <span class="historico-badge" *ngIf="historico.length > 0">{{ historico.length }}</span>
+      </div>
+      <div class="historico-header-right">
+        <mat-form-field *ngIf="mostrarHistorico" appearance="outline" class="busca-historico"
+                        (click)="$event.stopPropagation()">
+          <mat-label>Buscar</mat-label>
+          <mat-icon matPrefix>search</mat-icon>
+          <input matInput [formControl]="buscaHistorico" placeholder="Ticket, título ou usuário...">
+        </mat-form-field>
+        <button type="button" mat-icon-button (click)="carregarHistorico(); $event.stopPropagation()"
+                *ngIf="mostrarHistorico" matTooltip="Recarregar histórico">
+          <mat-icon>refresh</mat-icon>
+        </button>
+        <mat-icon class="toggle-icon">{{ mostrarHistorico ? 'expand_less' : 'expand_more' }}</mat-icon>
+      </div>
+    </div>
+
+    <div class="historico-body" *ngIf="mostrarHistorico">
+
+      <div *ngIf="carregandoHistorico" class="historico-estado">
+        <mat-spinner diameter="32"></mat-spinner>
+        <span>Carregando histórico...</span>
+      </div>
+
+      <div *ngIf="!carregandoHistorico && historicoFiltrado.length === 0" class="historico-estado">
+        <mat-icon>search_off</mat-icon>
+        <p>Nenhum registro encontrado.</p>
+      </div>
+
+      <div class="historico-tabela" *ngIf="!carregandoHistorico && historicoFiltrado.length > 0">
+
+        <div class="historico-thead">
+          <span>Ticket</span>
+          <span>Sugerido por</span>
+          <span>Data sugestão</span>
+          <span>Status</span>
+          <span>Sprint</span>
+          <span>Data atendimento</span>
+        </div>
+
+        <div *ngFor="let s of historicoFiltrado"
+             class="historico-row"
+             [class.row-atendida]="s.snAtendido">
+          <span class="col-ticket">
+            <span class="tag-id">#{{ s.ticketId }}</span>
+            <span class="tag-titulo">{{ s.titulo || ('Ticket #' + s.ticketId) }}</span>
+          </span>
+          <span class="col-text">
+            <mat-icon class="row-icon">person</mat-icon>{{ s.sugeridoPorNome || '—' }}
+          </span>
+          <span class="col-text">
+            <mat-icon class="row-icon">schedule</mat-icon>{{ formatarData(s.sugeridoEm) }}
+          </span>
+          <span class="col-status">
+            <span class="status-chip" [class.chip-pendente]="!s.snAtendido" [class.chip-atendida]="s.snAtendido">
+              <mat-icon>{{ s.snAtendido ? 'check_circle' : 'pending' }}</mat-icon>
+              {{ statusLabel(s) }}
+            </span>
+          </span>
+          <span class="col-text">{{ s.idSprint ? 'Sprint #' + s.idSprint : '—' }}</span>
+          <span class="col-text">{{ s.atendidoEm ? formatarData(s.atendidoEm) : '—' }}</span>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+</div>

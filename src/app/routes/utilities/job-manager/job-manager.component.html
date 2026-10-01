@@ -1,31 +1,59 @@
-<div class="row">
-  <div class="col-sm-12" >
-    <div>
-      <button mat-raised-button >
-        Adicionar
-      </button>
-      &nbsp;
-      <button mat-raised-button (click) = "search()">
-        Recaregar
-      </button>
+<div class="job-manager-container">
+  <div class="col-sm-12">
+    <!-- Barra de ações simplificada -->
+    <div class="action-bar">
+      <div class="d-flex flex-wrap gap-2">
+        <button mat-raised-button color="primary" (click)="novo()">
+          <mat-icon>add</mat-icon>
+          Novo job
+        </button>
+
+        <button mat-raised-button color="primary" (click)="openAdvancedManagement()">
+          <mat-icon>settings</mat-icon>
+          Gerenciamento Avançado
+        </button>
+
+        <button mat-raised-button (click)="search()" [disabled]="isLoading">
+          <mat-icon>refresh</mat-icon>
+          Recarregar
+        </button>
+
+        <mat-slide-toggle
+          [(ngModel)]="mostrarJobsAgendamentoScript"
+          (change)="onToggleMostrarJobsAgendamentoScript()"
+          matTooltip="Jobs de agendamento de exportação de script ficam ocultos por padrão para não poluir a visão geral do scheduler">
+          Exibir jobs de agendamento de script
+        </mat-slide-toggle>
+
+        <span class="job-manager-last-update" *ngIf="ultimaAtualizacao">
+          Atualizado às {{ ultimaAtualizacao | date:'HH:mm:ss' }}
+        </span>
+
+        <mat-slide-toggle [(ngModel)]="autoAtualizar" (change)="onToggleAutoAtualizar()" color="primary">
+          Auto (15s)
+        </mat-slide-toggle>
+      </div>
     </div>
 
+    <!-- Grid de jobs -->
+    <div class="jobs-grid-container">
       <mtx-grid id="dtgrid"
-            [data]="list"
-            [columns]="columns"
-            [rowStriped]="true"
-            [showPaginator]="true"
-            [pageSize]= "50"
-            [noResultText]="noResult"
-            [multiSelectable]="false"
-            [hideRowSelectionCheckbox]="true"
-            [rowSelectable] ="true"
-            (rowSelectedChange)="changeSelect($event)"
-            [loading]="isLoading"
-            (page)="changeSelectPage($event)"
-            [length]="total"
-            [pageOnFront]="true"
-            style="height: calc(100vh - 100px);"
-       />
+        [data]="list"
+        [columns]="columns"
+        [rowStriped]="true"
+        [showPaginator]="true"
+        [pageSize]="50"
+        [noResultText]="noResult"
+        [multiSelectable]="false"
+        [hideRowSelectionCheckbox]="true"
+        [rowSelectable]="true"
+        (rowSelectedChange)="changeSelect($event)"
+        [loading]="isLoading"
+        (page)="changeSelectPage($event)"
+        [length]="total"
+        [pageOnFront]="true"
+        class="jobs-grid">
+      </mtx-grid>
+    </div>
   </div>
 </div>

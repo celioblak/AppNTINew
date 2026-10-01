@@ -1,0 +1,39 @@
+<div class="seletor-ausencia-dialog">
+  <h2 mat-dialog-title>Selecionar Tipo de Ausência/Folga</h2>
+
+  <mat-dialog-content>
+    <p class="instrucao">Escolha o tipo de ausência para marcar neste dia:</p>
+
+    <div class="grid-tipos-ausencia">
+      <div *ngFor="let tipo of data.tipos"
+           class="card-tipo-ausencia"
+           [class.selecionado]="tipoSelecionado?.id === tipo.id"
+           [style.border-color]="tipo.cor"
+           (click)="selecionarTipo(tipo)">
+        <div class="tipo-header" [style.background-color]="tipo.cor">
+          <span class="tipo-sigla">{{ tipo.sigla }}</span>
+        </div>
+        <div class="tipo-body">
+          <h3 class="tipo-nome">{{ tipo.nome }}</h3>
+          <p *ngIf="tipo.descricao" class="tipo-descricao">{{ tipo.descricao }}</p>
+        </div>
+        <div *ngIf="tipoSelecionado?.id === tipo.id" class="check-icon">✓</div>
+      </div>
+    </div>
+
+    <div *ngIf="data.tipos.length === 0" class="sem-tipos">
+      <p>⚠️ Nenhum tipo de ausência disponível.</p>
+      <p class="hint">Entre em contato com o administrador para configurar tipos de ausência.</p>
+    </div>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-button (click)="cancelar()">Cancelar</button>
+    <button mat-raised-button
+            color="primary"
+            (click)="confirmar()"
+            [disabled]="!tipoSelecionado">
+      Confirmar
+    </button>
+  </mat-dialog-actions>
+</div>

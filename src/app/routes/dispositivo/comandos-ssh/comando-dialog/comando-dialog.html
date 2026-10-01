@@ -1,0 +1,127 @@
+<h2 mat-dialog-title>{{ data.comando ? 'Editar comando' : 'Novo comando' }}</h2>
+
+<form [formGroup]="form" (ngSubmit)="salvar()">
+  <mat-dialog-content class="formulario">
+    <mat-form-field appearance="outline">
+      <mat-label>Título</mat-label>
+      <input matInput formControlName="dsTitulo" autocomplete="off" cdkFocusInitial>
+      @if (form.controls.dsTitulo.hasError('required')) {
+        <mat-error>Informe o título</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Categoria</mat-label>
+      <mat-select formControlName="codCategoria">
+        <mat-option [value]="null">Geral (sem categoria)</mat-option>
+        @for (categoria of categorias(); track categoria.codCategoria) {
+          <mat-option [value]="categoria.codCategoria">{{ categoria.dsCategoria }}</mat-option>
+        }
+      </mat-select>
+      <button mat-icon-button matSuffix type="button" matTooltip="Cadastrar categorias" (click)="abrirCategorias($event)">
+        <mat-icon>settings</mat-icon>
+      </button>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="inteiro">
+      <mat-label>Comando</mat-label>
+      <textarea matInput class="codigo" formControlName="dsComando" rows="4" spellcheck="false"></textarea>
+      <mat-hint>{{ dicaParametros }}</mat-hint>
+      @if (form.controls.dsComando.hasError('required')) {
+        <mat-error>Informe o comando</mat-error>
+      }
+      @if (form.controls.dsComando.hasError('maxlength')) {
+        <mat-error>Máximo de 4000 caracteres</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="inteiro">
+      <mat-label>Descrição</mat-label>
+      <input matInput formControlName="dsDescricao" autocomplete="off">
+    </mat-form-field>
+
+    <section class="inteiro vinculo">
+      <div class="vinculo-cabecalho">
+        <span class="rotulo">Servidores</span>
+        <mat-slide-toggle formControlName="snTodosServidores">Disponível em todos os servidores</mat-slide-toggle>
+      </div>
+
+      @if (todosServidores()) {
+        <p class="aviso">O comando aparece em qualquer servidor, inclusive nas conexões avulsas.</p>
+      } @else {
+        <div class="seletor">
+          <div class="seletor-barra">
+            <mat-form-field appearance="outline" subscriptSizing="dynamic" class="seletor-busca">
+              <mat-icon matPrefix>search</mat-icon>
+              <input matInput placeholder="Filtrar por nome, IP ou grupo" autocomplete="off"
+                     (input)="filtroServidor.set($any($event.target).value)">
+            </mat-form-field>
+            <span class="contador">
+              {{ selecionados().size }} {{ selecionados().size === 1 ? 'selecionado' : 'selecionados' }}
+            </span>
+            <button mat-button type="button" [disabled]="selecionados().size === 0" (click)="limparSelecao()">Limpar</button>
+          </div>
+
+          <div class="seletor-lista">
+            @if (carregandoServidores()) {
+              <p class="vazio">Carregando servidores...</p>
+            } @else if (erroServidores()) {
+              <p class="vazio erro">Não foi possível carregar os servidores.</p>
+            } @else {
+              @for (grupo of gruposServidores(); track grupo.nome) {
+                <div class="grupo">
+                  <mat-checkbox [checked]="estadoGrupo(grupo.itens) === 'todos'"
+                                [indeterminate]="estadoGrupo(grupo.itens) === 'parcial'"
+                                (change)="alternarGrupo(grupo.itens, $event.checked)">
+                    <span class="grupo-nome">{{ grupo.nome }}</span>
+                    <span class="grupo-qtd">{{ grupo.itens.length }}</span>
+                  </mat-checkbox>
+                </div>
+                @for (servidor of grupo.itens; track servidor.codServidor) {
+                  <mat-checkbox class="servidor"
+                                [checked]="selecionados().has(servidor.codServidor)"
+                                (change)="alternarServidor(servidor.codServidor, $event.checked)">
+                    {{ servidor.dsServidor }}
+                    <span class="servidor-detalhe">
+                      {{ servidor.dsIP || servidor.dsMaquina }}{{ servidor.snAtivo ? '' : ' · inativo' }}
+                    </span>
+                  </mat-checkbox>
+                }
+              } @empty {
+                <p class="vazio">
+                  {{ servidores().length
+                      ? 'Nenhum servidor corresponde ao filtro.'
+                      : 'Nenhum servidor Linux/Unix ou com acesso SSH cadastrado em Dispositivos / Servidores.' }}
+                </p>
+              }
+            }
+          </div>
+        </div>
+
+        @if (vinculadosForaDaLista()) {
+          <p class="aviso">
+            {{ vinculadosForaDaLista() }} servidor(es) vinculado(s) não aparece(m) na lista porque não estão mais
+            cadastrados como Linux/Unix ou acesso SSH. O vínculo é mantido.
+          </p>
+        }
+        @if (form.controls.codServidores.touched && form.controls.codServidores.invalid) {
+          <p class="erro">Selecione pelo menos um servidor ou marque "Disponível em todos os servidores".</p>
+        }
+      }
+    </section>
+
+    <div class="inteiro opcoes">
+      <mat-slide-toggle formControlName="snExecutar">Pressionar Enter automaticamente</mat-slide-toggle>
+      <mat-slide-toggle formControlName="snConfirmar">Pedir confirmação antes de executar</mat-slide-toggle>
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="ordem">
+        <mat-label>Ordem</mat-label>
+        <input matInput type="number" formControlName="nrOrdem">
+      </mat-form-field>
+    </div>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-button type="button" mat-dialog-close>Cancelar</button>
+    <button mat-flat-button type="submit" [disabled]="salvando()">Salvar</button>
+  </mat-dialog-actions>
+</form>

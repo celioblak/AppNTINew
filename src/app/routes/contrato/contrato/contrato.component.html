@@ -1,0 +1,256 @@
+<div class="container-fluid">
+
+  <!-- Filtros -->
+  <div class="filter-container">
+    <mat-form-field appearance="outline">
+      <mat-label>Pesquisar</mat-label>
+      <input matInput #filterInput (keyup.enter)="pesquisar(filterInput.value)"
+             placeholder="Empresa, CNPJ, sistema...">
+      <mat-icon matSuffix>search</mat-icon>
+    </mat-form-field>
+
+    <mat-slide-toggle [(ngModel)]="apenasAtivos" (change)="carregarContratos()" color="primary"
+                      matTooltip="Exibir apenas contratos ativos">
+      Apenas ativos
+    </mat-slide-toggle>
+
+    <div class="search-button-wrapper">
+      <button mat-fab color="primary" (click)="pesquisar(filterInput.value)" aria-label="Pesquisar">
+        <mat-icon>search</mat-icon>
+      </button>
+    </div>
+  </div>
+
+  <!-- Card principal -->
+  <mat-card>
+    <mat-card-content>
+
+      <div class="section-title">
+        <h3>Contratos / Sistemas <span class="count-badge">{{ contratos.length }}</span></h3>
+        <button mat-icon-button [matMenuTriggerFor]="menuAcoes" aria-label="Ações">
+          <mat-icon>more_vert</mat-icon>
+        </button>
+        <mat-menu #menuAcoes="matMenu">
+          <button mat-menu-item (click)="abrirFormulario()">
+            <mat-icon>add</mat-icon><span>Novo Contrato</span>
+          </button>
+          <button mat-menu-item [disabled]="!contratoSelecionado"
+                  (click)="editarContrato(contratoSelecionado!)">
+            <mat-icon>edit</mat-icon><span>Editar</span>
+          </button>
+          <button mat-menu-item [disabled]="!contratoSelecionado"
+                  (click)="alternarAtivo(contratoSelecionado!)">
+            <mat-icon>toggle_on</mat-icon><span>Ativar / Desativar</span>
+          </button>
+          <button mat-menu-item [disabled]="!contratoSelecionado"
+                  (click)="remover(contratoSelecionado!)">
+            <mat-icon color="warn">delete</mat-icon><span>Remover</span>
+          </button>
+        </mat-menu>
+      </div>
+
+      <!-- Tabela -->
+      <div class="grid-wrapper">
+        <div class="loading-row" *ngIf="carregandoLista">
+          <mat-spinner diameter="32"></mat-spinner><span>Carregando...</span>
+        </div>
+
+        <div class="empty-row" *ngIf="!carregandoLista && contratos.length === 0">
+          <mat-icon>business</mat-icon>
+          <span>Nenhum contrato cadastrado. Use o menu
+            <mat-icon style="font-size:16px;vertical-align:middle">more_vert</mat-icon>
+            para adicionar.
+          </span>
+        </div>
+
+        <table mat-table [dataSource]="contratos"
+               *ngIf="!carregandoLista && contratos.length > 0">
+
+          <ng-container matColumnDef="empresa">
+            <th mat-header-cell *matHeaderCellDef>Empresa</th>
+            <td mat-cell *matCellDef="let c">
+              <strong>{{ c.empresa }}</strong>
+              <small *ngIf="c.descricao" class="descricao-preview">
+                {{ c.descricao | slice:0:60 }}{{ (c.descricao?.length || 0) > 60 ? '…' : '' }}
+              </small>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="cnpj">
+            <th mat-header-cell *matHeaderCellDef>CNPJ</th>
+            <td mat-cell *matCellDef="let c" class="col-mono">
+              {{ c.cnpjFormatado || c.cnpj }}
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="sistema">
+            <th mat-header-cell *matHeaderCellDef>Sistema</th>
+            <td mat-cell *matCellDef="let c">{{ c.sistema || '—' }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="centrosCusto">
+            <th mat-header-cell *matHeaderCellDef>Centros de Custo</th>
+            <td mat-cell *matCellDef="let c">
+              <!--
+                FIX: era item.contrato.centrosCusto (variável inexistente neste contexto).
+                A variável do *matCellDef é 'c', não 'item'.
+                Também adicionado || [] para evitar TypeError em centrosCusto undefined.
+              -->
+              <div class="cc-chips-row" *ngIf="(c.centrosCusto || []).length > 0">
+                <span class="cc-chip"
+                      *ngFor="let cc of (c.centrosCusto || []) | slice:0:3"
+                      [matTooltip]="cc.nmSetor">
+                  {{ cc.cdSetor }}
+                </span>
+                <span class="cc-mais" *ngIf="(c.centrosCusto?.length || 0) > 3">
+                  +{{ (c.centrosCusto?.length || 0) - 3 }}
+                </span>
+              </div>
+              <span class="text-muted" *ngIf="!(c.centrosCusto || []).length">—</span>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="snAtivo">
+            <th mat-header-cell *matHeaderCellDef class="text-center">Status</th>
+            <td mat-cell *matCellDef="let c" class="text-center">
+              <mat-icon [color]="c.snAtivo === 'S' ? 'primary' : 'warn'"
+                        [matTooltip]="c.snAtivo === 'S' ? 'Ativo' : 'Inativo'">
+                {{ c.snAtivo === 'S' ? 'check_circle' : 'cancel' }}
+              </mat-icon>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="acoes">
+            <th mat-header-cell *matHeaderCellDef class="text-center">Ações</th>
+            <td mat-cell *matCellDef="let c" class="text-center acoes-cell">
+              <button mat-icon-button color="primary"
+                      (click)="editarContrato(c); $event.stopPropagation()"
+                      matTooltip="Editar">
+                <mat-icon>edit</mat-icon>
+              </button>
+              <button mat-icon-button
+                      (click)="alternarAtivo(c); $event.stopPropagation()"
+                      [matTooltip]="c.snAtivo === 'S' ? 'Desativar' : 'Ativar'">
+                <mat-icon>{{ c.snAtivo === 'S' ? 'toggle_on' : 'toggle_off' }}</mat-icon>
+              </button>
+              <button mat-icon-button color="warn"
+                      (click)="remover(c); $event.stopPropagation()"
+                      matTooltip="Remover">
+                <mat-icon>delete</mat-icon>
+              </button>
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="colunas"></tr>
+          <tr mat-row *matRowDef="let row; columns: colunas;"
+              class="linha-contrato"
+              [class.row-selected]="contratoSelecionado?.id === row.id"
+              (click)="selecionarContrato(row)"></tr>
+        </table>
+      </div>
+
+    </mat-card-content>
+  </mat-card>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  DIALOG FORMULÁRIO CONTRATO                              -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<ng-template #dialogForm>
+  <mat-card>
+    <mat-card-header>
+      <div mat-card-avatar>
+        <mat-icon color="primary">{{ modoEdicao ? 'edit' : 'add_business' }}</mat-icon>
+      </div>
+      <mat-card-title>{{ modoEdicao ? 'Editar Contrato' : 'Novo Contrato' }}</mat-card-title>
+      <mat-card-subtitle>Empresa, CNPJ, sistema e centros de custo</mat-card-subtitle>
+    </mat-card-header>
+
+    <mat-divider></mat-divider>
+
+    <mat-card-content class="form-content">
+      <div class="campo-grid">
+
+        <mat-form-field appearance="outline" class="campo-full">
+          <mat-label>Empresa / Razão Social *</mat-label>
+          <input matInput [(ngModel)]="form.empresa" placeholder="Nome da empresa">
+          <mat-icon matSuffix>business</mat-icon>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>CNPJ *</mat-label>
+          <input matInput [value]="formatarCnpj(form.cnpj)"
+                 (input)="mascaraCnpj($event)" placeholder="00.000.000/0000-00 ou 12.ABC.345/01DE-35"
+                 maxlength="18" style="text-transform: uppercase" autocomplete="off">
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Sistema</mat-label>
+          <input matInput [(ngModel)]="form.sistema" placeholder="Nome do sistema">
+          <mat-icon matSuffix>computer</mat-icon>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="campo-full">
+          <mat-label>Descrição do Contrato</mat-label>
+          <textarea matInput [(ngModel)]="form.descricao"
+                    placeholder="Descreva o objeto do contrato..." rows="3"></textarea>
+        </mat-form-field>
+
+        <!-- Centros de Custo -->
+        <div class="campo-full">
+          <p class="campo-label">
+            <mat-icon color="primary">account_tree</mat-icon>
+            Centros de Custo
+          </p>
+
+          <!-- Chips selecionados -->
+          <div class="chips-row" *ngIf="(form.centrosCusto || []).length > 0">
+            <mat-chip *ngFor="let cc of (form.centrosCusto || [])"
+                      (removed)="removerCentroCusto(cc)">
+              {{ cc.cdSetor }} — {{ cc.nmSetor }}
+              <button matChipRemove><mat-icon>cancel</mat-icon></button>
+            </mat-chip>
+          </div>
+
+          <!-- Busca de setores -->
+          <mat-form-field appearance="outline" class="campo-full setor-field">
+            <mat-label>Buscar setor (código ou nome)</mat-label>
+            <input matInput
+                   [value]="termoBuscaSetor"
+                   (input)="onBuscaSetorChange($any($event.target).value)"
+                   (blur)="fecharDropdownSetor()"
+                   placeholder="Digite para buscar...">
+            <mat-icon matSuffix>search</mat-icon>
+          </mat-form-field>
+
+          <div class="setor-dropdown" *ngIf="mostrarDropdownSetor">
+            <div class="setor-loading" *ngIf="buscandoSetores">
+              <mat-spinner diameter="18"></mat-spinner> Buscando...
+            </div>
+            <div class="setor-vazio"
+                 *ngIf="!buscandoSetores && setoresDisponiveis.length === 0">
+              Nenhum setor encontrado
+            </div>
+            <button class="setor-item"
+                    *ngFor="let s of setoresDisponiveis"
+                    (mousedown)="adicionarSetor(s)">
+              <strong>{{ s.cdSetor }}</strong> — {{ s.nmSetor }}
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </mat-card-content>
+
+    <mat-divider></mat-divider>
+
+    <mat-card-actions align="end">
+      <button mat-button (click)="cancelarFormulario()">Cancelar</button>
+      <button mat-flat-button color="primary" (click)="salvar()" [disabled]="carregando">
+        <mat-spinner *ngIf="carregando" diameter="18"
+                     style="display:inline-block;margin-right:6px"></mat-spinner>
+        {{ carregando ? 'Salvando...' : (modoEdicao ? 'Salvar' : 'Cadastrar') }}
+      </button>
+    </mat-card-actions>
+  </mat-card>
+</ng-template>

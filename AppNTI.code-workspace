@@ -1,0 +1,16 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../ntiapi"
+		},
+		{
+			"path": "../PainelConsultoria"
+		}
+	],
+	"settings": {
+		"java.compile.nullAnalysis.mode": "automatic"
+	}
+}

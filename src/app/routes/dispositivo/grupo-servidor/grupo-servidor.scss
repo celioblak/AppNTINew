@@ -1,0 +1,56 @@
+:host {
+  display: block;
+}
+
+// A altura vem do alturaAteRodape; a grade ocupa o que sobra abaixo da barra.
+.grupo-servidor {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.barra {
+  display: flex;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.busca {
+  flex: 0 1 420px;
+}
+
+.espaco {
+  flex: 1;
+}
+
+.total,
+.vazio {
+  font-size: .8rem;
+  color: var(--mat-sys-on-surface-variant, rgba(0, 0, 0, .6));
+}
+
+.grade {
+  flex: 1 1 0;
+  min-height: 240px;
+}
+
+.servidores {
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+// Botões de ação lado a lado e compactos: a coluna não quebra em duas linhas.
+:host ::ng-deep .grade mtx-grid-cell:has(.mtx-grid-action-button) {
+  white-space: nowrap;
+
+  .mtx-grid-action-button {
+    --mat-icon-button-state-layer-size: 32px;
+    width: 32px;
+    height: 32px;
+    padding: 4px;
+  }
+}

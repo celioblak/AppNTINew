@@ -1,0 +1,196 @@
+// Cores herdadas do painel antigo, para quem já está acostumado com a TV.
+$incidente: #3b5998;
+$incidente-pendente: #feda90;
+$requisicao: #cd6155;
+$requisicao-pendente: #f5b041;
+
+:host {
+  display: block;
+  height: 100%;
+}
+
+.painel-incidente {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  gap: 8px;
+  padding: 8px;
+  overflow: hidden;
+
+  // Com muitos chamados o monitoramento passa a dividir a tela na horizontal.
+  &--dividido {
+    flex-direction: row;
+
+    .painel-incidente__chamados,
+    .painel-incidente__monitoramento {
+      width: 50%;
+    }
+  }
+
+  &__chamados,
+  &__monitoramento {
+    display: flex;
+    flex: 1 1 0;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+  }
+
+  &__titulo {
+    flex: 0 0 auto;
+    padding: 4px;
+    background: azure;
+    color: #000;
+    font-size: 2rem;
+    font-weight: bold;
+    text-align: center;
+  }
+
+  &__lista {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  &__vazio {
+    padding: 24px;
+    color: #4a4a55;
+    font-size: 1.6rem;
+    text-align: center;
+  }
+
+  &__blocos {
+    display: flex;
+    flex: 1 1 auto;
+    flex-wrap: wrap;
+    gap: 12px;
+    min-height: 0;
+    padding-top: 8px;
+    overflow: hidden;
+  }
+
+  &__bloco {
+    flex: 1 1 320px;
+    min-width: 0;
+
+    h3 {
+      margin: 0 0 6px;
+      font-size: 1.2rem;
+    }
+  }
+}
+
+.chamado {
+  width: 100%;
+  margin-top: 5px;
+  padding: 4px;
+  color: #fff;
+  font-size: 3rem;
+  line-height: 1.1;
+  word-break: break-word;
+
+  &--incidente {
+    background-color: $incidente;
+  }
+
+  &--incidente-pendente {
+    background-color: $incidente-pendente;
+    color: blue;
+  }
+
+  &--requisicao {
+    background-color: $requisicao;
+  }
+
+  &--requisicao-pendente {
+    background-color: $requisicao-pendente;
+    color: blue;
+  }
+}
+
+.aviso-lock {
+  color: #e55353;
+  font-weight: bold;
+}
+
+.tabela {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+  font-size: 1.2rem;
+
+  th,
+  td {
+    padding: 4px 8px;
+    border-bottom: 1px solid #dcdce6;
+    text-align: left;
+  }
+
+  th {
+    background: #e8e8f5;
+    font-size: 1rem;
+    text-transform: uppercase;
+  }
+
+  tbody tr:nth-child(even) {
+    background: #f6f6fb;
+  }
+
+  &--critica th {
+    background: #e55353;
+    color: #fff;
+  }
+}
+
+.barra {
+  position: relative;
+  height: 24px;
+  border-radius: 4px;
+  background: #e2e2ec;
+  overflow: hidden;
+
+  &__valor {
+    height: 100%;
+    transition: width 0.4s ease;
+
+    &.barra--ok {
+      background: #2eb85c;
+    }
+
+    &.barra--alerta {
+      background: #f9b115;
+    }
+
+    &.barra--critico {
+      background: #e55353;
+    }
+  }
+
+  &__texto {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #1b1b1f;
+    font-size: 0.95rem;
+    font-weight: bold;
+
+    &--solto {
+      position: static;
+      justify-content: flex-start;
+    }
+  }
+}
+
+.lock--alerta {
+  padding: 2px 6px;
+  background: #ffc400;
+  color: #000;
+}
+
+.lock--critico {
+  padding: 2px 6px;
+  background: #e55353;
+  color: #fff;
+}

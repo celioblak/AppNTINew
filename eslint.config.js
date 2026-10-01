@@ -6,6 +6,7 @@ const angular = require('angular-eslint');
 module.exports = tseslint.config(
   {
     files: ['**/*.ts'],
+    ignores: ['schematics/ng-add/files/**'],
     extends: [
       eslint.configs.recommended,
       ...tseslint.configs.recommended,
@@ -31,6 +32,8 @@ module.exports = tseslint.config(
       '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/no-unused-expressions': 'off',
       '@typescript-eslint/no-unused-vars': 'off',
+      '@angular-eslint/component-class-suffix': 'off',
+      '@angular-eslint/directive-class-suffix': 'off',
       '@angular-eslint/no-empty-lifecycle-method': 'off',
     },
   },

@@ -1,0 +1,139 @@
+<div class="pagina painel" alturaAteRodape>
+  <div class="resumo" aria-label="Resumo: clique para filtrar">
+    @for (t of tiles(); track t.chave) {
+      <button
+        type="button"
+        class="tile"
+        [attr.data-tom]="t.tom"
+        [class.tile--ativo]="filtroResumo() === t.chave"
+        [class.tile--zero]="!t.valor"
+        [attr.aria-pressed]="filtroResumo() === t.chave"
+        (click)="alternarResumo(t.chave)">
+        <span class="tile__valor">{{ t.valor }}</span>
+        <span class="tile__rotulo">{{ t.rotulo }}</span>
+      </button>
+    }
+  </div>
+
+  <div class="barra">
+    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="busca">
+      <mat-icon matPrefix>search</mat-icon>
+      <mat-label>Pesquisar</mat-label>
+      <input matInput placeholder="Número, título ou ticket MV" [ngModel]="texto()" (ngModelChange)="texto.set($event)" />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="filtro">
+      <mat-label>Situação</mat-label>
+      <mat-select multiple [ngModel]="situacoes()" (ngModelChange)="situacoes.set($event)">
+        @for (s of situacoesDisponiveis; track s) {
+          <mat-option [value]="s">{{ situacaoInfo[s].rotulo }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="filtro">
+      <mat-label>Sistema</mat-label>
+      <mat-select [ngModel]="sistema()" (ngModelChange)="sistema.set($event)">
+        <mat-option [value]="null">Todos</mat-option>
+        @for (s of sistemas(); track s) {
+          <mat-option [value]="s">{{ s }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="filtro">
+      <mat-label>Responsável</mat-label>
+      <mat-select [ngModel]="responsavel()" (ngModelChange)="responsavel.set($event)">
+        <mat-option [value]="null">Todos</mat-option>
+        @for (r of responsaveis(); track r) {
+          <mat-option [value]="r">{{ r }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="filtro filtro--curto" matTooltip="As abertas aparecem sempre">
+      <mat-label>Encerradas dos últimos</mat-label>
+      <mat-select [ngModel]="dias()" (ngModelChange)="trocarPeriodo($event)">
+        @for (p of periodos; track p.dias) {
+          <mat-option [value]="p.dias">{{ p.rotulo }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <span class="espaco"></span>
+    <span class="total">{{ filtradas().length }} de {{ atualizacoes().length }}</span>
+    @if (filtradas().length !== atualizacoes().length) {
+      <button mat-button type="button" (click)="limparFiltros()">Limpar filtros</button>
+    }
+    <button mat-stroked-button type="button" (click)="exportar()" [disabled]="!filtradas().length">
+      <mat-icon>file_download</mat-icon>
+      Exportar
+    </button>
+    <button mat-flat-button type="button" (click)="nova()">
+      <mat-icon>add</mat-icon>
+      Nova atualização
+    </button>
+  </div>
+
+  <ng-template #numeroTpl let-row>
+    <span class="mono numero">{{ row.numero }}</span>
+  </ng-template>
+
+  <ng-template #tituloTpl let-row>
+    <span class="titulo">
+      <span class="titulo__texto" [matTooltip]="row.titulo">{{ row.titulo }}</span>
+      @if (row.emergencial) {
+        <app-etiqueta tom="critico">Emergencial</app-etiqueta>
+      }
+      @if (row.qtdChoques) {
+        <app-etiqueta tom="alerta" matTooltip="Outras atualizações abertas do mesmo sistema mexem nas mesmas telas, JAR ou arquivo">
+          {{ row.qtdChoques }} choque{{ row.qtdChoques === 1 ? '' : 's' }}
+        </app-etiqueta>
+      }
+    </span>
+  </ng-template>
+
+  <ng-template #situacaoTpl let-row>
+    <app-situacao-atualizacao [situacao]="row.situacao" />
+  </ng-template>
+
+  <ng-template #artefatosTpl let-row>
+    {{ row.qtdArtefatos }}
+    @if (row.qtdVersoesCorrigidas) {
+      <span class="suave" matTooltip="Versões corrigidas recebidas do fabricante">· {{ row.qtdVersoesCorrigidas }} corr.</span>
+    }
+  </ng-template>
+
+  <ng-template #janelaTpl let-row>
+    {{ row.janela ? (row.janela | date: 'dd/MM/yy HH:mm') : '—' }}
+  </ng-template>
+
+  <ng-template #ambienteTpl let-row>
+    {{ row.ambienteAtual ?? '—' }}
+  </ng-template>
+
+  <ng-template #proximoTpl let-row>
+    <span class="proximo" [matTooltip]="row.proximoPasso">{{ row.proximoPasso ?? '—' }}</span>
+  </ng-template>
+
+  <mtx-grid
+    class="grade"
+    [data]="filtradas()"
+    [columns]="colunas"
+    [loading]="carregando()"
+    [rowStriped]="true"
+    [columnResizable]="true"
+    [showPaginator]="true"
+    [pageSize]="50"
+    [cellTemplate]="{
+      numero: numeroTpl,
+      titulo: tituloTpl,
+      situacao: situacaoTpl,
+      qtdArtefatos: artefatosTpl,
+      janela: janelaTpl,
+      ambienteAtual: ambienteTpl,
+      proximoPasso: proximoTpl,
+    }"
+    (rowClick)="abrir($event.rowData)"
+    noResultText="Nenhuma atualização encontrada" />
+</div>

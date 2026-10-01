@@ -1,0 +1,99 @@
+<h2 mat-dialog-title>{{ data.menu ? 'Editar item de menu' : 'Novo item de menu' }}</h2>
+
+<form [formGroup]="form" (ngSubmit)="salvar()">
+  <mat-dialog-content class="formulario">
+    <mat-form-field appearance="outline">
+      <mat-label>Tipo</mat-label>
+      <mat-select formControlName="tipo">
+        @for (tipo of tipos; track tipo.valor) {
+          <mat-option [value]="tipo.valor">{{ tipo.rotulo }}</mat-option>
+        }
+      </mat-select>
+      <mat-hint>{{ descricaoTipo() }}</mat-hint>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Dentro de</mat-label>
+      <mat-select formControlName="codMenuPai">
+        <mat-option [value]="null">(raiz do menu)</mat-option>
+        @for (linha of opcoesPai; track linha.menu.codMenu) {
+          <mat-option [value]="linha.menu.codMenu">
+            <span [style.padding-left.px]="linha.nivel * 16">{{ rotuloDe(linha) }}</span>
+            <span class="opcao-caminho">{{ linha.caminho }}</span>
+          </mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Rota</mat-label>
+      <input matInput formControlName="rota" autocomplete="off" cdkFocusInitial>
+      <mat-hint>Trecho da URL, ex.: terminal-ssh</mat-hint>
+      @if (form.controls.rota.hasError('required')) {
+        <mat-error>Informe a rota</mat-error>
+      } @else if (form.controls.rota.hasError('pattern')) {
+        <mat-error>Só letras, números, hífen ou sublinhado</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Nome (chave de tradução)</mat-label>
+      <input matInput formControlName="nome" autocomplete="off">
+      <mat-hint>Usado no pt-BR.json</mat-hint>
+      @if (form.controls.nome.hasError('required')) {
+        <mat-error>Informe o nome</mat-error>
+      } @else if (form.controls.nome.hasError('pattern')) {
+        <mat-error>Só letras, números, hífen ou sublinhado</mat-error>
+      }
+    </mat-form-field>
+
+    @if (valores().tipo !== 'M') {
+      <mat-form-field appearance="outline" class="inteiro">
+        <mat-label>Tela vinculada</mat-label>
+        <mat-select formControlName="codTela">
+          @for (tela of telas; track tela.codTela) {
+            <mat-option [value]="tela.codTela">{{ tela.dsTela }}{{ tela.snAtivo ? '' : ' (inativa)' }}</mat-option>
+          }
+        </mat-select>
+        <mat-hint>Quem tiver acesso a esta tela (Gerenciar Acesso) vê o item.</mat-hint>
+        <mat-error>Selecione a tela</mat-error>
+      </mat-form-field>
+    }
+
+    <mat-form-field appearance="outline">
+      <mat-label>Ícone</mat-label>
+      <mat-icon matPrefix class="icone-previa">{{ valores().icone || 'image_not_supported' }}</mat-icon>
+      <input matInput formControlName="icone" autocomplete="off">
+      <mat-hint>Nome do Material Icon, ex.: terminal</mat-hint>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Ordem</mat-label>
+      <input matInput type="number" formControlName="ordem">
+    </mat-form-field>
+
+    <div class="inteiro previa">
+      <div class="previa-item">
+        <span class="previa-rotulo">URL</span>
+        <code>{{ previa().caminho }}</code>
+      </div>
+      <div class="previa-item">
+        <span class="previa-rotulo">Chave de tradução</span>
+        <code>{{ previa().chave }}</code>
+      </div>
+      <div class="previa-item">
+        <span class="previa-rotulo">Texto no menu</span>
+        @if (previa().rotulo) {
+          <span>{{ previa().rotulo }}</span>
+        } @else {
+          <span class="alerta">Sem tradução: adicione a chave acima em public/i18n/pt-BR.json</span>
+        }
+      </div>
+    </div>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-button type="button" mat-dialog-close>Cancelar</button>
+    <button mat-flat-button type="submit" [disabled]="salvando()">Salvar</button>
+  </mat-dialog-actions>
+</form>

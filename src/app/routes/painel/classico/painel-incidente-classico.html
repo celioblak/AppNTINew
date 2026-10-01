@@ -1,0 +1,112 @@
+<div class="painel-incidente" [class.painel-incidente--dividido]="telaDividida()">
+  <section class="painel-incidente__chamados">
+    <header class="painel-incidente__titulo">Chamados</header>
+
+    <div class="painel-incidente__lista">
+      @for (chamado of incidentes(); track chamado.idChamado) {
+        <div [class]="classeChamado(chamado)">
+          <b>{{ chamado.idChamado }} {{ titulo(chamado) }}</b>
+        </div>
+      }
+      @for (chamado of requisicoes(); track chamado.idChamado) {
+        <div [class]="classeChamado(chamado)">
+          <b>{{ chamado.idChamado }} {{ titulo(chamado) }}</b>
+        </div>
+      }
+      @if (qtdChamados() === 0) {
+        <div class="painel-incidente__vazio">Nenhum chamado em aberto</div>
+      }
+    </div>
+  </section>
+
+  @if (temMonitoramento()) {
+    <section class="painel-incidente__monitoramento">
+      <header class="painel-incidente__titulo">Monitoramento</header>
+
+      <div class="painel-incidente__blocos">
+        @if (servidores().length > 0) {
+          <div class="painel-incidente__bloco">
+            <h3>Servidores com atenção</h3>
+            <table class="tabela">
+              <thead>
+                <tr>
+                  <th>Servidor</th>
+                  <th>Load por núcleo</th>
+                  <th>Uso disco</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (servidor of servidores(); track $index) {
+                  <tr>
+                    <td><b>{{ servidor.dsservidor }}</b></td>
+                    <td [title]="loadDetalhe(servidor)">
+                      @if (loadPorCpu(servidor) !== null) {
+                        <div class="barra">
+                          <div
+                            class="barra__valor"
+                            [class]="usoCpuCor(servidor)"
+                            [style.width.%]="usoCpuToNumero(servidor)"
+                          ></div>
+                          <span class="barra__texto">{{ usoCpuTexto(servidor) }}</span>
+                        </div>
+                      } @else {
+                        <span class="barra__texto barra__texto--solto">{{ servidor.cpuload }}</span>
+                      }
+                    </td>
+                    <td>
+                      @if (servidor.usodisco) {
+                        <div class="barra">
+                          <div
+                            class="barra__valor"
+                            [class]="usoDiscoCor(servidor.usodisco)"
+                            [style.width.%]="usoDiscoToNumero(servidor.usodisco)"
+                          ></div>
+                          <span class="barra__texto">{{ servidor.usodisco }}</span>
+                        </div>
+                      }
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+
+        @if (totalLocks() > 0) {
+          <div class="painel-incidente__bloco">
+            <h3>
+              Sessões em lock — {{ totalLocks() }} em andamento
+              @if (locksAntigos()) {
+                <span class="aviso-lock">(existe lock há mais de 10 minutos)</span>
+              }
+            </h3>
+            <table class="tabela" [class.tabela--critica]="locksAntigos()">
+              <thead>
+                <tr>
+                  <th>Sid</th>
+                  <th>Serial</th>
+                  <th>Usuário</th>
+                  <th>Bloqueio</th>
+                  <th>Bloqueio final</th>
+                  <th>Tempo</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (sessao of locks(); track $index) {
+                  <tr>
+                    <td><b>{{ sessao.sid }}</b></td>
+                    <td><b>{{ sessao.serial }}</b></td>
+                    <td><span [class]="classeLock(sessao)"><b>{{ sessao.username }}</b></span></td>
+                    <td><b>{{ sessao.lc_user }}</b></td>
+                    <td><b>{{ sessao.lc_final_user }}</b></td>
+                    <td><b>{{ tempoLock(sessao) }} min</b></td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </div>
+    </section>
+  }
+</div>

@@ -1,0 +1,224 @@
+<div class="terminal-ssh" alturaAteRodape>
+  @if (painelServidoresAberto()) {
+    <aside class="painel painel-servidores">
+      <header class="painel-cabecalho">
+        <span class="painel-titulo">Servidores</span>
+        <button mat-icon-button matTooltip="Conexão avulsa" (click)="abrirConexaoAvulsa()">
+          <mat-icon>add_link</mat-icon>
+        </button>
+        <button mat-icon-button matTooltip="Recolher painel" (click)="painelServidoresAberto.set(false)">
+          <mat-icon>chevron_left</mat-icon>
+        </button>
+      </header>
+
+      <div class="painel-filtros">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="campo-busca">
+          <mat-icon matPrefix>search</mat-icon>
+          <input matInput placeholder="Nome, IP, usuário, grupo..."
+                 [ngModel]="filtroServidor()" (ngModelChange)="filtroServidor.set($event)">
+        </mat-form-field>
+        <mat-slide-toggle [ngModel]="apenasAtivos()" (ngModelChange)="apenasAtivos.set($event)">Só ativos</mat-slide-toggle>
+      </div>
+
+      <div class="painel-lista">
+        @if (carregandoServidores()) {
+          <p class="vazio">Carregando servidores...</p>
+        }
+        @for (grupo of gruposServidores(); track grupo.nome) {
+          <div class="grupo-titulo">{{ grupo.nome }}</div>
+          @for (servidor of grupo.itens; track servidor.codServidor) {
+            <button type="button" class="item-servidor"
+                    [class.inativo]="!servidor.snAtivo"
+                    [class.sem-credencial]="!servidor.possuiCredencial"
+                    [class.aberto]="servidoresAbertos().has(servidor.codServidor)"
+                    [matTooltip]="servidor.possuiCredencial ? 'Abrir terminal' : 'Sem IP ou usuário/senha cadastrados'"
+                    matTooltipPosition="right"
+                    (click)="abrirServidor(servidor)">
+              <mat-icon class="item-icone">{{ servidor.possuiCredencial ? 'dns' : 'no_encryption' }}</mat-icon>
+              <span class="item-textos">
+                <span class="item-nome">{{ servidor.dsServidor }}</span>
+                <span class="item-detalhe">{{ servidor.usuario ?? 'sem usuário' }}&#64;{{ servidor.dsIP || servidor.dsMaquina || '?' }}</span>
+              </span>
+            </button>
+          }
+        } @empty {
+          @if (!carregandoServidores()) {
+            <p class="vazio">Nenhum servidor Linux/SSH encontrado.</p>
+          }
+        }
+      </div>
+    </aside>
+  }
+
+  <section class="area-terminais" #areaTerminais>
+    <div class="barra-superior">
+      @if (!painelServidoresAberto()) {
+        <button mat-icon-button matTooltip="Mostrar servidores" (click)="painelServidoresAberto.set(true)">
+          <mat-icon>menu</mat-icon>
+        </button>
+      }
+
+      @if (abaAtiva(); as aba) {
+        <span class="status" [attr.data-status]="aba.status"
+              [matTooltip]="aba.chaveHost ? 'Chave do servidor: ' + aba.chaveHost : ''">
+          <span class="status-ponto"></span>
+          <span class="status-texto">{{ aba.mensagem }}</span>
+        </span>
+        <span class="espaco"></span>
+
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="campo-localizar">
+          <mat-icon matPrefix>search</mat-icon>
+          <input matInput placeholder="Localizar (Enter / Shift+Enter)" [(ngModel)]="termoBusca"
+                 (keydown.enter)="localizar(!$any($event).shiftKey)">
+        </mat-form-field>
+
+        <button mat-icon-button matTooltip="Reconectar" [disabled]="aba.status === 'CONECTANDO'" (click)="reconectar()">
+          <mat-icon>refresh</mat-icon>
+        </button>
+        <button mat-icon-button matTooltip="Limpar tela" (click)="limpar()">
+          <mat-icon>clear_all</mat-icon>
+        </button>
+        <button mat-icon-button matTooltip="Diminuir fonte" (click)="alterarFonte(-1)">
+          <mat-icon>text_decrease</mat-icon>
+        </button>
+        <button mat-icon-button matTooltip="Aumentar fonte" (click)="alterarFonte(1)">
+          <mat-icon>text_increase</mat-icon>
+        </button>
+        <button mat-icon-button matTooltip="Copiar seleção (Ctrl+C com texto selecionado)" (click)="copiarSelecao()">
+          <mat-icon>content_copy</mat-icon>
+        </button>
+        <button mat-icon-button matTooltip="Colar (Ctrl+V)" [disabled]="aba.status !== 'CONECTADO'" (click)="colar()">
+          <mat-icon>content_paste</mat-icon>
+        </button>
+        <button mat-icon-button matTooltip="Tela cheia" (click)="telaCheia()">
+          <mat-icon>fullscreen</mat-icon>
+        </button>
+      } @else {
+        <span class="espaco"></span>
+      }
+
+      @if (!painelComandosAberto()) {
+        <button mat-icon-button matTooltip="Mostrar comandos" (click)="painelComandosAberto.set(true)">
+          <mat-icon>playlist_play</mat-icon>
+        </button>
+      }
+    </div>
+
+    <div class="abas-wrapper">
+      @if (abas().length) {
+        <mat-tab-group class="abas-terminal" mat-stretch-tabs="false" mat-align-tabs="start"
+                       animationDuration="0ms" preserveContent
+                       [selectedIndex]="indiceAba()" (selectedIndexChange)="indiceAba.set($event)">
+          @for (aba of abas(); track aba.id) {
+            <mat-tab>
+              <ng-template mat-tab-label>
+                <span class="aba-rotulo" [attr.data-status]="aba.status" [matTooltip]="aba.subtitulo">
+                  <span class="status-ponto"></span>
+                  <span class="aba-titulo">{{ aba.titulo }}</span>
+                  <button mat-icon-button class="aba-fechar" aria-label="Fechar terminal" (click)="fecharAba(aba, $event)">
+                    <mat-icon>close</mat-icon>
+                  </button>
+                </span>
+              </ng-template>
+              <app-ssh-terminal [abaId]="aba.id" [destino]="aba.destino" [senha]="aba.senha"
+                                (statusChange)="atualizarStatus(aba.id, $event)" />
+            </mat-tab>
+          }
+        </mat-tab-group>
+      } @else {
+        <div class="estado-vazio">
+          <mat-icon>terminal</mat-icon>
+          <h3>Nenhum terminal aberto</h3>
+          <p>Escolha um servidor na lista ou abra uma conexão avulsa.</p>
+          <button mat-flat-button (click)="abrirConexaoAvulsa()">
+            <mat-icon>add_link</mat-icon>
+            Conexão avulsa
+          </button>
+        </div>
+      }
+    </div>
+  </section>
+
+  @if (painelComandosAberto()) {
+    <aside class="painel painel-comandos">
+      <header class="painel-cabecalho">
+        <span class="painel-titulo">Comandos</span>
+        <button mat-icon-button matTooltip="Recarregar comandos" (click)="recarregarComandos()">
+          <mat-icon>refresh</mat-icon>
+        </button>
+        <button mat-icon-button matTooltip="Recolher painel" (click)="painelComandosAberto.set(false)">
+          <mat-icon>chevron_right</mat-icon>
+        </button>
+      </header>
+
+      <div class="painel-filtros">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="campo-busca">
+          <mat-icon matPrefix>search</mat-icon>
+          <input matInput placeholder="Filtrar comandos"
+                 [ngModel]="filtroComando()" (ngModelChange)="filtroComando.set($event)">
+        </mat-form-field>
+        <span class="contexto">
+          @if (abaAtiva(); as aba) {
+            {{ aba.codServidor ? 'Comandos de todos os servidores e os vinculados a ' + aba.titulo : 'Só comandos de todos os servidores (conexão avulsa)' }}
+          } @else {
+            Comandos de todos os servidores
+          }
+        </span>
+      </div>
+
+      <div class="painel-lista">
+        @for (grupo of gruposComandos(); track grupo.nome) {
+          <div class="grupo-titulo">{{ grupo.nome }}</div>
+          @for (comando of grupo.itens; track comando.codComando) {
+            <div class="item-comando">
+              <button type="button" class="item-comando-principal" [disabled]="!podeExecutar()"
+                      [matTooltip]="comando.dsDescricao || (comando.snExecutar ? 'Clique para executar' : 'Clique para digitar no terminal')"
+                      matTooltipPosition="left"
+                      (click)="executarComando(comando, comando.snExecutar)">
+                <span class="item-nome">
+                  @if (comando.snConfirmar) {
+                    <mat-icon class="icone-alerta">warning</mat-icon>
+                  }
+                  {{ comando.dsTitulo }}
+                </span>
+                <code class="item-codigo">{{ comando.dsComando }}</code>
+                <span class="item-escopo">{{ rotuloVinculo(comando) }}</span>
+              </button>
+              <button mat-icon-button class="item-mais" aria-label="Mais ações"
+                      [matMenuTriggerFor]="menuComando" [matMenuTriggerData]="{ comando: comando }">
+                <mat-icon>more_vert</mat-icon>
+              </button>
+            </div>
+          }
+        } @empty {
+          <p class="vazio">
+            @if (carregandoComandos()) {
+              Carregando comandos...
+            } @else if (filtroComando()) {
+              Nenhum comando encontrado.
+            } @else {
+              Nenhum comando disponível. O cadastro fica em Dispositivos &gt; Comandos SSH.
+            }
+          </p>
+        }
+      </div>
+    </aside>
+  }
+</div>
+
+<mat-menu #menuComando="matMenu">
+  <ng-template matMenuContent let-comando="comando">
+    <button mat-menu-item [disabled]="!podeExecutar()" (click)="executarComando(comando, true)">
+      <mat-icon>play_arrow</mat-icon>
+      <span>Executar</span>
+    </button>
+    <button mat-menu-item [disabled]="!podeExecutar()" (click)="executarComando(comando, false)">
+      <mat-icon>keyboard</mat-icon>
+      <span>Só digitar (sem Enter)</span>
+    </button>
+    <button mat-menu-item (click)="copiarComando(comando)">
+      <mat-icon>content_copy</mat-icon>
+      <span>Copiar</span>
+    </button>
+  </ng-template>
+</mat-menu>

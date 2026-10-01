@@ -1,8 +1,8 @@
-import { Component, OnInit, ViewChild, ElementRef, OnDestroy, inject, ChangeDetectorRef } from '@angular/core';
-import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
+import { Component, OnInit, OnDestroy, inject, ChangeDetectorRef, signal } from '@angular/core';
+import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule, DatePipe } from '@angular/common';
-import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { Subject, forkJoin, of } from 'rxjs';
+import { takeUntil, distinctUntilChanged, debounceTime, catchError, map } from 'rxjs/operators';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
@@ -11,23 +11,19 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatDatepickerModule } from '@angular/material/datepicker';
-import { MatNativeDateModule, MAT_DATE_LOCALE, DateAdapter, MAT_DATE_FORMATS } from '@angular/material/core';
+import { MatNativeDateModule, MAT_DATE_LOCALE, MAT_DATE_FORMATS } from '@angular/material/core';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatTableModule } from '@angular/material/table';
 import { MatCardModule } from '@angular/material/card';
 
-import { PreferenciaFolga, PreferenciaFolgaRequest, User } from '@core';
+import { PreferenciaFolga, Usuario } from '@core';
 import { PreferenciaFolgaService } from './preferencia-folga.service';
-import { UsuarioService } from '@core/authentication/usuario.service';
 import { AuthService } from '@core/authentication/auth.service';
-import { ConfirmDialogComponent } from '@shared/components/confirm-dialog/confirm-dialog.component';
+import { UsuarioService } from '@core/authentication/usuario.service';
 
-// Configuração de data para o Brasil
 export const MY_DATE_FORMATS = {
-  parse: {
-    dateInput: 'DD/MM/YYYY',
-  },
+  parse: { dateInput: 'DD/MM/YYYY' },
   display: {
     dateInput: 'DD/MM/YYYY',
     monthYearLabel: 'MMM YYYY',
@@ -35,6 +31,18 @@ export const MY_DATE_FORMATS = {
     monthYearA11yLabel: 'MMMM YYYY',
   },
 };
+
+interface DiaInfo {
+  date: Date | null;
+  dia: number | '';
+  mes: number;
+  ano: number;
+  diaSemana: number;
+  isWeekend: boolean;
+  isPreferencia: boolean;
+  selecionado: boolean;
+  isEmpty?: boolean;
+}
 
 @Component({
   selector: 'app-preferencia-folga',
@@ -63,89 +71,69 @@ export const MY_DATE_FORMATS = {
   ]
 })
 export class PreferenciaFolgaComponent implements OnInit, OnDestroy {
-  @ViewChild('fileInput') fileInput!: ElementRef;
-
-  // Services
   private fb = inject(FormBuilder);
   private preferenciaService = inject(PreferenciaFolgaService);
-  private usuarioService = inject(UsuarioService);
   private authService = inject(AuthService);
+  private usuarioService = inject(UsuarioService);
   private snackBar = inject(MatSnackBar);
   private dialog = inject(MatDialog);
   private cdRef = inject(ChangeDetectorRef);
   private datePipe = inject(DatePipe);
 
-  // Formulários
-  preferenciaForm!: FormGroup;
   filtroForm!: FormGroup;
 
-  // Dados
-  usuarios: User[] = [];
-  usuariosCarregados = false;
-  preferencias: PreferenciaFolga[] = [];
-  preferenciasFiltradas: PreferenciaFolga[] = [];
-
-// Adicione no início da classe (após as outras propriedades)
-  hoje = new Date();
-  // Estados
-  loading = false;
-  modoEdicao = false;
-  preferenciaEditando: PreferenciaFolga | null = null;
-
-  // Permissões
-  isAdmin = false;
   usuarioLogadoId: number | null = null;
 
-  // Filtros
+  minhasPreferencias: PreferenciaFolga[] = [];
+  todasPreferencias: any[] = [];
+
+  nomesUsuarios = signal<Map<number, string>>(new Map());
+
+  dias: DiaInfo[] = [];
+
+  loading = false;
+
   meses = [
-    { valor: 1, nome: 'Janeiro' },
-    { valor: 2, nome: 'Fevereiro' },
-    { valor: 3, nome: 'Março' },
-    { valor: 4, nome: 'Abril' },
-    { valor: 5, nome: 'Maio' },
-    { valor: 6, nome: 'Junho' },
-    { valor: 7, nome: 'Julho' },
-    { valor: 8, nome: 'Agosto' },
-    { valor: 9, nome: 'Setembro' },
-    { valor: 10, nome: 'Outubro' },
-    { valor: 11, nome: 'Novembro' },
-    { valor: 12, nome: 'Dezembro' }
+    { valor: 1, nome: 'Janeiro' }, { valor: 2, nome: 'Fevereiro' }, { valor: 3, nome: 'Março' },
+    { valor: 4, nome: 'Abril' }, { valor: 5, nome: 'Maio' }, { valor: 6, nome: 'Junho' },
+    { valor: 7, nome: 'Julho' }, { valor: 8, nome: 'Agosto' }, { valor: 9, nome: 'Setembro' },
+    { valor: 10, nome: 'Outubro' }, { valor: 11, nome: 'Novembro' }, { valor: 12, nome: 'Dezembro' }
   ];
 
   anos: number[] = [];
-  mesAtual: number;
-  anoAtual: number;
+  mesInicial: number;
+  anoInicial: number;
 
-  // Configuração do calendário
-  minDate: Date;
-  maxDate: Date;
-
-  // Colunas da tabela
-  displayedColumns: string[] = ['usuario', 'dataFolga', 'dataCriacao', 'acoes'];
+  colunasMinhas: string[] = ['dataFolga', 'dataCriacao'];
+  colunasTodas: string[] = ['idUsuario', 'dataFolga', 'dataCriacao'];
 
   private destroy$ = new Subject<void>();
 
   constructor() {
     const hoje = new Date();
-    this.mesAtual = hoje.getMonth() + 1;
-    this.anoAtual = hoje.getFullYear();
-
-    // Gerar lista de anos (do ano atual até 5 anos atrás)
-    for (let i = 0; i < 6; i++) {
-      this.anos.push(this.anoAtual - i);
-    }
-
-    // Limites de datas (1 ano atrás até 1 ano à frente)
-    this.minDate = new Date();
-    this.minDate.setFullYear(this.minDate.getFullYear() - 1);
-    this.maxDate = new Date();
-    this.maxDate.setFullYear(this.maxDate.getFullYear() + 1);
+    this.mesInicial = hoje.getMonth() + 2; // próximo mês (1-indexado)
+    this.anoInicial = hoje.getFullYear();
   }
 
   ngOnInit(): void {
+    if (this.mesInicial > 12) {
+      this.mesInicial = 1;
+      this.anoInicial++;
+    }
+
+    // Anos disponíveis no seletor: passados + atual + futuros.
+    // Preferência de folga é solicitada com antecedência, então o usuário
+    // precisa conseguir selecionar o próximo ano (ex: em dezembro, pedir
+    // folga para janeiro do ano seguinte) — por isso inclui +2 anos à frente.
+    const ANOS_PASSADOS = 3;
+    const ANOS_FUTUROS  = 2;
+    this.anos = [];
+    for (let i = ANOS_FUTUROS; i >= -ANOS_PASSADOS; i--) {
+      this.anos.push(this.anoInicial + i);
+    }
+
     this.inicializarForms();
-    this.carregarDados();
-    this.subscribeToUserChanges();
+    this.obterUsuarioLogado();
   }
 
   ngOnDestroy(): void {
@@ -153,641 +141,353 @@ export class PreferenciaFolgaComponent implements OnInit, OnDestroy {
     this.destroy$.complete();
   }
 
-  private subscribeToUserChanges(): void {
+  // ✅ GETTER: retorna true somente quando há alterações não salvas no calendário
+  get temAlteracoes(): boolean {
+    return this.dias.some(d => !d.isEmpty && d.selecionado !== d.isPreferencia);
+  }
+
+  private obterUsuarioLogado(): void {
     this.authService.user()
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (user: any) => {
-          this.verificarPermissoes(user);
+          this.usuarioLogadoId = this.extrairIdUsuario(user);
+          if (this.usuarioLogadoId) {
+            this.carregarDados(this.anoInicial, this.mesInicial);
+          } else {
+            this.mostrarMensagem('Usuário não identificado', 'error');
+          }
         },
-        error: (error) => {
-          console.warn('Erro ao obter usuário:', error);
-          this.isAdmin = false;
-          this.usuarioLogadoId = null;
+        error: () => {
+          this.mostrarMensagem('Erro ao obter usuário logado', 'error');
         }
       });
   }
 
-  private verificarPermissoes(user: any): void {
-    if (user && typeof user === 'object' && Object.keys(user).length > 0) {
-      // Verificar se o usuário é admin
-      this.isAdmin = (
-        user.snAdmin === true ||
-        user.isAdmin === true ||
-        user.admin === true ||
-        user.perfil === 'ADMIN' ||
-        user.tipo === 'ADMINISTRADOR'
-      );
-
-      // Obter ID do usuário de forma segura
-      this.usuarioLogadoId = this.getSafeUserId(user);
-
-      console.log('Permissões verificadas:', { isAdmin: this.isAdmin, usuarioId: this.usuarioLogadoId, user });
-
-      // Atualizar o formulário se necessário
-      if (this.preferenciaForm) {
-        if (!this.isAdmin && this.usuarioLogadoId) {
-          // Desabilitar campo para usuário comum
-          this.preferenciaForm.get('idUsuario')?.disable();
-          this.preferenciaForm.patchValue({
-            idUsuario: this.usuarioLogadoId
-          });
-        } else {
-          // Habilitar campo para admin
-          this.preferenciaForm.get('idUsuario')?.enable();
-        }
-      }
-    } else {
-      this.isAdmin = false;
-      this.usuarioLogadoId = null;
-      console.log('Usuário não encontrado ou vazio');
-    }
-  }
-
-  private getSafeUserId(usuario: any): number | null {
-    if (usuario?.codusuario !== undefined && usuario.codusuario !== null) return Number(usuario.codusuario);
-    if (usuario?.id !== undefined && usuario.id !== null) return Number(usuario.id);
-    if (usuario?.userId !== undefined && usuario.userId !== null) return Number(usuario.userId);
-    if (usuario?.usuarioId !== undefined && usuario.usuarioId !== null) return Number(usuario.usuarioId);
-
+  private extrairIdUsuario(usuario: any): number | null {
+    if (usuario?.codUsuario) return Number(usuario.codUsuario);
+    if (usuario?.id) return Number(usuario.id);
+    if (usuario?.userId) return Number(usuario.userId);
     return null;
   }
 
   private inicializarForms(): void {
-    // Formulário de filtros
     this.filtroForm = this.fb.group({
-      usuario: [''],
-      mes: [this.mesAtual],
-      ano: [this.anoAtual]
+      mes: [this.mesInicial],
+      ano: [this.anoInicial]
     });
 
-    // Formulário principal
-    this.preferenciaForm = this.fb.group({
-      idUsuario: ['', Validators.required],
-      dataFolga: ['', Validators.required]
-    });
-
-    // Monitorar alterações nos filtros
     this.filtroForm.valueChanges
-      .pipe(takeUntil(this.destroy$))
-      .subscribe(() => {
-        this.aplicarFiltros();
-      });
-  }
-
-  private carregarDados(): void {
-    this.carregarUsuarios();
-    this.carregarPreferencias();
-  }
-
-  private carregarUsuarios(): void {
-    this.loading = true;
-    this.usuariosCarregados = false;
-
-    this.usuarioService.getUsuarios()
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: (response: any) => {
-          console.log('Resposta do getUsuarios:', response);
-          this.processarUsuarios(response);
-        },
-        error: (error: any) => {
-          console.error('Erro ao carregar usuários:', error);
-          this.tratarErroUsuarios(error);
+      .pipe(
+        takeUntil(this.destroy$),
+        debounceTime(300),
+        distinctUntilChanged((prev, curr) => prev.mes === curr.mes && prev.ano === curr.ano)
+      )
+      .subscribe(filtro => {
+        if (this.usuarioLogadoId) {
+          this.carregarDados(filtro.ano, filtro.mes);
         }
       });
   }
 
-  private processarUsuarios(response: any): void {
-    try {
-      if (Array.isArray(response)) {
-        this.usuarios = response;
-      } else if (response && Array.isArray(response.data)) {
-        this.usuarios = response.data;
-      } else if (response && response.data && typeof response.data === 'object') {
-        // Se data é um objeto, converter para array
-        this.usuarios = Object.values(response.data);
-      } else if (response && typeof response === 'object') {
-        // Se a resposta é um objeto, converter para array
-        this.usuarios = Object.values(response);
-      } else {
-        this.usuarios = [];
-      }
-
-      // Garantir que cada usuário tenha as propriedades necessárias
-      this.usuarios = this.usuarios.map((usuario: any) => ({
-        codusuario: usuario.codusuario || usuario.id || 0,
-        nome: usuario.nome || 'Nome não informado',
-        matricula: usuario.matricula || 'Sem matrícula',
-        email: usuario.email || '',
-        snAdmin: usuario.snAdmin || false,
-        snAtivo: usuario.snAtivo !== false,
-        ...usuario
-      })).filter((usuario: any) => usuario.codusuario && usuario.nome);
-
-      console.log('Usuários processados:', this.usuarios.length, this.usuarios);
-
-      this.usuariosCarregados = true;
-      this.loading = false;
-      this.cdRef.detectChanges();
-    } catch (error) {
-      console.error('Erro ao processar usuários:', error);
-      this.usuarios = [];
-      this.usuariosCarregados = false;
-      this.loading = false;
-      this.cdRef.detectChanges();
-    }
-  }
-
-  private tratarErroUsuarios(error: any): void {
-    console.error('Erro ao carregar usuários:', error);
-    this.mostrarMensagem('Erro ao carregar usuários', 'error');
-    this.usuarios = [];
-    this.usuariosCarregados = false;
-    this.loading = false;
-    this.cdRef.detectChanges();
-  }
-
-  private carregarPreferencias(): void {
-    this.loading = true;
-
-    if (this.isAdmin) {
-      // Admin: carrega todas as preferências
-      this.preferenciaService.listarPreferencias()
-        .pipe(takeUntil(this.destroy$))
-        .subscribe({
-          next: (preferencias: PreferenciaFolga[]) => {
-            console.log('Preferências carregadas (admin):', preferencias);
-            this.processarPreferencias(preferencias);
-          },
-          error: (error: any) => {
-            this.tratarErroPreferencias(error);
-          }
-        });
-    } else if (this.usuarioLogadoId) {
-      // Usuário comum: carrega apenas suas preferências
-      const currentDate = new Date();
-      const ano = currentDate.getFullYear();
-      const mes = currentDate.getMonth() + 1;
-
-      console.log('Carregando preferências para usuário:', this.usuarioLogadoId, mes, ano);
-
-      this.preferenciaService.listarPorUsuarioMesAno(this.usuarioLogadoId, mes, ano)
-        .pipe(takeUntil(this.destroy$))
-        .subscribe({
-          next: (diasPreferencia: number[]) => {
-            console.log('Dias de preferência:', diasPreferencia);
-            // Converter dias para objetos PreferenciaFolga
-            const preferencias: PreferenciaFolga[] = diasPreferencia.map(dia => ({
-              id: 0,
-              idUsuario: this.usuarioLogadoId!,
-              dataFolga: new Date(ano, mes - 1, dia),
-              dataCriacao: new Date()
-            }));
-            this.processarPreferencias(preferencias);
-          },
-          error: (error: any) => {
-            this.tratarErroPreferencias(error);
-          }
-        });
-    } else {
-      this.preferencias = [];
-      this.preferenciasFiltradas = [];
-      this.loading = false;
-      this.cdRef.detectChanges();
-    }
-  }
-
-  private processarPreferencias(preferencias: PreferenciaFolga[]): void {
-    this.preferencias = preferencias.map(p => ({
-      ...p,
-      dataFolga: new Date(p.dataFolga),
-      dataCriacao: p.dataCriacao ? new Date(p.dataCriacao) : undefined
-    })).filter(p => !isNaN(p.dataFolga.getTime()));
-
-    console.log('Preferências processadas:', this.preferencias);
-
-    this.aplicarFiltros();
-    this.loading = false;
-    this.cdRef.detectChanges();
-  }
-
-  private tratarErroPreferencias(error: any): void {
-    console.error('Erro ao carregar preferências:', error);
-    this.mostrarMensagem('Erro ao carregar preferências', 'error');
-    this.preferencias = [];
-    this.preferenciasFiltradas = [];
-    this.loading = false;
-    this.cdRef.detectChanges();
-  }
-
-  private aplicarFiltros(): void {
-    const filtro = this.filtroForm.value;
-
-    this.preferenciasFiltradas = this.preferencias.filter(preferencia => {
-      // Filtro por usuário
-      if (filtro.usuario && preferencia.idUsuario !== parseInt(filtro.usuario)) {
-        return false;
-      }
-
-      // Usuário comum só vê suas próprias preferências
-      if (!this.isAdmin && preferencia.idUsuario !== this.usuarioLogadoId) {
-        return false;
-      }
-
-      // Filtro por mês e ano
-      const data = new Date(preferencia.dataFolga);
-      const mesPreferencia = data.getMonth() + 1;
-      const anoPreferencia = data.getFullYear();
-
-      if (filtro.mes && mesPreferencia !== parseInt(filtro.mes)) {
-        return false;
-      }
-
-      if (filtro.ano && anoPreferencia !== parseInt(filtro.ano)) {
-        return false;
-      }
-
-      return true;
-    });
-
-    console.log('Preferências filtradas:', this.preferenciasFiltradas.length);
-  }
-
-  onSubmit(): void {
-    if (this.preferenciaForm.invalid) {
-      this.mostrarMensagem('Preencha todos os campos obrigatórios', 'warning');
-      this.marcarCamposComoSujos(this.preferenciaForm);
-      return;
-    }
-
-    const formData = this.preferenciaForm.value;
-    const idUsuario = this.isAdmin ? parseInt(formData.idUsuario) : this.usuarioLogadoId;
-
-    if (!idUsuario) {
-      this.mostrarMensagem('Usuário não identificado', 'error');
-      return;
-    }
-
-    // Formatar data para o backend
-    const dataFolga = new Date(formData.dataFolga);
-    if (isNaN(dataFolga.getTime())) {
-      this.mostrarMensagem('Data inválida', 'error');
-      return;
-    }
-
-    const dataFormatada = dataFolga.toISOString().split('T')[0];
+  // ✅ CORRIGIDO: usa forkJoin para fazer as duas chamadas em paralelo.
+  //    listarPorUsuarioMesAno garante que o calendário funcione (endpoint específico do usuário).
+  //    listarPorMesAno enriquece minhasPreferencias com a dataCriacao real do servidor.
+  private carregarDados(ano: number, mes: number): void {
+    if (!this.usuarioLogadoId) return;
 
     this.loading = true;
 
-    if (this.modoEdicao && this.preferenciaEditando) {
-      const dataAntiga = this.formatarDataCSV(this.preferenciaEditando.dataFolga);
+    forkJoin({
+      meusDias: this.preferenciaService.listarPorUsuarioMesAno(this.usuarioLogadoId, mes, ano),
+      todas:    this.preferenciaService.listarPorMesAno(mes, ano)
+    })
+    .pipe(takeUntil(this.destroy$))
+    .subscribe({
+      next: ({ meusDias, todas }) => {
+        // Tenta localizar dataCriacao real para cada dia do usuário
+        const minhasDoMes = todas.filter(p => p.idUsuario === this.usuarioLogadoId);
 
-      this.preferenciaService.removerPreferencia(this.preferenciaEditando.idUsuario, dataAntiga)
-        .pipe(takeUntil(this.destroy$))
-        .subscribe({
-          next: () => {
-            this.criarPreferencia(idUsuario, dataFormatada);
-          },
-          error: (error: any) => {
-            console.error('Erro ao excluir preferência para edição:', error);
-            this.mostrarMensagem(error.message || 'Erro ao editar preferência', 'error');
-            this.loading = false;
-            this.cdRef.detectChanges();
-          }
-        });
-    } else {
-      this.criarPreferencia(idUsuario, dataFormatada);
-    }
-  }
+        this.minhasPreferencias = meusDias.map(dia => {
+          const diaStr = String(dia).padStart(2, '0');
+          const mesStr = String(mes).padStart(2, '0');
+          const prefixo = `${ano}-${mesStr}-${diaStr}`;
 
-  temPermissaoParaEditar(preferencia: PreferenciaFolga): boolean {
-    return this.isAdmin || preferencia.idUsuario === this.usuarioLogadoId;
-  }
-
-  private criarPreferencia(idUsuario: number, dataFormatada: string): void {
-    const jaExiste = this.preferencias.some(p =>
-      p.idUsuario === idUsuario &&
-      this.formatarDataCSV(p.dataFolga) === dataFormatada
-    );
-
-    if (jaExiste) {
-      this.mostrarMensagem('Já existe uma preferência para esta data', 'warning');
-      this.loading = false;
-      this.cdRef.detectChanges();
-      return;
-    }
-
-    this.preferenciaService.cadastrarPreferencia(idUsuario, dataFormatada)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: (novaPreferencia: PreferenciaFolga) => {
-          this.preferencias.push({
-            ...novaPreferencia,
-            dataFolga: new Date(novaPreferencia.dataFolga),
-            dataCriacao: novaPreferencia.dataCriacao ? new Date(novaPreferencia.dataCriacao) : new Date()
+          const encontrado = minhasDoMes.find(p => {
+            const df = p.dataFolga;
+            if (typeof df === 'string') return (df as string).startsWith(prefixo);
+            const dt = df as Date;
+            return dt.getDate() === dia && dt.getMonth() + 1 === mes && dt.getFullYear() === ano;
           });
-          this.aplicarFiltros();
-          this.resetarFormulario();
-          this.mostrarMensagem('Preferência de folga cadastrada com sucesso!', 'success');
-          this.loading = false;
-          this.cdRef.detectChanges();
-        },
-        error: (error: any) => {
-          console.error('Erro ao criar preferência:', error);
-          this.mostrarMensagem(error.message || 'Erro ao cadastrar preferência', 'error');
-          this.loading = false;
-          this.cdRef.detectChanges();
-        }
-      });
-  }
 
-  editarPreferencia(preferencia: PreferenciaFolga): void {
-    if (!this.temPermissaoParaEditar(preferencia)) {
-      this.mostrarMensagem('Você não tem permissão para editar esta preferência', 'error');
-      return;
-    }
-
-    this.modoEdicao = true;
-    this.preferenciaEditando = preferencia;
-
-    this.preferenciaForm.patchValue({
-      idUsuario: preferencia.idUsuario.toString(),
-      dataFolga: new Date(preferencia.dataFolga)
-    });
-
-    if (!this.isAdmin) {
-      this.preferenciaForm.get('idUsuario')?.disable();
-    }
-
-    this.scrollParaFormulario();
-  }
-
-  excluirPreferencia(preferencia: PreferenciaFolga): void {
-    if (!this.temPermissaoParaEditar(preferencia)) {
-      this.mostrarMensagem('Você não tem permissão para excluir esta preferência', 'error');
-      return;
-    }
-
-    const dialogRef = this.dialog.open(ConfirmDialogComponent, {
-      width: '400px',
-      data: {
-        titulo: 'Confirmar Exclusão',
-        mensagem: `Tem certeza que deseja excluir a preferência de folga do dia ${this.formatarData(preferencia.dataFolga)}?`,
-        confirmarTexto: 'Excluir',
-        cancelarTexto: 'Cancelar'
-      }
-    });
-
-    dialogRef.afterClosed()
-      .pipe(takeUntil(this.destroy$))
-      .subscribe(confirmado => {
-        if (confirmado) {
-          this.loading = true;
-          this.preferenciaService.removerPreferencia(preferencia.idUsuario, this.formatarDataCSV(preferencia.dataFolga))
-            .pipe(takeUntil(this.destroy$))
-            .subscribe({
-              next: () => {
-                this.preferencias = this.preferencias.filter(p =>
-                  !(p.idUsuario === preferencia.idUsuario &&
-                    this.formatarDataCSV(p.dataFolga) === this.formatarDataCSV(preferencia.dataFolga))
-                );
-                this.aplicarFiltros();
-                this.mostrarMensagem('Preferência excluída com sucesso!', 'success');
-                this.loading = false;
-                this.cdRef.detectChanges();
-              },
-              error: (error: any) => {
-                console.error('Erro ao excluir preferência:', error);
-                this.mostrarMensagem(error.message || 'Erro ao excluir preferência', 'error');
-                this.loading = false;
-                this.cdRef.detectChanges();
-              }
-            });
-        }
-      });
-  }
-
-  // MÉTODO IMPORTAR CSV
-  importarCSV(event: any): void {
-    const file = event.target.files[0];
-    if (!file) return;
-
-    // Verificar se é admin
-    if (!this.isAdmin) {
-      this.mostrarMensagem('Somente administradores podem importar CSV', 'error');
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = (e: any) => {
-      const csvText = e.target.result;
-      this.processarCSV(csvText);
-    };
-    reader.readAsText(file);
-  }
-
-  private processarCSV(csvText: string): void {
-    const linhas = csvText.split('\n');
-    const preferencias: { idUsuario: number, dataFolga: string }[] = [];
-
-    // Ignorar cabeçalho e processar linhas
-    for (let i = 1; i < linhas.length; i++) {
-      const linha = linhas[i].trim();
-      if (!linha) continue;
-
-      const colunas = linha.split(';'); // ou ',' dependendo do separador
-
-      if (colunas.length >= 2) {
-        const idUsuario = parseInt(colunas[0]);
-        const dataFolga = colunas[1];
-
-        if (!isNaN(idUsuario) && dataFolga) {
-          // Verificar se o usuário existe na lista
-          const usuarioExiste = this.usuarios.some(u =>
-            u.codusuario === idUsuario ||
-            (u as any).id === idUsuario
-          );
-          if (usuarioExiste) {
-            preferencias.push({
-              idUsuario: idUsuario,
-              dataFolga: dataFolga
-            });
-          }
-        }
-      }
-    }
-
-    if (preferencias.length > 0) {
-      this.mostrarMensagem(`${preferencias.length} preferências carregadas do CSV. Processando...`, 'info');
-      this.enviarPreferenciasEmLote(preferencias);
-    } else {
-      this.mostrarMensagem('Nenhuma preferência válida encontrada no CSV', 'warning');
-    }
-
-    // Limpar input de arquivo
-    if (this.fileInput && this.fileInput.nativeElement) {
-      this.fileInput.nativeElement.value = '';
-    }
-  }
-
-  private enviarPreferenciasEmLote(preferencias: { idUsuario: number, dataFolga: string }[]): void {
-    let processadas = 0;
-    let sucesso = 0;
-    let erros = 0;
-
-    const processarProxima = () => {
-      if (processadas >= preferencias.length) {
-        this.mostrarMensagem(`Importação concluída: ${sucesso} sucesso, ${erros} erros`, 'info');
-        // Recarregar preferências
-        this.carregarPreferencias();
-        return;
-      }
-
-      const preferencia = preferencias[processadas];
-      processadas++;
-
-      this.preferenciaService.cadastrarPreferencia(preferencia.idUsuario, preferencia.dataFolga)
-        .pipe(takeUntil(this.destroy$))
-        .subscribe({
-          next: () => {
-            sucesso++;
-            processarProxima();
-          },
-          error: () => {
-            erros++;
-            processarProxima();
-          }
+          return {
+            id:          encontrado?.id        ?? 0,
+            idUsuario:   this.usuarioLogadoId!,
+            dataFolga:   new Date(ano, mes - 1, dia),   // Date local para o calendário
+            dataCriacao: (encontrado as any)?.criadoEm ?? encontrado?.dataCriacao ?? null
+          } as PreferenciaFolga;
         });
-    };
 
-    // Iniciar processamento em lote (limitar a 5 requisições simultâneas)
-    const batchSize = 5;
-    for (let i = 0; i < Math.min(batchSize, preferencias.length); i++) {
-      processarProxima();
-    }
-  }
+        // Preferências de outros usuários preservando strings originais
+        this.todasPreferencias = todas
+          .filter(p => p.idUsuario !== this.usuarioLogadoId)
+          .map(p => ({ ...p }));
 
-  // MÉTODO EXPORTAR CSV
-  exportarCSV(): void {
-    if (this.preferenciasFiltradas.length === 0) {
-      this.mostrarMensagem('Nenhuma preferência para exportar', 'warning');
-      return;
-    }
-
-    const dados = this.preferenciasFiltradas.map(p => {
-      const usuario = this.getUsuarioPorId(p.idUsuario);
-      return {
-        'ID Usuário': p.idUsuario,
-        'Nome Usuário': usuario?.nome || 'N/A',
-        'Matrícula': usuario?.matricula || 'N/A',
-        'Data Folga': this.formatarDataCSV(p.dataFolga),
-        'Data Criação': p.dataCriacao ? this.formatarDataCSV(p.dataCriacao) : ''
-      };
+        this.gerarDiasDoMes(ano, mes);
+        this.carregarNomesUsuarios(this.todasPreferencias);
+        this.loading = false;
+        this.cdRef.detectChanges();
+      },
+      error: (error) => {
+        console.error('Erro ao carregar dados:', error);
+        this.mostrarMensagem('Erro ao carregar preferências', 'error');
+        this.minhasPreferencias = [];
+        this.todasPreferencias = [];
+        this.dias = [];
+        this.loading = false;
+        this.cdRef.detectChanges();
+      }
     });
-
-    const csv = this.converterParaCSV(dados);
-    this.downloadCSV(csv, `preferencias_folga_${this.mesAtual}_${this.anoAtual}.csv`);
   }
 
-  private converterParaCSV(dados: any[]): string {
-    if (dados.length === 0) return '';
+  private carregarNomesUsuarios(preferencias: any[]): void {
+    const idsUnicos = [...new Set(preferencias.map(p => p.idUsuario))];
+    if (idsUnicos.length === 0) return;
 
-    const cabecalho = Object.keys(dados[0]).join(';');
-    const linhas = dados.map(obj => Object.values(obj).join(';'));
-    return [cabecalho, ...linhas].join('\n');
-  }
-
-  private downloadCSV(csv: string, filename: string): void {
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = filename;
-    link.click();
-    URL.revokeObjectURL(link.href);
-  }
-
-  getUsuariosFiltrados(): any[] {
-    if (!this.usuariosCarregados) {
-      return [];
-    }
-
-    if (this.isAdmin) {
-      return this.usuarios;
-    } else {
-      return this.usuarios.filter(u =>
-        u.codusuario === this.usuarioLogadoId ||
-        (u as any).id === this.usuarioLogadoId
-      );
-    }
-  }
-
-  getNomeUsuario(idUsuario: number): string {
-    const usuario = this.getUsuarioPorId(idUsuario);
-
-    if (usuario) {
-      return `${usuario.nome} (${usuario.matricula || 'Sem matrícula'})`;
-    }
-
-    return `ID: ${idUsuario}`;
-  }
-
-  private getUsuarioPorId(idUsuario: number): any {
-    return this.usuarios.find(u =>
-      u.codusuario === idUsuario ||
-      (u as any).id === idUsuario
+    const requests = idsUnicos.map(id =>
+      this.usuarioService.getUsuario(id).pipe(
+        map((usuario: Usuario) => ({
+          id,
+          nome: usuario?.nome?.trim() || 'Desconhecido'
+        })),
+        catchError(() => of({ id, nome: 'Desconhecido' }))
+      )
     );
-  }
 
-  formatarData(data: Date | string): string {
-    try {
-      const date = new Date(data);
-      if (isNaN(date.getTime())) {
-        return 'Data inválida';
-      }
-      return this.datePipe.transform(date, 'dd/MM/yyyy') || 'Data inválida';
-    } catch {
-      return 'Data inválida';
-    }
-  }
-
-  private formatarDataCSV(data: Date | string): string {
-    try {
-      const date = new Date(data);
-      if (isNaN(date.getTime())) {
-        return '';
-      }
-      return date.toISOString().split('T')[0];
-    } catch {
-      return '';
-    }
-  }
-
-  resetarFormulario(): void {
-    this.preferenciaForm.reset();
-    this.modoEdicao = false;
-    this.preferenciaEditando = null;
-
-    // Reconfigurar o formulário baseado nas permissões
-    if (this.preferenciaForm) {
-      if (!this.isAdmin && this.usuarioLogadoId) {
-        this.preferenciaForm.get('idUsuario')?.disable();
-        this.preferenciaForm.patchValue({
-          idUsuario: this.usuarioLogadoId
+    forkJoin(requests).subscribe({
+      next: (resultados) => {
+        this.nomesUsuarios.update(currentMap => {
+          const novoMap = new Map(currentMap);
+          resultados.forEach(result => novoMap.set(result.id, result.nome));
+          return novoMap;
         });
-      } else {
-        this.preferenciaForm.get('idUsuario')?.enable();
+      },
+      error: (err) => console.error('Erro ao carregar nomes de usuários:', err)
+    });
+  }
+
+  getNomeUsuario(id: number): string {
+    return this.nomesUsuarios().get(id) ?? 'Desconhecido';
+  }
+
+  private gerarDiasDoMes(ano: number, mes: number): void {
+    const primeiroDiaSemana = new Date(ano, mes - 1, 1).getDay();
+    const ultimoDia = new Date(ano, mes, 0).getDate();
+
+    const diasArray: DiaInfo[] = [];
+
+    for (let i = 0; i < primeiroDiaSemana; i++) {
+      diasArray.push({
+        date: null,
+        dia: '',
+        mes,
+        ano,
+        diaSemana: i,
+        isWeekend: false,
+        isPreferencia: false,
+        selecionado: false,
+        isEmpty: true
+      });
+    }
+
+    for (let d = 1; d <= ultimoDia; d++) {
+      const date = new Date(ano, mes - 1, d);
+      const diaSemana = date.getDay();
+      const isWeekend = diaSemana === 0 || diaSemana === 6;
+
+      // ✅ CORRIGIDO: compara dataFolga independente de ser string ISO ou Date
+      const isPreferencia = this.minhasPreferencias.some(p => {
+        const dataFolga = p.dataFolga;
+        if (typeof dataFolga === 'string') {
+          const match = (dataFolga as string).match(/^(\d{4})-(\d{2})-(\d{2})/);
+          if (match) {
+            return parseInt(match[3], 10) === d
+              && parseInt(match[2], 10) === mes
+              && parseInt(match[1], 10) === ano;
+          }
+          return false;
+        } else {
+          const dt = dataFolga as Date;
+          return dt.getDate() === d && dt.getMonth() + 1 === mes && dt.getFullYear() === ano;
+        }
+      });
+
+      diasArray.push({
+        date,
+        dia: d,
+        mes,
+        ano,
+        diaSemana,
+        isWeekend,
+        isPreferencia,
+        selecionado: isPreferencia
+      });
+    }
+
+    this.dias = diasArray;
+  }
+
+  toggleDia(dia: DiaInfo): void {
+    if (dia.isEmpty) return;
+    dia.selecionado = !dia.selecionado;
+  }
+
+  resetarSelecao(): void {
+    this.dias.forEach(d => {
+      if (!d.isEmpty) d.selecionado = d.isPreferencia;
+    });
+  }
+
+  salvarPreferencias(): void {
+    if (!this.usuarioLogadoId) return;
+
+    const alteracoes = this.dias.filter(d => !d.isEmpty && d.selecionado !== d.isPreferencia);
+    if (alteracoes.length === 0) {
+      this.mostrarMensagem('Nenhuma alteração para salvar', 'info');
+      return;
+    }
+
+    const adicionar = alteracoes.filter(d => d.selecionado && !d.isPreferencia).map(d => d.date!);
+    const remover = alteracoes.filter(d => !d.selecionado && d.isPreferencia).map(d => d.date!);
+
+    this.loading = true;
+
+    const operacoes: any[] = [];
+
+    adicionar.forEach(date => {
+      const dataStr = this.formatarDataCSV(date);
+      operacoes.push(this.preferenciaService.cadastrarPreferencia(this.usuarioLogadoId!, dataStr));
+    });
+
+    remover.forEach(date => {
+      const dataStr = this.formatarDataCSV(date);
+      operacoes.push(this.preferenciaService.removerPreferencia(this.usuarioLogadoId!, dataStr));
+    });
+
+    forkJoin(operacoes).pipe(
+      takeUntil(this.destroy$)
+    ).subscribe({
+      next: () => {
+        // ✅ CORRIGIDO: recarrega do servidor para obter dataCriacao real
+        const filtro = this.filtroForm.value;
+        this.carregarDados(filtro.ano, filtro.mes);
+        this.mostrarMensagem('Preferências salvas com sucesso!', 'success');
+      },
+      error: (err) => {
+        console.error('Erro ao salvar preferências:', err);
+        this.mostrarMensagem('Erro ao salvar preferências', 'error');
+        this.loading = false;
+        this.cdRef.detectChanges();
       }
+    });
+  }
+
+  formatarData(data: string | Date | null): string {
+    if (!data) return '-';
+
+    if (typeof data === 'string') {
+      const match = data.match(/^(\d{4})-(\d{2})-(\d{2})/);
+      if (match) {
+        const [, ano, mes, dia] = match;
+        return `${dia}/${mes}/${ano}`;
+      }
+      try {
+        const date = new Date(data);
+        if (!isNaN(date.getTime())) {
+          return this.datePipe.transform(date, 'dd/MM/yyyy') || '-';
+        }
+      } catch {
+        return '-';
+      }
+      return data;
+    } else {
+      return this.datePipe.transform(data, 'dd/MM/yyyy') || '-';
     }
   }
 
-  private scrollParaFormulario(): void {
-    setTimeout(() => {
-      const element = document.querySelector('.form-container');
-      if (element) {
-        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  formatarDataHora(data: string | Date | null): string {
+    if (!data) return '-';
+
+    if (typeof data === 'string') {
+      const isoMatch = data.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/);
+      if (isoMatch) {
+        const [, ano, mes, dia, hora, minuto] = isoMatch;
+        return `${dia}/${mes}/${ano} ${hora}:${minuto}`;
       }
-    }, 100);
+      const customMatch = data.match(/^(\d{2})-([A-Z]{3})-(\d{2})\s+(\d{2})\.(\d{2})\.(\d{2})\.\d{6}\s+(AM|PM)/i);
+      if (customMatch) {
+        const [, dia, mesAbrev, ano2, hora, minuto, , periodo] = customMatch;
+        const meses: { [key: string]: string } = {
+          'JAN': '01', 'FEB': '02', 'MAR': '03', 'APR': '04', 'MAY': '05', 'JUN': '06',
+          'JUL': '07', 'AUG': '08', 'SEP': '09', 'OCT': '10', 'NOV': '11', 'DEC': '12'
+        };
+        const mesNum = meses[mesAbrev.toUpperCase()];
+        if (mesNum) {
+          const anoFull = parseInt(ano2) + 2000;
+          return `${dia}/${mesNum}/${anoFull} ${hora}:${minuto}`;
+        }
+      }
+      try {
+        const date = new Date(data);
+        if (!isNaN(date.getTime())) {
+          return this.datePipe.transform(date, 'dd/MM/yyyy HH:mm') || '-';
+        }
+      } catch {
+        return '-';
+      }
+      return data;
+    } else {
+      return this.datePipe.transform(data, 'dd/MM/yyyy HH:mm') || '-';
+    }
+  }
+
+  formatarDataCSV(date: Date): string {
+    const ano = date.getFullYear();
+    const mes = String(date.getMonth() + 1).padStart(2, '0');
+    const dia = String(date.getDate()).padStart(2, '0');
+    return `${ano}-${mes}-${dia}`;
+  }
+
+  getDiaSemana(data: string | Date): string {
+    if (!data) return '';
+
+    let ano: number, mes: number, dia: number;
+    if (typeof data === 'string') {
+      const match = data.match(/^(\d{4})-(\d{2})-(\d{2})/);
+      if (match) {
+        ano = parseInt(match[1], 10);
+        mes = parseInt(match[2], 10) - 1;
+        dia = parseInt(match[3], 10);
+      } else {
+        const d = new Date(data);
+        if (isNaN(d.getTime())) return '';
+        ano = d.getFullYear();
+        mes = d.getMonth();
+        dia = d.getDate();
+      }
+    } else {
+      ano = data.getFullYear();
+      mes = data.getMonth();
+      dia = data.getDate();
+    }
+
+    const dataObj = new Date(ano, mes, dia);
+    const diasSemana = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+    return diasSemana[dataObj.getDay()];
+  }
+
+  limparFiltros(): void {
+    this.filtroForm.patchValue({ mes: this.mesInicial, ano: this.anoInicial });
   }
 
   private mostrarMensagem(mensagem: string, tipo: 'success' | 'error' | 'info' | 'warning'): void {
@@ -798,79 +498,4 @@ export class PreferenciaFolgaComponent implements OnInit, OnDestroy {
       verticalPosition: 'top'
     });
   }
-
-  limparFiltros(): void {
-    this.filtroForm.patchValue({
-      usuario: '',
-      mes: this.mesAtual,
-      ano: this.anoAtual
-    });
-  }
-
-  private marcarCamposComoSujos(formGroup: FormGroup): void {
-    Object.keys(formGroup.controls).forEach(key => {
-      const control = formGroup.get(key);
-      if (control) {
-        control.markAsDirty();
-        control.markAsTouched();
-        control.updateValueAndValidity();
-      }
-    });
-  }
-
-  getUsuariosUnicos(): number[] {
-    const ids = this.preferenciasFiltradas.map(p => p.idUsuario);
-    return [...new Set(ids)];
-  }
-
-  isDataValida(data: string): boolean {
-    try {
-      const date = new Date(data);
-      return !isNaN(date.getTime());
-    } catch {
-      return false;
-    }
-  }
-
-  // Método para estilizar datas no calendário (opcional)
-  dateClass = (d: Date): string => {
-    const date = d.getDate();
-    const month = d.getMonth() + 1;
-    const year = d.getFullYear();
-
-    // Verificar se a data já tem preferência
-    const temPreferencia = this.preferencias.some(p => {
-      const pDate = new Date(p.dataFolga);
-      return pDate.getDate() === date &&
-             pDate.getMonth() + 1 === month &&
-             pDate.getFullYear() === year;
-    });
-
-    return temPreferencia ? 'has-preference' : '';
-  }
-  // Métodos auxiliares para o template
-getDiaSemana(data: Date | string): string {
-  try {
-    const date = new Date(data);
-    if (isNaN(date.getTime())) {
-      return '';
-    }
-    const dias = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
-    return dias[date.getDay()];
-  } catch {
-    return '';
-  }
-}
-
-formatarHora(data: Date | string): string {
-  try {
-    const date = new Date(data);
-    if (isNaN(date.getTime())) {
-      return '';
-    }
-    return this.datePipe.transform(date, 'HH:mm') || '';
-  } catch {
-    return '';
-  }
-}
 }

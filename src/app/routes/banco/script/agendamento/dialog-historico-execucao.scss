@@ -1,0 +1,194 @@
+:host {
+  display: block;
+}
+
+.historico-card {
+  display: flex;
+  flex-direction: column;
+  max-height: min(88vh, 900px);
+}
+
+.historico-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.historico-header-title {
+  display: flex;
+  flex-direction: column;
+}
+
+.historico-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.historico-last-update {
+  font-size: 12px;
+  opacity: 0.65;
+  white-space: nowrap;
+}
+
+.historico-content {
+  flex: 1;
+  overflow: hidden;
+  padding-left: 16px;
+  padding-right: 16px;
+}
+
+// A grid pode precisar de mais largura do que a tela tem — em vez de espremer
+// as colunas até ficar ilegível, deixa essa faixa rolar horizontalmente.
+.grid-scroll {
+  height: min(68vh, 650px);
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.historico-grid {
+  height: 100%;
+  min-width: 1500px;
+}
+
+.historico-actions {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px;
+}
+
+// As classes abaixo estilizam HTML gerado dinamicamente pelos formatters das
+// colunas (não elementos do próprio template deste componente) — por isso
+// precisam de ::ng-deep: HTML injetado via formatter não recebe o atributo
+// de encapsulamento do Angular, então uma classe "normal" (escopada) nunca
+// bateria nele. Nomes prefixados com "hist-" pra reduzir risco de colisão,
+// já que ::ng-deep torna a classe efetivamente global no app.
+::ng-deep .hist-status-ok {
+  color: #2e7d32;
+  font-weight: 600;
+}
+
+::ng-deep .hist-status-erro {
+  color: #c62828;
+  font-weight: 600;
+}
+
+::ng-deep .hist-status-andamento {
+  color: #f9a825;
+  font-weight: 600;
+}
+
+::ng-deep .hist-drive-link-btn {
+  color: #1a73e8;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+::ng-deep .hist-erro-btn {
+  color: #c62828;
+  cursor: pointer;
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+}
+
+// Ícones do Material (fonte "material-icons" já carregada globalmente no
+// app — visível em outros componentes, ex: mat-icon renderiza com essa
+// mesma classe) usados via HTML puro, já que <mat-icon> (componente Angular)
+// não pode ser instanciado a partir de string injetada por formatter.
+::ng-deep .hist-icon {
+  font-size: 16px;
+  width: 16px;
+  height: 16px;
+  line-height: 16px;
+  vertical-align: middle;
+  display: inline-block;
+}
+
+::ng-deep .hist-icon-spin {
+  animation: gdc-spin 1.4s linear infinite;
+}
+
+::ng-deep .hist-icon-bounce {
+  animation: gdc-bounce 1.1s ease-in-out infinite;
+}
+
+@keyframes gdc-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+
+// Esta sim é de um elemento real do template (botão "Atualizar"), não HTML
+// injetado por formatter — por isso NÃO leva ::ng-deep.
+.spin {
+  animation: gdc-spin 1s linear infinite;
+}
+
+@keyframes gdc-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@media (max-width: 600px) {
+  .historico-card {
+    max-height: 94vh;
+  }
+
+  .historico-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .grid-scroll {
+    height: min(60vh, 420px);
+  }
+}
+
+::ng-deep .hist-status-reenvio {
+  color: #ef6c00;
+  font-weight: 600;
+}
+
+::ng-deep .hist-tentativas {
+  font-size: 11px;
+  opacity: 0.7;
+  margin-left: 2px;
+}
+
+::ng-deep .hist-download-btn {
+  color: #00695c;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+::ng-deep .hist-custo {
+  font-size: 12px;
+  font-family: 'Roboto Mono', monospace;
+  color: #5c6bc0;
+  cursor: help;
+  white-space: pre-line;
+}
+
+::ng-deep .hist-excluir-btn {
+  color: #c62828;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.75;
+
+  &:hover {
+    opacity: 1;
+  }
+}
+
+::ng-deep .hist-excluir-disabled {
+  color: #9e9e9e;
+  cursor: help;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.55;
+}

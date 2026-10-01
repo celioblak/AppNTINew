@@ -1,0 +1,757 @@
+<div class="container-fluid">
+
+  <!-- ── Filtros / Barra superior ── -->
+  <div class="filter-container">
+    <mat-form-field appearance="outline" class="filtro-pesquisa">
+      <mat-label>Pesquisar</mat-label>
+      <input matInput #filterInput (keyup.enter)="filtrar(filterInput.value)" placeholder="Nº NF, empresa, CNPJ...">
+      <mat-icon matSuffix>search</mat-icon>
+    </mat-form-field>
+
+    <!-- Filtro competência — server-side -->
+    <mat-form-field appearance="outline" style="max-width:160px">
+      <mat-label>Competência</mat-label>
+      <mat-select [(ngModel)]="filtroCompetencia"
+                  (selectionChange)="onFiltroCompetenciaChange($event.value)">
+        <mat-option value="">Todas</mat-option>
+        <mat-option *ngFor="let c of competenciasDisponiveis" [value]="c">{{ c }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <!-- Filtro origem — server-side -->
+    <mat-form-field appearance="outline" style="max-width:140px">
+      <mat-label>Origem</mat-label>
+      <mat-select [(ngModel)]="filtroOrigem"
+                  (selectionChange)="onFiltroOrigemChange($event.value)">
+        <mat-option value="">Todas</mat-option>
+        <mat-option value="ADN">ADN</mat-option>
+        <mat-option value="SEFIN">SEFIN</mat-option>
+        <mat-option value="PDF_EXTRACAO">PDF</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <!-- Filtro período de importação — server-side -->
+    <mat-form-field appearance="outline" class="filtro-periodo">
+      <mat-label>Importadas entre</mat-label>
+      <mat-date-range-input [rangePicker]="periodoImportacao">
+        <input matStartDate [(ngModel)]="filtroImportadoDe" placeholder="Início">
+        <input matEndDate [(ngModel)]="filtroImportadoAte" placeholder="Fim"
+               (dateChange)="aplicarPeriodoImportacao()">
+      </mat-date-range-input>
+      <button mat-icon-button matIconSuffix *ngIf="filtroImportadoDe || filtroImportadoAte"
+              (click)="limparPeriodoImportacao()" matTooltip="Limpar período">
+        <mat-icon>close</mat-icon>
+      </button>
+      <mat-datepicker-toggle matIconSuffix [for]="periodoImportacao"></mat-datepicker-toggle>
+      <mat-date-range-picker #periodoImportacao (closed)="aplicarPeriodoImportacao()"></mat-date-range-picker>
+    </mat-form-field>
+
+    <div class="search-button-wrapper">
+      <button mat-fab color="primary" (click)="filtrar(filterInput.value)" aria-label="Pesquisar">
+        <mat-icon>search</mat-icon>
+      </button>
+    </div>
+  </div>
+
+  <!-- ── Card principal ── -->
+  <mat-card>
+    <mat-card-content>
+
+      <!-- Upload + título -->
+      <div class="section-title">
+        <h3>Notas Fiscais Eletrônicas <span class="count-badge">{{ notasFiltradas.length }}</span></h3>
+        <div class="section-actions">
+          <button mat-stroked-button color="primary" (click)="abrirUpload()" class="btn-upload">
+            <mat-icon>upload_file</mat-icon> Importar NF-e
+          </button>
+          <button mat-icon-button (click)="carregarNotas()" matTooltip="Atualizar">
+            <mat-icon>refresh</mat-icon>
+          </button>
+        </div>
+      </div>
+
+      <!-- Tabela Material -->
+      <div class="grid-wrapper">
+        <div class="loading-row" *ngIf="carregandoLista">
+          <mat-spinner diameter="32"></mat-spinner>
+          <span>Carregando...</span>
+        </div>
+
+        <div class="empty-row" *ngIf="!carregandoLista && notasFiltradas.length === 0">
+          <mat-icon>receipt_long</mat-icon>
+          <span>Nenhuma NF-e encontrada. Use o botão "Importar NF-e" para começar.</span>
+        </div>
+
+        <table mat-table [dataSource]="notasFiltradas" *ngIf="!carregandoLista && notasFiltradas.length > 0">
+
+          <ng-container matColumnDef="numeroNfse">
+            <th mat-header-cell *matHeaderCellDef>Nº NFS-e</th>
+            <td mat-cell *matCellDef="let n"><strong>{{ n.numeroNfse || '—' }}</strong></td>
+          </ng-container>
+
+          <ng-container matColumnDef="competencia">
+            <th mat-header-cell *matHeaderCellDef>Competência</th>
+            <td mat-cell *matCellDef="let n">{{ n.competencia || '—' }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="dataEmissao">
+            <th mat-header-cell *matHeaderCellDef>Emissão</th>
+            <td mat-cell *matCellDef="let n">{{ formatarData(n.dataEmissao) }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="criadoEm">
+            <th mat-header-cell *matHeaderCellDef>Importado em</th>
+            <td mat-cell *matCellDef="let n">{{ formatarData(n.criadoEm) }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="nomeEmpresarial">
+            <th mat-header-cell *matHeaderCellDef>Empresa</th>
+            <td mat-cell *matCellDef="let n" class="col-empresa">
+              {{ n.nomeEmpresarial || '—' }}
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="cnpjCpfNif">
+            <th mat-header-cell *matHeaderCellDef>CNPJ/CPF</th>
+            <td mat-cell *matCellDef="let n" class="col-mono">{{ formatarCnpjCpf(n.cnpjCpfNif) }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="valorServico">
+            <th mat-header-cell *matHeaderCellDef class="text-right">Valor</th>
+            <td mat-cell *matCellDef="let n" class="text-right col-valor">
+              {{ formatarValor(n.valorServico) }}
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="origemDados">
+            <th mat-header-cell *matHeaderCellDef class="text-center">Origem</th>
+            <td mat-cell *matCellDef="let n" class="text-center">
+              <span class="badge" [ngClass]="obterClasseOrigem(n.origemDados)"
+                    [matTooltip]="obterLabelOrigem(n.origemDados)">
+                {{ obterSiglaOrigem(n.origemDados) }}
+              </span>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="avaliacao">
+            <th mat-header-cell *matHeaderCellDef class="text-center" matTooltip="Status de avaliação">
+              <mat-icon style="font-size:18px;vertical-align:middle">assignment_turned_in</mat-icon>
+            </th>
+            <td mat-cell *matCellDef="let n" class="text-center">
+              <mat-icon [style.color]="notaAvaliada(n) ? '#4caf50' : '#9e9e9e'"
+                        [matTooltip]="tooltipAvaliacao(n)"
+                        style="font-size:20px;vertical-align:middle">
+                {{ notaAvaliada(n) ? 'check_circle' : 'radio_button_unchecked' }}
+              </mat-icon>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="acoes">
+            <th mat-header-cell *matHeaderCellDef class="text-center">Ações</th>
+            <td mat-cell *matCellDef="let n" class="text-center acoes-cell">
+              <button mat-icon-button (click)="abrirDetalhes(n, 'detalhes')"
+                      matTooltip="Ver detalhes" color="primary">
+                <mat-icon>visibility</mat-icon>
+              </button>
+              <button mat-icon-button (click)="abrirDetalhes(n, 'contratos')"
+                      matTooltip="Contratos / Intercorrências">
+                <mat-icon>handshake</mat-icon>
+              </button>
+              <button mat-icon-button (click)="abrirDetalhes(n, 'pdf')"
+                      matTooltip="Visualizar PDF">
+                <mat-icon>picture_as_pdf</mat-icon>
+              </button>
+              <button mat-icon-button (click)="gerarRelatorio(n, $event)"
+                      [matTooltip]="notaAvaliada(n) ? 'Gerar relatório' : 'Gerar relatório (nota ainda não avaliada)'"
+                      [color]="notaAvaliada(n) ? 'accent' : ''">
+                <mat-icon>summarize</mat-icon>
+              </button>
+              <button mat-icon-button (click)="remover(n, $event)"
+                      matTooltip="Remover" color="warn">
+                <mat-icon>delete</mat-icon>
+              </button>
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="colunas"></tr>
+          <tr mat-row *matRowDef="let row; columns: colunas;" class="linha-nota"
+              [matTooltip]="tooltipLinha(row)"
+              matTooltipClass="tooltip-nota"
+              matTooltipPosition="below"
+              [matTooltipShowDelay]="500"></tr>
+        </table>
+      </div>
+
+    </mat-card-content>
+  </mat-card>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  DIALOG UPLOAD                                           -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<ng-template #dialogUpload>
+  <mat-card>
+    <mat-card-header>
+      <div mat-card-avatar><mat-icon color="primary">upload_file</mat-icon></div>
+      <mat-card-title>Importar NF-e</mat-card-title>
+      <mat-card-subtitle>Envie o PDF, o XML ou uma imagem da nota fiscal eletrônica</mat-card-subtitle>
+    </mat-card-header>
+
+    <mat-divider></mat-divider>
+
+    <mat-card-content>
+
+      <!-- Zona de drop — suporta múltiplos arquivos -->
+      <div class="drop-zone"
+           [class.drag-over]="dragOver"
+           [class.com-arquivo]="arquivosSelecionados.length > 0"
+           (dragover)="onDragOver($event)"
+           (dragleave)="onDragLeave($event)"
+           (drop)="onDrop($event)">
+
+        <!-- Alvo invisível pra Ctrl+V: precisa de um elemento editável focado
+             pro navegador disparar o evento "paste" de forma confiável.
+             Focada manualmente ao abrir o dialog (ver abrirUpload). Sem
+             (paste) aqui — o evento borbulha até o listener @HostListener
+             ('window:paste') do componente, que já cobre isso (evita
+             processar o mesmo paste duas vezes). -->
+        <textarea class="paste-target" aria-hidden="true" tabindex="0"></textarea>
+
+        <mat-icon class="drop-icon" [class.sucesso]="arquivosSelecionados.length > 0">
+          {{ arquivosSelecionados.length > 0 ? 'cloud_done' : 'cloud_upload' }}
+        </mat-icon>
+
+        <p *ngIf="arquivosSelecionados.length === 0">
+          <strong>Arraste um ou mais PDFs/XMLs/imagens aqui</strong> ou clique para selecionar
+        </p>
+        <p *ngIf="arquivosSelecionados.length > 0">
+          <strong>{{ arquivosSelecionados.length }}</strong> arquivo(s) na fila
+        </p>
+
+        <label mat-stroked-button color="primary" class="btn-file-label"
+               *ngIf="!processandoFila">
+          <mat-icon>attach_file</mat-icon>
+          {{ arquivosSelecionados.length > 0 ? 'Adicionar mais arquivos' : 'Selecionar PDF/XML/Imagem' }}
+          <input type="file"
+                 accept=".pdf,application/pdf,.xml,text/xml,application/xml,.png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp"
+                 multiple
+                 (change)="onFileSelected($event)" hidden>
+        </label>
+
+        <button mat-stroked-button color="accent" class="btn-colar-clipboard"
+                *ngIf="!processandoFila && suportaColarClipboard"
+                (click)="colarImagemClipboard()">
+          <mat-icon>content_paste_go</mat-icon>
+          Colar da área de transferência
+        </button>
+
+        <p class="dica-colar" *ngIf="!processandoFila">
+          <mat-icon>content_paste</mat-icon>
+          ou cole uma imagem (Ctrl+V) — print ou foto da nota
+        </p>
+      </div>
+
+      <!-- Alternativa: cadastrar só pela chave de acesso (sem PDF/XML em mãos) -->
+      <div class="chave-acesso-box" *ngIf="arquivosSelecionados.length === 0 && !processandoFila">
+        <mat-divider style="margin: 14px 0"></mat-divider>
+        <p class="chave-acesso-label">Ou informe a chave de acesso (44 ou 50 posições — pode conter letras do CNPJ):</p>
+        <div class="chave-acesso-row">
+          <mat-form-field appearance="outline" style="flex:1" subscriptSizing="dynamic">
+            <input matInput [(ngModel)]="chaveAcessoInput" maxlength="60"
+                   placeholder="Chave de acesso da NFS-e"
+                   [disabled]="processandoChave"
+                   (keyup.enter)="processarChaveAcesso()">
+          </mat-form-field>
+          <button mat-stroked-button color="primary"
+                  [disabled]="!chaveAcessoInput.trim() || processandoChave"
+                  (click)="processarChaveAcesso()">
+            <mat-spinner *ngIf="processandoChave" diameter="18"
+                         style="display:inline-block;margin-right:6px"></mat-spinner>
+            <mat-icon *ngIf="!processandoChave">search</mat-icon>
+            Buscar
+          </button>
+        </div>
+      </div>
+
+      <!-- Lista de arquivos na fila -->
+      <div class="fila-upload" *ngIf="arquivosSelecionados.length > 0">
+        <div class="fila-item" *ngFor="let a of arquivosSelecionados; let i = index"
+             [ngClass]="'fila-' + a.status">
+
+          <!-- ícone de status -->
+          <mat-icon class="fila-icone">
+            {{ a.status === 'pendente'    ? 'schedule'
+             : a.status === 'processando' ? 'sync'
+             : a.status === 'sucesso'     ? 'check_circle'
+             : a.status === 'duplicado'   ? 'content_copy'
+             :                              'error' }}
+          </mat-icon>
+
+          <!-- nome e info -->
+          <div class="fila-info">
+            <span class="fila-nome">{{ a.file.name }}</span>
+            <span class="fila-detalhe">
+              {{ a.mensagem || (a.file.size / 1024).toFixed(1) + ' KB' }}
+            </span>
+          </div>
+
+          <!-- spinner quando processando -->
+          <mat-spinner *ngIf="a.status === 'processando'" diameter="18"
+                       style="flex-shrink:0"></mat-spinner>
+
+          <!-- botão remover quando pendente -->
+          <button mat-icon-button class="fila-remover"
+                  *ngIf="a.status === 'pendente' && !processandoFila"
+                  (click)="removerArquivoDaFila(i)"
+                  matTooltip="Remover">
+            <mat-icon>close</mat-icon>
+          </button>
+        </div>
+      </div>
+
+    </mat-card-content>
+
+    <mat-divider></mat-divider>
+
+    <mat-card-actions align="end">
+
+      <!-- Estado: processando ou aguardando envio -->
+      <ng-container *ngIf="!filaConcluidaComResultado">
+        <button mat-button (click)="fecharUpload()" [disabled]="processandoFila">
+          Cancelar
+        </button>
+        <button mat-flat-button color="primary"
+                (click)="enviarArquivo()"
+                [disabled]="arquivosSelecionados.length === 0 || processandoFila || totalPendentes === 0">
+          <mat-icon *ngIf="!processandoFila">send</mat-icon>
+          <mat-spinner *ngIf="processandoFila" diameter="18"
+                       style="display:inline-block;margin-right:6px"></mat-spinner>
+          {{ processandoFila
+             ? 'Processando ' + totalProcessados + '/' + arquivosSelecionados.length + '...'
+             : 'Processar ' + arquivosSelecionados.length + ' NF-e(s)' }}
+        </button>
+      </ng-container>
+
+      <!-- Estado: fila concluída (com ou sem erros) -->
+      <ng-container *ngIf="filaConcluidaComResultado">
+        <!-- resumo inline -->
+        <span class="fila-resumo">
+          <mat-icon color="primary" style="vertical-align:middle;font-size:18px">info</mat-icon>
+          {{ totalSucesso }} importada(s) · {{ totalDuplicado }} duplicada(s) · {{ totalErro }} com erro
+        </span>
+
+        <button mat-stroked-button color="primary" (click)="novasNotas()"
+                matTooltip="Limpar fila e adicionar novas notas">
+          <mat-icon>add</mat-icon> Novas Notas
+        </button>
+
+        <button mat-flat-button color="primary" (click)="fecharUpload()">
+          <mat-icon>check</mat-icon> OK
+        </button>
+      </ng-container>
+
+    </mat-card-actions>
+  </mat-card>
+</ng-template>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  DIALOG DETALHES DA NOTA                                 -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<ng-template #dialogDetalhe>
+  <mat-card *ngIf="notaSelecionada" class="dialog-detalhe">
+    <mat-card-header>
+      <div mat-card-avatar><mat-icon color="primary">receipt_long</mat-icon></div>
+      <mat-card-title>
+        NF-e {{ notaSelecionada.numeroNfse ? '#' + notaSelecionada.numeroNfse : '' }}
+        <span class="badge ml-8" [ngClass]="obterClasseOrigem(notaSelecionada.origemDados)">
+          {{ obterSiglaOrigem(notaSelecionada.origemDados) }}
+        </span>
+      </mat-card-title>
+      <mat-card-subtitle>{{ notaSelecionada.nomeEmpresarial }}</mat-card-subtitle>
+    </mat-card-header>
+
+    <mat-divider></mat-divider>
+
+    <!-- Corpo com scroll próprio — header e ações ficam sempre fixos/visíveis -->
+    <div class="dialog-detalhe-body">
+
+    <!-- Status de avaliação (visível sempre, junto ao header) -->
+    <div class="status-avaliacao-bar">
+      <mat-icon [style.color]="notaAvaliada(notaSelecionada!) ? '#4caf50' : '#9e9e9e'">
+        {{ notaAvaliada(notaSelecionada!) ? 'check_circle' : 'radio_button_unchecked' }}
+      </mat-icon>
+      <span>{{ tooltipAvaliacao(notaSelecionada!) }}</span>
+    </div>
+
+    <mat-divider></mat-divider>
+
+    <!-- ════════ VISÃO UNIFICADA: Detalhes + PDF + Contratos lado a lado ════════ -->
+    <div class="visao-unificada">
+
+      <!-- ───────── PAINEL: Detalhes ───────── -->
+      <div class="painel painel-detalhes" id="painel-detalhes">
+        <div class="painel-header">
+          <mat-icon>info</mat-icon>
+          <span>Detalhes</span>
+          <span class="painel-spacer"></span>
+          <ng-container *ngIf="!editandoDetalhes">
+            <button mat-icon-button (click)="iniciarEdicaoDetalhes()" matTooltip="Editar">
+              <mat-icon>edit</mat-icon>
+            </button>
+          </ng-container>
+          <ng-container *ngIf="editandoDetalhes">
+            <button mat-icon-button (click)="cancelarEdicaoDetalhes()" matTooltip="Cancelar">
+              <mat-icon>close</mat-icon>
+            </button>
+            <button mat-icon-button color="primary" (click)="salvarDetalhes()" matTooltip="Salvar alterações">
+              <mat-icon>save</mat-icon>
+            </button>
+          </ng-container>
+        </div>
+
+        <div class="painel-body">
+
+          <!-- ── Modo visualização ── -->
+          <div class="detalhe-grid" *ngIf="!editandoDetalhes">
+            <div class="detalhe">
+              <label>Número NFS-e</label>
+              <span>{{ notaSelecionada.numeroNfse || '—' }}</span>
+            </div>
+            <div class="detalhe">
+              <label>Competência</label>
+              <span>{{ notaSelecionada.competencia || '—' }}</span>
+            </div>
+            <div class="detalhe">
+              <label>Data de Emissão</label>
+              <span>{{ formatarData(notaSelecionada.dataEmissao) }}</span>
+            </div>
+            <div class="detalhe">
+              <label>CNPJ / CPF / NIF</label>
+              <span class="mono">{{ formatarCnpjCpf(notaSelecionada.cnpjCpfNif) }}</span>
+            </div>
+            <div class="detalhe detalhe-full">
+              <label>Nome / Razão Social</label>
+              <span>{{ notaSelecionada.nomeEmpresarial || '—' }}</span>
+            </div>
+            <div class="detalhe detalhe-full">
+              <label>Descrição do Serviço</label>
+              <span class="pre-wrap">{{ notaSelecionada.descricaoServico || '—' }}</span>
+            </div>
+            <div class="detalhe">
+              <label>Valor do Serviço</label>
+              <span class="valor">{{ formatarValor(notaSelecionada.valorServico) }}</span>
+            </div>
+            <div class="detalhe">
+              <label>Importado em</label>
+              <span>{{ formatarData(notaSelecionada.criadoEm) }}</span>
+            </div>
+            <div class="detalhe detalhe-full" *ngIf="notaSelecionada.chaveAcesso">
+              <label>Chave de Acesso</label>
+              <span class="mono small">{{ formatarChave(notaSelecionada.chaveAcesso) }}</span>
+            </div>
+            <div class="detalhe detalhe-full">
+              <label>Arquivo</label>
+              <span>
+                <mat-icon style="font-size:16px;vertical-align:middle">picture_as_pdf</mat-icon>
+                {{ notaSelecionada.nomeArquivoPdf }}
+                <small>({{ formatarTamanho(notaSelecionada.tamanhoArquivo) }})</small>
+              </span>
+            </div>
+          </div>
+
+          <!-- ── Modo edição ── -->
+          <div class="detalhe-grid" *ngIf="editandoDetalhes">
+            <mat-form-field appearance="outline">
+              <mat-label>Número NFS-e</mat-label>
+              <input matInput [(ngModel)]="detalheEditado.numeroNfse" placeholder="Nº da nota" autocomplete="off">
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Competência (MM/AAAA)</mat-label>
+              <input matInput [(ngModel)]="detalheEditado.competencia" placeholder="Ex: 06/2025" autocomplete="off">
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Data de Emissão</mat-label>
+              <input matInput [(ngModel)]="detalheEditado.dataEmissao"
+                     type="datetime-local" placeholder="AAAA-MM-DDTHH:mm" autocomplete="off">
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>CNPJ / CPF / NIF</mat-label>
+              <input matInput [(ngModel)]="detalheEditado.cnpjCpfNif"
+                     placeholder="Números e letras, sem pontuação" class="mono" autocomplete="off"
+                     style="text-transform: uppercase">
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="detalhe-full">
+              <mat-label>Nome / Razão Social</mat-label>
+              <input matInput [(ngModel)]="detalheEditado.nomeEmpresarial" autocomplete="off">
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="detalhe-full">
+              <mat-label>Descrição do Serviço</mat-label>
+              <textarea matInput [(ngModel)]="detalheEditado.descricaoServico"
+                        rows="3" placeholder="Descrição do serviço prestado..."></textarea>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Valor do Serviço (R$)</mat-label>
+              <input matInput type="number" min="0" step="0.01"
+                     [(ngModel)]="detalheEditado.valorServico" autocomplete="off">
+              <span matPrefix>R$&nbsp;</span>
+            </mat-form-field>
+
+            <!-- campos não editáveis -->
+            <div class="detalhe">
+              <label>Importado em</label>
+              <span>{{ formatarData(notaSelecionada.criadoEm) }}</span>
+            </div>
+            <div class="detalhe detalhe-full" *ngIf="notaSelecionada.chaveAcesso">
+              <label>Chave de Acesso</label>
+              <span class="mono small">{{ formatarChave(notaSelecionada.chaveAcesso) }}</span>
+            </div>
+          </div>
+
+        </div><!-- /painel-body -->
+      </div><!-- /painel-detalhes -->
+
+      <!-- ───────── PAINEL: PDF ───────── -->
+      <div class="painel painel-pdf" id="painel-pdf">
+        <div class="painel-header">
+          <mat-icon>picture_as_pdf</mat-icon>
+          <span>PDF</span>
+          <span class="painel-spacer"></span>
+          <button mat-icon-button (click)="abrirPdfNovaAba(notaSelecionada)" matTooltip="Abrir em nova aba">
+            <mat-icon>open_in_new</mat-icon>
+          </button>
+          <button mat-icon-button (click)="baixarPdf(notaSelecionada)" matTooltip="Baixar PDF">
+            <mat-icon>download</mat-icon>
+          </button>
+        </div>
+
+        <div class="painel-body pdf-body">
+          <div class="pdf-loading" *ngIf="carregandoPdf">
+            <mat-spinner diameter="40"></mat-spinner>
+            <p>Carregando PDF...</p>
+          </div>
+
+          <iframe *ngIf="!carregandoPdf && pdfUrl"
+                  [src]="pdfUrl" class="pdf-iframe"
+                  title="Preview da NF-e"></iframe>
+
+          <div class="pdf-erro" *ngIf="!carregandoPdf && !pdfUrl">
+            <mat-icon>error_outline</mat-icon>
+            <p>Não foi possível carregar o PDF.</p>
+            <button mat-stroked-button (click)="carregarPdfPreview(notaSelecionada!)">
+              Tentar novamente
+            </button>
+          </div>
+        </div>
+      </div><!-- /painel-pdf -->
+
+      <!-- ───────── PAINEL: Contratos ───────── -->
+      <div class="painel painel-contratos" id="painel-contratos">
+        <div class="painel-header">
+          <mat-icon>handshake</mat-icon>
+          <span>Contratos &amp; Intercorrências</span>
+        </div>
+
+        <div class="painel-body">
+
+          <div class="loading-row" *ngIf="carregandoContratos">
+            <mat-spinner diameter="28"></mat-spinner>
+            <span>Carregando contratos...</span>
+          </div>
+
+          <ng-container *ngIf="!carregandoContratos">
+
+            <div class="empty-row small" *ngIf="itensContrato.length === 0">
+              <mat-icon>business_center</mat-icon>
+              <span>Nenhum contrato para o CNPJ <strong>{{ formatarCnpjCpf(notaSelecionada?.cnpjCpfNif) }}</strong>.</span>
+            </div>
+
+            <ng-container *ngIf="itensContrato.length > 0">
+              <p class="secao-label">
+                <mat-icon color="primary">business</mat-icon>
+                Selecione os contratos e defina o rateio
+              </p>
+
+              <!-- Pesquisa: o mesmo CNPJ costuma ter vários contratos (sistemas diferentes) -->
+              <div class="contrato-busca" *ngIf="itensContrato.length > 1">
+                <mat-form-field appearance="outline" class="w-full contrato-busca-field" subscriptSizing="dynamic">
+                  <mat-label>Pesquisar contrato</mat-label>
+                  <mat-icon matPrefix>search</mat-icon>
+                  <input matInput [(ngModel)]="filtroContrato" autocomplete="off"
+                         placeholder="Sistema, descrição, centro de custo, empresa...">
+                  <button mat-icon-button matSuffix *ngIf="filtroContrato"
+                          (click)="filtroContrato = ''" matTooltip="Limpar pesquisa">
+                    <mat-icon>close</mat-icon>
+                  </button>
+                </mat-form-field>
+                <span class="contrato-busca-contagem text-muted" *ngIf="filtroContrato">
+                  {{ itensContratoFiltrados.length }} de {{ itensContrato.length }} contrato(s)
+                  <ng-container *ngIf="contratosSelecionados.length"> · selecionados sempre visíveis</ng-container>
+                </span>
+              </div>
+
+              <div class="contratos-lista" [class.lista-desabilitada]="notaAvulsa">
+                <div class="empty-row small" *ngIf="itensContratoFiltrados.length === 0">
+                  <mat-icon>search_off</mat-icon>
+                  <span>Nenhum contrato encontrado para "<strong>{{ filtroContrato }}</strong>".</span>
+                </div>
+                <div class="contrato-row"
+                     *ngFor="let item of itensContratoFiltrados; trackBy: trackContrato"
+                     [class.selecionado]="item.selecionado && !notaAvulsa">
+
+                  <!-- Linha 1: checkbox + informações do contrato -->
+                  <div class="contrato-row-top">
+                    <mat-checkbox
+                      [(ngModel)]="item.selecionado"
+                      (change)="onToggleContrato(item)"
+                      [disabled]="notaAvulsa"
+                      class="contrato-check">
+                    </mat-checkbox>
+
+                    <div class="contrato-info">
+                      <strong>{{ item.contrato.empresa }}</strong>
+                      <span class="mono text-muted">{{ item.contrato.cnpjFormatado || formatarCnpjCpf(item.contrato.cnpj) }}</span>
+                      <span class="text-muted" *ngIf="item.contrato.sistema">• {{ item.contrato.sistema }}</span>
+                      <span class="contrato-descricao text-muted" *ngIf="item.contrato.descricao"
+                            [matTooltip]="item.contrato.descricao">{{ item.contrato.descricao }}</span>
+                      <div class="cc-chips" *ngIf="getCentrosCusto(item.contrato).length > 0">
+                        <span class="cc-chip" *ngFor="let cc of getCentrosCusto(item.contrato)">
+                          {{ cc.cdSetor }} - {{ cc.nmSetor }}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Linha 2: rateio — sempre em linha própria, largura total -->
+                  <div class="rateio-inputs" *ngIf="item.selecionado && notaSelecionada?.valorServico">
+                    <mat-form-field appearance="outline" class="rateio-field">
+                      <mat-label>%</mat-label>
+                      <input matInput type="number" min="0" max="100" step="0.01"
+                             [(ngModel)]="item.percentual"
+                             (ngModelChange)="onPercentualChange(item)">
+                      <span matSuffix>%</span>
+                    </mat-form-field>
+                    <mat-form-field appearance="outline" class="rateio-field">
+                      <mat-label>Valor</mat-label>
+                      <input matInput type="number" min="0" step="0.01"
+                             [(ngModel)]="item.valor"
+                             (ngModelChange)="onValorChange(item)">
+                      <span matPrefix>R$&nbsp;</span>
+                    </mat-form-field>
+                    <button mat-icon-button color="primary"
+                            (click)="distribuirRateioIgual()"
+                            matTooltip="Distribuir igualmente">
+                      <mat-icon>balance</mat-icon>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- barra visual de rateio -->
+              <div class="rateio-barra" *ngIf="contratosSelecionados.length > 0">
+                <div class="barra-segmento"
+                     *ngFor="let item of contratosSelecionados; let i = index"
+                     [style.flex]="(item.percentual || 0).toString()"
+                     [style.background]="coresRateio[i % coresRateio.length]"
+                     [matTooltip]="item.contrato.empresa + ': ' + (item.percentual || 0) + '%'">
+                </div>
+              </div>
+            </ng-container>
+
+            <!-- Centros de custo para nota avulsa -->
+            <div class="cc-avulso-panel"
+                 *ngIf="notaAvulsa && contratosSelecionados.length === 0">
+              <p class="secao-label" style="margin-top:12px">
+                <mat-icon color="accent">account_tree</mat-icon>
+                Centros de Custo (Nota Avulsa)
+              </p>
+              <div class="cc-chips-avulso" *ngIf="centrosAvulso.length > 0">
+                <span class="cc-chip-avulso" *ngFor="let cc of centrosAvulso">
+                  {{ cc.cdSetor }} — {{ cc.nmSetor }}
+                  <button class="cc-chip-remove" (click)="removerCCAvulso(cc)" matTooltip="Remover">✕</button>
+                </span>
+              </div>
+              <mat-form-field appearance="outline" class="w-full setor-field-avulso">
+                <mat-label>Buscar setor (código ou nome)</mat-label>
+                <input matInput [value]="termoBuscaSetor"
+                       (input)="onBuscaSetor($any($event.target).value)"
+                       placeholder="Digite ao menos 2 caracteres...">
+                <mat-icon matSuffix>search</mat-icon>
+              </mat-form-field>
+              <div class="setor-dropdown-avulso" *ngIf="mostrarDropdown">
+                <div class="setor-loading" *ngIf="buscandoSetores">
+                  <mat-spinner diameter="18"></mat-spinner> Buscando...
+                </div>
+                <div class="setor-vazio" *ngIf="!buscandoSetores && setoresDisponiveis.length === 0">
+                  Nenhum setor encontrado
+                </div>
+                <button class="setor-item" *ngFor="let s of setoresDisponiveis"
+                        (mousedown)="adicionarCCAvulso(s)">
+                  <strong>{{ s.cdSetor }}</strong> — {{ s.nmSetor }}
+                </button>
+              </div>
+            </div>
+
+            <mat-divider class="my-12"></mat-divider>
+
+            <!-- Intercorrências -->
+            <p class="secao-label"><mat-icon color="warn">report</mat-icon> Intercorrências</p>
+            <mat-form-field appearance="outline" class="w-full">
+              <mat-label>Ocorrências ou observações</mat-label>
+              <textarea matInput [(ngModel)]="intercorrencias" rows="4"
+                        placeholder="Descreva intercorrências, problemas ou observações..."></textarea>
+            </mat-form-field>
+
+            <!-- Ações -->
+            <div class="secao-acoes">
+              <mat-checkbox [(ngModel)]="notaAvulsa"
+                            (change)="onToggleAvulso()"
+                            color="accent"
+                            class="avulsa-check"
+                            *ngIf="contratosSelecionados.length === 0"
+                            matTooltip="Marque se esta nota não possui contrato vinculado">
+                Nota avulsa (sem contrato)
+              </mat-checkbox>
+              <span class="alerta-saldo"
+                    *ngIf="saldoRateio !== 0 && contratosSelecionados.length > 1">
+                <mat-icon>warning</mat-icon>
+                Saldo: {{ formatarValor(saldoRateio) }}
+              </span>
+              <button mat-flat-button color="primary"
+                      (click)="salvarTudo()"
+                      [disabled]="salvandoTudo
+                        || (contratosSelecionados.length === 0 && !notaAvulsa)
+                        || (saldoRateio !== 0 && contratosSelecionados.length > 1)">
+                <mat-spinner *ngIf="salvandoTudo" diameter="18"
+                             style="display:inline-block;margin-right:6px"></mat-spinner>
+                <mat-icon *ngIf="!salvandoTudo">save</mat-icon>
+                {{ salvandoTudo ? 'Salvando...' : 'Salvar Contratos e Intercorrências' }}
+              </button>
+            </div>
+
+          </ng-container>
+        </div><!-- /painel-body -->
+      </div><!-- /painel-contratos -->
+
+    </div><!-- /visao-unificada -->
+
+    </div><!-- /dialog-detalhe-body -->
+
+    <mat-divider></mat-divider>
+
+    <mat-card-actions align="end">
+      <button mat-button color="accent"
+              (click)="gerarRelatorio(notaSelecionada!)"
+              [disabled]="!notaSelecionada?.id"
+              [matTooltip]="notaAvaliada(notaSelecionada!) ? '' : 'Nota ainda não avaliada — relatório pode estar incompleto'">
+        <mat-icon>summarize</mat-icon> Gerar Relatório
+      </button>
+      <button mat-button (click)="fecharDetalhes()">Fechar</button>
+    </mat-card-actions>
+  </mat-card>
+</ng-template>

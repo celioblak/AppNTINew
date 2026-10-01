@@ -1,0 +1,148 @@
+<div class="matero-container-wrap">
+  <ng-container *ngIf="dashboard">
+    <!-- Header -->
+    <mat-card class="mb-4">
+      <mat-card-header>
+        <mat-card-title>
+          <div class="flex items-center justify-between flex-wrap gap-4">
+            <div>
+              <h2 class="text-2xl font-bold m-0">Dashboard SLA Crítico</h2>
+              <p class="text-gray-600 mt-2 m-0">
+                Monitoramento de tickets Nível 1 e 2 com controle de SLA
+              </p>
+            </div>
+            <div>
+              <button mat-raised-button color="primary" (click)="atualizarStatus()" [disabled]="loading">
+                <mat-icon>refresh</mat-icon>
+                Atualizar Status
+              </button>
+            </div>
+          </div>
+        </mat-card-title>
+      </mat-card-header>
+    </mat-card>
+
+    <!-- Cards de Resumo -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+      <!-- Nível 1 -->
+      <mat-card>
+        <mat-card-header>
+          <mat-card-title class="flex items-center gap-2">
+            <mat-icon class="text-red-600">priority_high</mat-icon>
+            <span>Nível 1 - Impacto Crítico</span>
+          </mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="grid grid-cols-3 gap-4 mb-4">
+            <div class="text-center">
+              <div class="text-3xl font-bold text-blue-600">{{ dashboard.totalNivel1 }}</div>
+              <div class="text-sm text-gray-600">Total</div>
+            </div>
+            <div class="text-center">
+              <div class="text-3xl font-bold text-green-600">{{ dashboard.noPrazoNivel1 }}</div>
+              <div class="text-sm text-gray-600">No Prazo</div>
+            </div>
+            <div class="text-center">
+              <div class="text-3xl font-bold text-red-600">{{ dashboard.atrasadosNivel1 }}</div>
+              <div class="text-sm text-gray-600">Atrasados</div>
+            </div>
+          </div>
+          <div class="bg-gray-100 p-3 rounded">
+            <div class="text-sm text-gray-600 mb-1">Performance</div>
+            <div class="text-2xl font-bold"
+                 [class.text-green-600]="calcularPercentualNoPrazo(dashboard.noPrazoNivel1, dashboard.totalNivel1) >= 80"
+                 [class.text-orange-600]="calcularPercentualNoPrazo(dashboard.noPrazoNivel1, dashboard.totalNivel1) >= 60 && calcularPercentualNoPrazo(dashboard.noPrazoNivel1, dashboard.totalNivel1) < 80"
+                 [class.text-red-600]="calcularPercentualNoPrazo(dashboard.noPrazoNivel1, dashboard.totalNivel1) < 60">
+              {{ calcularPercentualNoPrazo(dashboard.noPrazoNivel1, dashboard.totalNivel1) }}%
+            </div>
+          </div>
+          <div echarts [options]="chartOptionsNivel1" class="chart-container mt-4"></div>
+          <div class="mt-4 text-sm text-gray-600">
+            <p class="m-0"><strong>SLA:</strong> 4h paliativo / 12h definitivo (úteis)</p>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <!-- Nível 2 -->
+      <mat-card>
+        <mat-card-header>
+          <mat-card-title class="flex items-center gap-2">
+            <mat-icon class="text-orange-600">warning</mat-icon>
+            <span>Nível 2 - Impacto Significativo</span>
+          </mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="grid grid-cols-3 gap-4 mb-4">
+            <div class="text-center">
+              <div class="text-3xl font-bold text-blue-600">{{ dashboard.totalNivel2 }}</div>
+              <div class="text-sm text-gray-600">Total</div>
+            </div>
+            <div class="text-center">
+              <div class="text-3xl font-bold text-green-600">{{ dashboard.noPrazoNivel2 }}</div>
+              <div class="text-sm text-gray-600">No Prazo</div>
+            </div>
+            <div class="text-center">
+              <div class="text-3xl font-bold text-red-600">{{ dashboard.atrasadosNivel2 }}</div>
+              <div class="text-sm text-gray-600">Atrasados</div>
+            </div>
+          </div>
+          <div class="bg-gray-100 p-3 rounded">
+            <div class="text-sm text-gray-600 mb-1">Performance</div>
+            <div class="text-2xl font-bold"
+                 [class.text-green-600]="calcularPercentualNoPrazo(dashboard.noPrazoNivel2, dashboard.totalNivel2) >= 80"
+                 [class.text-orange-600]="calcularPercentualNoPrazo(dashboard.noPrazoNivel2, dashboard.totalNivel2) >= 60 && calcularPercentualNoPrazo(dashboard.noPrazoNivel2, dashboard.totalNivel2) < 80"
+                 [class.text-red-600]="calcularPercentualNoPrazo(dashboard.noPrazoNivel2, dashboard.totalNivel2) < 60">
+              {{ calcularPercentualNoPrazo(dashboard.noPrazoNivel2, dashboard.totalNivel2) }}%
+            </div>
+          </div>
+          <div echarts [options]="chartOptionsNivel2" class="chart-container mt-4"></div>
+          <div class="mt-4 text-sm text-gray-600">
+            <p class="m-0"><strong>SLA:</strong> 12h paliativo / 24h definitivo (úteis)</p>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+
+    <!-- Tabs com Tabelas -->
+    <mat-card>
+      <mat-card-content>
+        <mat-tab-group>
+          <mat-tab label="Nível 1 ({{ dashboard.totalNivel1 }})">
+            <div class="pt-4">
+              <mtx-grid
+                [data]="dashboard.ticketsNivel1"
+                [columns]="columnsNivel1"
+                [loading]="loading"
+                [pageOnFront]="true"
+                [showPaginator]="true"
+                [pageSizeOptions]="[10, 20, 50]"
+                [pageSize]="10"
+                [columnResizable]="true">
+              </mtx-grid>
+            </div>
+          </mat-tab>
+
+          <mat-tab label="Nível 2 ({{ dashboard.totalNivel2 }})">
+            <div class="pt-4">
+              <mtx-grid
+                [data]="dashboard.ticketsNivel2"
+                [columns]="columnsNivel2"
+                [loading]="loading"
+                [pageOnFront]="true"
+                [showPaginator]="true"
+                [pageSizeOptions]="[10, 20, 50]"
+                [pageSize]="10"
+                [columnResizable]="true">
+              </mtx-grid>
+            </div>
+          </mat-tab>
+        </mat-tab-group>
+      </mat-card-content>
+    </mat-card>
+  </ng-container>
+
+  <div *ngIf="loading && !dashboard" class="text-center py-8">
+    <mat-spinner class="mx-auto"></mat-spinner>
+    <p class="mt-4">Carregando dashboard...</p>
+  </div>
+</div>

@@ -1,0 +1,285 @@
+<div class="classificacao-wrap">
+
+  <!-- ── Cabeçalho ─────────────────────────────────────────── -->
+  <div class="page-header">
+    <div class="header-left">
+      <h2 class="page-title">Classificação de Tickets</h2>
+      <span class="badge-total">{{ ticketsFiltrados.filteredData.length }} tickets</span>
+    </div>
+    <div class="header-actions">
+      <button mat-icon-button (click)="carregarTickets()" matTooltip="Atualizar lista" class="btn-refresh">
+        <mat-icon>refresh</mat-icon>
+      </button>
+    </div>
+  </div>
+
+  <!-- ── Barra de filtros ───────────────────────────────────── -->
+  <mat-card class="filtros-card">
+    <div class="filtros-grid">
+
+      <mat-form-field appearance="outline" class="filtro-busca">
+        <mat-label>Buscar</mat-label>
+        <input matInput [(ngModel)]="filtros.busca"
+               (ngModelChange)="aplicarFiltroLocais()"
+               placeholder="ID, título, responsável...">
+        <mat-icon matSuffix>search</mat-icon>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Status HB</mat-label>
+        <mat-select [(ngModel)]="filtros.statusHb" (ngModelChange)="aplicarFiltros()">
+          <mat-option value="">Todos</mat-option>
+          <mat-option value="PENDENTE">PENDENTE</mat-option>
+          <mat-option value="ENTREGUE">ENTREGUE</mat-option>
+          <mat-option value="REPROVADO">REPROVADO</mat-option>
+          <mat-option value="CANCELADO">CANCELADO</mat-option>
+          <mat-option value="SEM_STATUS">Sem status</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Nível SLA</mat-label>
+        <mat-select [(ngModel)]="filtros.nivelId" (ngModelChange)="aplicarFiltros()">
+          <mat-option value="">Todos</mat-option>
+          <mat-option *ngFor="let sla of slaContratos" [value]="sla.id">
+            N{{ sla.nivel }} — {{ sla.descricao }}
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <!-- ── NOVO: Filtro por Usuário Responsável ───────────── -->
+      <mat-form-field appearance="outline" class="filtro-usuario">
+        <mat-label>Responsável</mat-label>
+        <mat-select [(ngModel)]="filtros.responsavelId" (selectionChange)="onResponsavelChange()">
+          <mat-option value="">Todos</mat-option>
+          <mat-option *ngFor="let u of usuarios" [value]="u['codUsuario']">
+            {{ u['nome'] }}
+          </mat-option>
+        </mat-select>
+        <mat-icon matSuffix>person_search</mat-icon>
+      </mat-form-field>
+
+      <div class="filtro-toggle">
+        <mat-slide-toggle
+          [(ngModel)]="filtros.apenasNaoFinalizados"
+          (ngModelChange)="aplicarFiltros()"
+          color="primary">
+          Apenas não finalizados
+        </mat-slide-toggle>
+        <span class="toggle-hint">Oculta tickets Fechado / Resolvido</span>
+      </div>
+
+      <div class="filtro-toggle">
+        <mat-slide-toggle
+          [(ngModel)]="filtros.apenasMeus"
+          (ngModelChange)="onApenasMeusChange()"
+          color="primary">
+          Apenas meus Tickets
+        </mat-slide-toggle>
+        <span class="toggle-hint">Apresenta somente Ticket vinculado ao seu nome</span>
+      </div>
+
+      <!-- ── NOVO: Toggle Apenas Desatualizados ─────────────── -->
+      <div class="filtro-toggle">
+        <mat-slide-toggle
+          [(ngModel)]="filtros.apenasDesatualizados"
+          (ngModelChange)="aplicarFiltroLocais()"
+          color="warn">
+          Apenas desatualizados
+        </mat-slide-toggle>
+        <span class="toggle-hint">Movimentados após último status HB</span>
+      </div>
+
+      <button mat-stroked-button class="btn-limpar" (click)="limparFiltros()" *ngIf="filtrosAtivos">
+        <mat-icon>filter_alt_off</mat-icon> Limpar filtros
+      </button>
+
+    </div>
+  </mat-card>
+
+  <!-- ── Feedback ───────────────────────────────────────────── -->
+  <div class="feedback-bar" *ngIf="feedbackMsg" [ngClass]="feedbackTipo">
+    <mat-icon>{{ feedbackTipo === 'success' ? 'check_circle' : 'error' }}</mat-icon>
+    {{ feedbackMsg }}
+  </div>
+
+  <!-- ── Tabela ─────────────────────────────────────────────── -->
+  <div class="table-container mat-elevation-z2">
+    <div class="loading-overlay" *ngIf="carregando">
+      <mat-spinner diameter="40"></mat-spinner>
+    </div>
+
+    <table mat-table [dataSource]="ticketsFiltrados" matSort class="tickets-table">
+
+      <!-- ID -->
+      <ng-container matColumnDef="id">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>ID</th>
+        <td mat-cell *matCellDef="let row">
+          <div class="id-cell">
+            <span class="ticket-id">{{ row.id }}</span>
+            <span *ngIf="row.desatualizado" class="badge-desatualizado"
+                  matTooltip="Movimentado após último status HB">
+              <mat-icon>update</mat-icon>
+            </span>
+          </div>
+        </td>
+      </ng-container>
+
+      <!-- Título -->
+      <ng-container matColumnDef="titulo">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Título</th>
+        <td mat-cell *matCellDef="let row">
+          <span class="titulo-cell" [matTooltip]="row.titulo">
+            {{ row.titulo | slice:0:60 }}{{ row.titulo?.length > 60 ? '...' : '' }}
+          </span>
+        </td>
+      </ng-container>
+
+      <!-- Status do Ticket -->
+      <ng-container matColumnDef="status">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Status</th>
+        <td mat-cell *matCellDef="let row">
+          <span class="status-ticket">{{ row.status || '—' }}</span>
+        </td>
+      </ng-container>
+
+      <!-- Nível SLA — editável -->
+      <ng-container matColumnDef="nivel">
+        <th mat-header-cell *matHeaderCellDef>Nível SLA</th>
+        <td mat-cell *matCellDef="let row">
+          <ng-container *ngIf="editandoId !== row.id; else editNivel">
+            <span *ngIf="row.slaContrato?.nivel != null; else semNivel"
+                  class="nivel-badge nivel-{{ row.slaContrato?.nivel }}"
+                  [matTooltip]="(row.slaContrato?.descricaoNivel || '') + (row.slaContrato?.descricao ? '\n' + row.slaContrato?.descricao : '')"
+                  matTooltipClass="tooltip-sla"
+                  matTooltipPosition="right">
+              N{{ row.slaContrato?.nivel }}
+            </span>
+            <ng-template #semNivel><span class="sem-valor"></span></ng-template>
+          </ng-container>
+          <ng-template #editNivel>
+            <mat-form-field appearance="outline" class="inline-field inline-sla">
+              <mat-select [(ngModel)]="edicaoAtual.idSlaContrato" panelWidth="440px">
+                <mat-option *ngFor="let sla of slaContratos" [value]="sla.id" class="sla-option">
+                  <div class="sla-option-content">
+                    <span class="sla-option-titulo">
+                      <span class="nivel-badge nivel-{{ sla.nivel }}">N{{ sla.nivel }}</span>
+                      {{ sla.descricaoNivel }}
+                    </span>
+                    <span class="sla-option-detalhe" *ngIf="sla.descricao">{{ sla.descricao }}</span>
+                  </div>
+                </mat-option>
+              </mat-select>
+            </mat-form-field>
+          </ng-template>
+        </td>
+      </ng-container>
+
+      <!-- Status HB — editável -->
+      <ng-container matColumnDef="statusHb">
+        <th mat-header-cell *matHeaderCellDef>Status HB</th>
+        <td mat-cell *matCellDef="let row">
+          <ng-container *ngIf="editandoId !== row.id; else editStatusHb">
+            <span *ngIf="row.statusHb; else semStatusHb"
+                  class="status-chip status-{{ row.statusHb | lowercase }}">
+              {{ row.statusHb }}
+            </span>
+            <ng-template #semStatusHb><span class="sem-valor">—</span></ng-template>
+          </ng-container>
+          <ng-template #editStatusHb>
+            <mat-form-field appearance="outline" class="inline-field">
+              <mat-select [(ngModel)]="edicaoAtual.statusHb">
+                <mat-option value="PENDENTE">PENDENTE</mat-option>
+                <mat-option value="ENTREGUE">ENTREGUE</mat-option>
+                <mat-option value="REPROVADO">REPROVADO</mat-option>
+                <mat-option value="CANCELADO">CANCELADO</mat-option>
+              </mat-select>
+            </mat-form-field>
+          </ng-template>
+        </td>
+      </ng-container>
+
+      <!-- Data Status HB — somente leitura, preenchida pelo backend -->
+      <ng-container matColumnDef="dtStatus">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Dt. Status HB</th>
+        <td mat-cell *matCellDef="let row">
+          <span *ngIf="row.dtStatus; else semDtStatus" class="data-valor">
+            {{ row.dtStatus | date:'dd/MM/yy' }}
+          </span>
+          <ng-template #semDtStatus><span class="sem-valor">—</span></ng-template>
+        </td>
+      </ng-container>
+
+      <!-- Observação HB — editável -->
+      <ng-container matColumnDef="observacao">
+        <th mat-header-cell *matHeaderCellDef>Observação HB</th>
+        <td mat-cell *matCellDef="let row">
+          <ng-container *ngIf="editandoId !== row.id; else editObs">
+            <span *ngIf="row.observacao; else semObs"
+                  class="obs-valor" [matTooltip]="row.observacao">
+              {{ row.observacao | slice:0:40 }}{{ row.observacao?.length > 40 ? '...' : '' }}
+            </span>
+            <ng-template #semObs><span class="sem-valor">—</span></ng-template>
+          </ng-container>
+          <ng-template #editObs>
+            <mat-form-field appearance="outline" class="inline-field inline-obs">
+              <textarea matInput
+                        cdkTextareaAutosize
+                        cdkAutosizeMinRows="2"
+                        cdkAutosizeMaxRows="6"
+                        [(ngModel)]="edicaoAtual.observacao"
+                        placeholder="Observação detalhada..."></textarea>
+            </mat-form-field>
+          </ng-template>
+        </td>
+      </ng-container>
+
+      <!-- Responsável -->
+      <ng-container matColumnDef="responsavel">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Responsável</th>
+        <td mat-cell *matCellDef="let row">{{ row.responsavel || '—' }}</td>
+      </ng-container>
+
+      <!-- Ações -->
+      <ng-container matColumnDef="acoes">
+        <th mat-header-cell *matHeaderCellDef class="col-acoes">Ações</th>
+        <td mat-cell *matCellDef="let row" class="col-acoes">
+          <ng-container *ngIf="editandoId !== row.id">
+            <button mat-icon-button color="primary" (click)="iniciarEdicao(row)" matTooltip="Editar">
+              <mat-icon>edit</mat-icon>
+            </button>
+          </ng-container>
+          <ng-container *ngIf="editandoId === row.id">
+            <button mat-icon-button color="primary" (click)="salvar(row)"
+                    matTooltip="Salvar" [disabled]="salvando">
+              <mat-icon>check</mat-icon>
+            </button>
+            <button mat-icon-button color="warn" (click)="cancelarEdicao()" matTooltip="Cancelar">
+              <mat-icon>close</mat-icon>
+            </button>
+          </ng-container>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="colunasExibidas; sticky: true"></tr>
+      <tr mat-row *matRowDef="let row; columns: colunasExibidas;"
+          [class.linha-editando]="editandoId === row.id"
+          [class.linha-desatualizada]="row.desatualizado && editandoId !== row.id"
+          [class.linha-entregue]="row.statusHb === 'ENTREGUE'"
+          [class.linha-reprovado]="row.statusHb === 'REPROVADO'">
+      </tr>
+
+      <tr class="mat-row" *matNoDataRow>
+        <td class="mat-cell sem-dados" [attr.colspan]="colunasExibidas.length">
+          <mat-icon>inbox</mat-icon>
+          <span>Nenhum ticket encontrado com os filtros aplicados</span>
+        </td>
+      </tr>
+
+    </table>
+
+    <mat-paginator [pageSize]="20" [pageSizeOptions]="[10, 20, 50, 100]" showFirstLastButtons>
+    </mat-paginator>
+  </div>
+
+</div>

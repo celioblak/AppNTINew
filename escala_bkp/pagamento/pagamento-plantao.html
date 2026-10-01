@@ -1,0 +1,365 @@
+<!-- pagamento-plantao.html -->
+
+<div class="container-fluid">
+
+  <!-- ══════════════════════════════════════════════════════
+       FILTROS SUPERIORES
+  ══════════════════════════════════════════════════════ -->
+  <div class="filter-container">
+
+    <mat-form-field appearance="outline">
+      <mat-label>Data início</mat-label>
+      <input matInput [matDatepicker]="pickerInicio" [(ngModel)]="filtroInicio" />
+      <mat-datepicker-toggle matIconSuffix [for]="pickerInicio"></mat-datepicker-toggle>
+      <mat-datepicker #pickerInicio></mat-datepicker>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Data fim</mat-label>
+      <input matInput [matDatepicker]="pickerFim" [(ngModel)]="filtroFim" />
+      <mat-datepicker-toggle matIconSuffix [for]="pickerFim"></mat-datepicker-toggle>
+      <mat-datepicker #pickerFim></mat-datepicker>
+    </mat-form-field>
+
+    <div class="filter-check">
+      <mat-checkbox [(ngModel)]="incluirFuturos" color="primary">
+        Incluir futuros
+      </mat-checkbox>
+    </div>
+
+    <div class="search-button-wrapper">
+      <button mat-fab color="primary" (click)="carregarDisponiveis()" matTooltip="Atualizar">
+        <mat-icon>refresh</mat-icon>
+      </button>
+    </div>
+
+    <!-- Alertas inline nos filtros -->
+    <div class="alert-inline alert-inline--success" *ngIf="mensagemSucesso">
+      <mat-icon>check_circle</mat-icon>
+      <span>{{ mensagemSucesso }}</span>
+      <button mat-icon-button (click)="limparMensagens()"><mat-icon>close</mat-icon></button>
+    </div>
+    <div class="alert-inline alert-inline--error" *ngIf="mensagemErro">
+      <mat-icon>error</mat-icon>
+      <span>{{ mensagemErro }}</span>
+      <button mat-icon-button (click)="limparMensagens()"><mat-icon>close</mat-icon></button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       CARD PRINCIPAL COM ABAS
+  ══════════════════════════════════════════════════════ -->
+  <mat-card>
+    <mat-card-content>
+
+      <mat-tab-group (selectedIndexChange)="onTabChange($event)" animationDuration="150ms">
+
+        <!-- ──────────────────────────────────────────────
+             ABA 1 — DISPONÍVEIS PARA ENVIO
+        ────────────────────────────────────────────────── -->
+        <mat-tab>
+          <ng-template mat-tab-label>
+            <mat-icon class="tab-icon">assignment</mat-icon>
+            Disponíveis para Envio
+          </ng-template>
+
+          <div class="tab-content">
+
+            <!-- Toolbar de ações -->
+            <div class="section-title">
+              <div class="section-title__badges">
+                <span class="badge badge--blue">{{ plantoesDisponiveis.length }} plantão(ões)</span>
+                <span class="badge badge--gray">{{ formatarHoras(totalHorasDisponiveis) }} total</span>
+                <span class="badge badge--green" *ngIf="algumSelecionado">
+                  {{ selecionados.size }} selecionado(s) · {{ formatarHoras(totalHorasSelecionadas) }}
+                </span>
+              </div>
+              <div class="section-title__actions">
+                <mat-checkbox
+                  color="primary"
+                  [checked]="todosSelecionados"
+                  [indeterminate]="algumSelecionado && !todosSelecionados"
+                  (change)="toggleTodos()"
+                  class="sel-todos-check">
+                  {{ todosSelecionados ? 'Desmarcar todos' : 'Selecionar todos' }}
+                </mat-checkbox>
+                <button mat-stroked-button color="primary"
+                        [disabled]="!algumSelecionado"
+                        (click)="abrirModalEnvio()">
+                  <mat-icon>send</mat-icon> Enviar para Pagamento
+                </button>
+                <button mat-stroked-button color="warn"
+                        [disabled]="!algumSelecionado"
+                        (click)="abrirModalNaoPagar()">
+                  <mat-icon>block</mat-icon> Marcar como Não Pagar
+                </button>
+              </div>
+            </div>
+
+            <!-- Grid -->
+            <div class="grid-wrapper">
+              <mtx-grid
+                [data]="plantoesDisponiveis"
+                [columns]="colunasDisponiveis"
+                [loading]="carregando"
+                [rowStriped]="true"
+                [showPaginator]="true"
+                [pageSize]="50"
+                [pageSizeOptions]="[10, 25, 50, 100]"
+                [noResultText]="'Nenhum plantão disponível para envio'"
+              />
+            </div>
+
+          </div>
+        </mat-tab>
+
+        <!-- ──────────────────────────────────────────────
+             ABA 2 — REMESSAS ENVIADAS
+        ────────────────────────────────────────────────── -->
+        <mat-tab>
+          <ng-template mat-tab-label>
+            <mat-icon class="tab-icon">inventory_2</mat-icon>
+            Remessas Enviadas
+          </ng-template>
+
+          <div class="tab-content">
+
+            <div class="section-title">
+              <div class="section-title__badges">
+                <span class="badge badge--blue">{{ remessas.length }} remessa(s)</span>
+              </div>
+              <div class="section-title__actions">
+                <button mat-icon-button (click)="carregarRemessas()" matTooltip="Atualizar">
+                  <mat-icon>refresh</mat-icon>
+                </button>
+              </div>
+            </div>
+
+            <!-- Grid de remessas -->
+            <div class="grid-wrapper grid-wrapper--split" [class.expanded]="remessaExpandida !== null">
+
+              <div class="grid-top">
+                <mtx-grid
+                  [data]="remessas"
+                  [columns]="colunasRemessa"
+                  [loading]="carregando"
+                  [rowStriped]="true"
+                  [showPaginator]="true"
+                  [pageSize]="10"
+                  [noResultText]="'Nenhuma remessa encontrada'"
+                  (rowClick)="expandirRemessa($event.rowData)"
+                />
+              </div>
+
+              <!-- Detalhe da remessa expandida -->
+              <div class="grid-bottom" *ngIf="remessaExpandida !== null">
+                <div class="section-title section-title--sub">
+                  <div class="section-title__badges">
+                    <mat-icon class="sub-icon">list</mat-icon>
+                    <span>Plantões da Remessa #{{ remessaExpandida }}</span>
+                    <span class="badge badge--green">{{ plantoesRemessa.length }}</span>
+                  </div>
+                  <button mat-icon-button (click)="remessaExpandida = null" matTooltip="Fechar">
+                    <mat-icon>close</mat-icon>
+                  </button>
+                </div>
+                <mtx-grid
+                  [data]="plantoesRemessa"
+                  [columns]="colunasDetalheRemessa"
+                  [rowStriped]="true"
+                  [showPaginator]="false"
+                  [noResultText]="'Carregando...'"
+                />
+              </div>
+
+            </div>
+          </div>
+        </mat-tab>
+
+        <!-- ──────────────────────────────────────────────
+             ABA 3 — NÃO SERÃO PAGOS
+        ────────────────────────────────────────────────── -->
+        <mat-tab>
+          <ng-template mat-tab-label>
+            <mat-icon class="tab-icon">block</mat-icon>
+            Não Serão Pagos
+          </ng-template>
+
+          <div class="tab-content">
+
+            <div class="section-title">
+              <div class="section-title__badges">
+                <span class="badge badge--amber">{{ plantoesNaoPagos.length }} registro(s)</span>
+                <span class="badge badge--green" *ngIf="algumNaoPagoSelecionado">
+                  {{ selecionadosNaoPagos.size }} selecionado(s)
+                </span>
+              </div>
+              <div class="section-title__actions">
+                <button mat-stroked-button color="primary"
+                        [disabled]="!algumNaoPagoSelecionado"
+                        (click)="reverterNaoPagoSelecionados()">
+                  <mat-icon>undo</mat-icon> Reverter para Disponível
+                </button>
+                <button mat-icon-button (click)="carregarNaoPagos()" matTooltip="Atualizar">
+                  <mat-icon>refresh</mat-icon>
+                </button>
+              </div>
+            </div>
+
+            <div class="grid-wrapper">
+              <mtx-grid
+                [data]="plantoesNaoPagos"
+                [columns]="colunasNaoPagos"
+                [loading]="carregando"
+                [rowStriped]="true"
+                [showPaginator]="true"
+                [pageSize]="15"
+                [noResultText]="'Nenhum plantão marcado como não pagar'"
+              />
+            </div>
+
+          </div>
+        </mat-tab>
+
+      </mat-tab-group>
+
+    </mat-card-content>
+  </mat-card>
+
+</div>
+
+<!-- Template para coluna de seleção -->
+<ng-template #selTpl let-row>
+  <mat-checkbox
+    color="primary"
+    [checked]="isSelecionado(row.idPlantao)"
+    (change)="togglePlantao(row.idPlantao)"
+    (click)="$event.stopPropagation()">
+  </mat-checkbox>
+</ng-template>
+
+<!-- Template para coluna de ações das remessas -->
+<ng-template #opTpl let-row>
+  <div class="acoes-cell">
+    <button mat-icon-button color="primary"
+            (click)="downloadExcel(row.numeroRemessa)"
+            matTooltip="Baixar Excel">
+      <mat-icon>cloud_download</mat-icon>
+    </button>
+    <button mat-icon-button color="warn"
+            (click)="abrirModalExcluirRemessa(row)"
+            matTooltip="Excluir Remessa">
+      <mat-icon>delete</mat-icon>
+    </button>
+  </div>
+</ng-template>
+
+<!-- Template: checkbox seleção dos não pagos -->
+<ng-template #opNaoPago let-row>
+  <mat-checkbox
+    color="primary"
+    [checked]="isSelecionadoNaoPago(row.idPlantao)"
+    (change)="toggleNaoPago(row.idPlantao)"
+    (click)="$event.stopPropagation()">
+  </mat-checkbox>
+</ng-template>
+
+<!-- ══════════════════════════════════════════════════════
+     MODAL — CONFIRMAR EXCLUSÃO DE REMESSA
+══════════════════════════════════════════════════════ -->
+<div class="pag-overlay" *ngIf="modalExcluirRemessaAberto" (click)="fecharModais()">
+  <mat-card class="pag-modal" (click)="$event.stopPropagation()">
+    <mat-card-content>
+      <div class="modal-header modal-header--red">
+        <mat-icon>delete</mat-icon>
+        <h3>Excluir Remessa #{{ remessaParaExcluir?.numeroRemessa }}</h3>
+      </div>
+      <div class="modal-body">
+        <p>
+          A remessa <strong>#{{ remessaParaExcluir?.numeroRemessa }}</strong>
+          com <strong>{{ remessaParaExcluir?.totalPlantoes }} plantão(ões)</strong>
+          será excluída.
+        </p>
+        <p class="modal-info">
+          Os plantões voltarão a aparecer como <strong>disponíveis para envio</strong>.
+        </p>
+      </div>
+      <div class="modal-footer">
+        <button mat-stroked-button (click)="fecharModais()">Cancelar</button>
+        <button mat-raised-button color="warn" (click)="confirmarExcluirRemessa()">
+          <mat-icon>delete</mat-icon> Confirmar Exclusão
+        </button>
+      </div>
+    </mat-card-content>
+  </mat-card>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     MODAL — CONFIRMAR ENVIO
+══════════════════════════════════════════════════════ -->
+<div class="pag-overlay" *ngIf="modalEnvioAberto" (click)="fecharModais()">
+  <mat-card class="pag-modal" (click)="$event.stopPropagation()">
+    <mat-card-content>
+      <div class="modal-header modal-header--blue">
+        <mat-icon>send</mat-icon>
+        <h3>Confirmar Envio para Pagamento</h3>
+      </div>
+      <div class="modal-body">
+        <p>
+          Você está enviando <strong>{{ selecionados.size }} plantão(ões)</strong>
+          ({{ formatarHoras(totalHorasSelecionadas) }}) para pagamento.
+        </p>
+        <p class="modal-info">O Excel será gerado e baixado automaticamente.</p>
+
+        <mat-form-field appearance="outline" class="modal-field">
+          <mat-label>Observação <em>(opcional)</em></mat-label>
+          <textarea matInput [(ngModel)]="observacaoEnvio"
+                    placeholder="Ex: Plantões de janeiro/2026"
+                    rows="3"></textarea>
+        </mat-form-field>
+      </div>
+      <div class="modal-footer">
+        <button mat-stroked-button (click)="fecharModais()">Cancelar</button>
+        <button mat-raised-button color="primary" (click)="confirmarEnvio()">
+          <mat-icon>check</mat-icon> Confirmar Envio
+        </button>
+      </div>
+    </mat-card-content>
+  </mat-card>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     MODAL — MARCAR COMO NÃO PAGAR
+══════════════════════════════════════════════════════ -->
+<div class="pag-overlay" *ngIf="modalNaoPagarAberto" (click)="fecharModais()">
+  <mat-card class="pag-modal" (click)="$event.stopPropagation()">
+    <mat-card-content>
+      <div class="modal-header modal-header--red">
+        <mat-icon>block</mat-icon>
+        <h3>Marcar como Não Pagar</h3>
+      </div>
+      <div class="modal-body">
+        <p>
+          Marcando <strong>{{ selecionados.size }} plantão(ões)</strong> como
+          <strong>não será pago</strong>. Esta ação remove os plantões da fila de pendentes.
+        </p>
+
+        <mat-form-field appearance="outline" class="modal-field">
+          <mat-label>Motivo <span class="req">*obrigatório</span></mat-label>
+          <textarea matInput [(ngModel)]="motivoNaoPagar"
+                    placeholder="Ex: Plantão cancelado pelo colaborador"
+                    rows="3"></textarea>
+        </mat-form-field>
+        <mat-error *ngIf="!motivoNaoPagar.trim()">Informe o motivo para continuar.</mat-error>
+      </div>
+      <div class="modal-footer">
+        <button mat-stroked-button (click)="fecharModais()">Cancelar</button>
+        <button mat-raised-button color="warn"
+                [disabled]="!motivoNaoPagar.trim()"
+                (click)="confirmarNaoPagar()">
+          <mat-icon>block</mat-icon> Confirmar
+        </button>
+      </div>
+    </mat-card-content>
+  </mat-card>
+</div>

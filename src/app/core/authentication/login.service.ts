@@ -1,9 +1,26 @@
-import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
+import { HttpBackend, HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { firstValueFrom, from, lastValueFrom, map } from 'rxjs';
+import { catchError, firstValueFrom, lastValueFrom, map, Observable, of, timeout } from 'rxjs';
 import { environment } from '@env/environment';
-import { Menu, TokenService } from '@core';
-import { configuracaoUsuario, Token, User } from '@core/interface';
+import { Menu, PermissionResponse, Token, TokenService, Usuario } from '@core';
+
+/** MV = usuário/senha do MV; AD = usuário/senha da rede (Active Directory). */
+export type TipoLogin = 'MV' | 'AD';
+
+/** Opções de login habilitadas pelo administrador. */
+export interface StatusLogin {
+  /** Login pela rede (usuário/senha do AD). */
+  ad: boolean;
+  /** Login automático com o usuário do Windows (Kerberos). */
+  sso: boolean;
+}
+
+/** btoa só aceita Latin-1: converte para UTF-8 antes (o backend decodifica em UTF-8), senão senhas com acento falham. */
+function paraBase64Utf8(texto: string): string {
+  let binario = '';
+  new TextEncoder().encode(texto).forEach(byte => (binario += String.fromCharCode(byte)));
+  return btoa(binario);
+}
 
 @Injectable({
   providedIn: 'root',
@@ -17,33 +34,45 @@ import { configuracaoUsuario, Token, User } from '@core/interface';
 export class LoginService {
   protected readonly http = inject(HttpClient);
   protected readonly tokenService = inject(TokenService);
-
- /* private _headers: HttpHeaders = new HttpHeaders({
-    'Content-Type': 'application/json',
-    'Access-Control-Allow-Origin':'*',
-    'Access-Control-Allow-Methods': 'GET,HEAD,OPTIONS,POST,PUT',
-    'Access-Control-Allow-Headers': '*',
-  });*/
+  /** Sem interceptors: consultas públicas da tela de login não devem exibir toast de erro nem redirecionar em 401. */
+  private readonly httpDireto = new HttpClient(inject(HttpBackend));
+  private apiUrl = `${environment.ApiBaseUrl}auth`;
 
 
-  login(username: string, password: string, rememberMe = false) {
+
+  login(username: string, password: string, rememberMe = false, tipo: TipoLogin = 'MV') {
     let _params   = new HttpParams();
-    _params = _params.append('credential',btoa(username+':'+password));
-    //return this.http.post<Token>(environment.ApiBaseUrl+'auth/login', { username, password, rememberMe });
-    return this.http.post<Token>(environment.ApiBaseUrl+'auth/login','',{ params: _params});
+    _params = _params.append('credential', paraBase64Utf8(username+':'+password));
+    _params = _params.append('tipo', tipo);
+    return this.http.post<Token>(this.apiUrl+'/login','',{ params: _params});
+  }
+
+  /** Opções de login habilitadas. Qualquer falha = nenhuma opção extra. */
+  statusLogin(): Observable<StatusLogin> {
+    return this.httpDireto.get<{ habilitado: boolean; sso?: boolean }>(`${this.apiUrl}/ad/status`).pipe(
+      map(resposta => ({ ad: !!resposta?.habilitado, sso: !!resposta?.habilitado && !!resposta?.sso })),
+      catchError(() => of({ ad: false, sso: false }))
+    );
+  }
+
+  /**
+   * Login automático: o backend responde 401 "Negotiate" e o navegador repete sozinho com o ticket do Windows,
+   * quando pode. Erros (401 sem ticket, 403 com código) chegam como HttpErrorResponse.
+   */
+  loginSso() {
+    return this.httpDireto.get<Token>(`${this.apiUrl}/sso`, { withCredentials: true }).pipe(timeout(20000));
   }
 
   refresh(params: Record<string, any>) {
-    return this.http.post<Token>('/auth/refresh', params);
+    return this.http.post<Token>('/refresh', params);
   }
 
   logout() {
-    return this.http.post<any>(environment.ApiBaseUrl+'auth/logout', {});
+    return this.http.post<any>(this.apiUrl+'/logout', {});
   }
 
   async check() {
-    //return await firstValueFrom(this.http.get<any>(environment.ApiBaseUrl+'auth/check'));
-    return await firstValueFrom(this.http.get<any>(environment.ApiBaseUrl+'auth/check'));
+    return await firstValueFrom(this.http.get<any>(this.apiUrl+'/check'));
   }
 
   async checkSession(){
@@ -60,7 +89,7 @@ async validSession(){
     if(!this.tokenService.valid()){
       return false;
     }
-    const validacao = await firstValueFrom(this.http.get<any>(environment.ApiBaseUrl+'auth/check')).then((retorno) => {
+    const validacao = await firstValueFrom(this.http.get<any>(this.apiUrl+'/check')).then((retorno) => {
       return retorno;
     }).catch((err) => {
       if (err.status){
@@ -72,19 +101,26 @@ async validSession(){
     return validacao;
 }
 
-  async getMeTela(tela:string) {
-    return await lastValueFrom(this.http.get<any>(`${environment.ApiBaseUrl}acesso/tela/me/`+tela));
-}
+ hasPermission(tela: string): Observable<boolean> {
+    return this.http.get<PermissionResponse>(`${this.apiUrl}/check-permission`, {params: { tela: tela }}
+    ).pipe(
+      map(response => response.allowed === true),
+      catchError(err => {
+        console.error('Erro ao checar permissão:', err);
+        return of(false);  // ou trate 401/403 diferente se quiser
+      })
+    );
+  }
 
   status() {
-    return this.http.get<any>(environment.ApiBaseUrl+'auth/status');
+    return this.http.get<any>(this.apiUrl+'/status');
   }
 
   me() {
-    return this.http.get<User>(environment.ApiBaseUrl+'usuario/me');
+    return this.http.get<Usuario>(environment.ApiBaseUrl+'usuario/me');
   }
   async mee() {
-    return await lastValueFrom(this.http.get<User>(environment.ApiBaseUrl+'usuario/me'));
+    return await lastValueFrom(this.http.get<Usuario>(environment.ApiBaseUrl+'usuario/me'));
   }
 
   menu() {
@@ -92,7 +128,6 @@ async validSession(){
   }
 
   getConfiguracaoUsuario(chave:string) {
-     console.log("login.service");
     return this.http.get<any>(environment.ApiBaseUrl+'configuracao/usuario/'+chave);
   }
 

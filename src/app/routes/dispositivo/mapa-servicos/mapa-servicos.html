@@ -1,0 +1,189 @@
+<div class="mapa">
+  <!-- Resumo -->
+  @let r = mapa()?.resumo;
+  <section class="resumo">
+    <div class="kpi" [class.kpi--fora]="(r?.sistemasParados ?? 0) > 0">
+      <span class="kpi__valor">{{ r?.sistemasParados ?? '—' }}</span>
+      <span class="kpi__rotulo">sistemas parados</span>
+    </div>
+    <div class="kpi" [class.kpi--alerta]="(r?.sistemasParciais ?? 0) > 0">
+      <span class="kpi__valor">{{ r?.sistemasParciais ?? '—' }}</span>
+      <span class="kpi__rotulo">sistemas parciais</span>
+    </div>
+    <div class="kpi" [class.kpi--fora]="(r?.servidoresFora ?? 0) > 0">
+      <span class="kpi__valor">{{ r?.servidoresFora ?? '—' }}<small> / {{ r?.servidores ?? '—' }}</small></span>
+      <span class="kpi__rotulo">servidores fora do ar</span>
+    </div>
+    <div class="kpi" [class.kpi--fora]="(r?.servicosFora ?? 0) > 0">
+      <span class="kpi__valor">{{ r?.servicosFora ?? '—' }}</span>
+      <span class="kpi__rotulo">serviços fora do ar</span>
+    </div>
+    <div class="kpi kpi--neutro">
+      <span class="kpi__valor">{{ r?.sistemas ?? '—' }}</span>
+      <span class="kpi__rotulo">sistemas mapeados</span>
+    </div>
+  </section>
+
+  <!-- Barra -->
+  <div class="barra">
+    <mat-button-toggle-group [value]="visao()" (change)="visao.set($event.value)" hideSingleSelectionIndicator>
+      <mat-button-toggle value="sistemas"><mat-icon>account_tree</mat-icon> Por sistema</mat-button-toggle>
+      <mat-button-toggle value="servidores"><mat-icon>dns</mat-icon> Por servidor</mat-button-toggle>
+    </mat-button-toggle-group>
+
+    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="busca">
+      <mat-icon matPrefix>search</mat-icon>
+      <mat-label>Pesquisar</mat-label>
+      <input matInput placeholder="Sistema, servidor ou serviço" [ngModel]="filtro()" (ngModelChange)="filtro.set($event)" />
+    </mat-form-field>
+
+    <mat-slide-toggle [checked]="soProblemas()" (change)="soProblemas.set($event.checked)">Só com problema</mat-slide-toggle>
+
+    <span class="espaco"></span>
+
+    @if (mapa(); as m) {
+      <span class="atualizado">Atualizado às {{ m.atualizadoEm | date: 'HH:mm:ss' }}</span>
+    }
+    <button mat-icon-button matTooltip="Atualizar agora" (click)="carregar()" [disabled]="carregando()">
+      <mat-icon>refresh</mat-icon>
+    </button>
+    <a mat-stroked-button routerLink="/dispositivo/balanceadores-sistemas">
+      <mat-icon>alt_route</mat-icon> Balanceadores
+    </a>
+  </div>
+
+  @if (carregando()) {
+    <mat-progress-bar mode="indeterminate" />
+  }
+  @if (erro()) {
+    <div class="aviso aviso--erro"><mat-icon>cloud_off</mat-icon> {{ erro() }}</div>
+  }
+
+  <!-- Legenda: a cor sozinha não basta, cada item também traz a situação escrita -->
+  <div class="legenda">
+    <span><i class="ponto sit sit--ok"></i> No ar</span>
+    <span><i class="ponto sit sit--alerta"></i> Atenção / parcial</span>
+    <span><i class="ponto sit sit--fora"></i> Fora do ar / parado</span>
+    <span><i class="ponto sit sit--manutencao"></i> Manutenção (retirado do balanceador)</span>
+    <span><i class="ponto sit sit--desconhecido"></i> Sem leitura</span>
+  </div>
+
+  @if (visao() === 'sistemas') {
+    <!-- ───────────── Organograma por sistema ───────────── -->
+    @if (mapa() && sistemasCadastrados().length === 0) {
+      <div class="vazio">
+        <mat-icon>account_tree</mat-icon>
+        <p>Nenhum sistema com balanceador cadastrado.</p>
+        <a mat-flat-button routerLink="/dispositivo/balanceadores-sistemas">Cadastrar balanceadores</a>
+      </div>
+    }
+
+    <div class="sistemas">
+      @for (sistema of sistemasVisiveis(); track sistema.codSistema) {
+        <article class="sistema" [class]="corSistema(sistema.situacao)">
+          <div class="org">
+            <!-- Sistema -->
+            <div class="no no--sistema">
+              <mat-icon class="no__icone">{{ iconeSistema(sistema.situacao) }}</mat-icon>
+              <div class="no__corpo">
+                <div class="no__titulo">{{ sistema.nome }}</div>
+                <div class="no__sub">{{ sistema.resumo }}</div>
+                @if (sistema.url) {
+                  <a class="no__link" [href]="sistema.url" target="_blank" rel="noopener">{{ sistema.url }}</a>
+                }
+              </div>
+              <span class="selo" [class]="corSistema(sistema.situacao)">{{ rotuloDoSistema(sistema.situacao) }}</span>
+              @if (!sistema.exibePainel) {
+                <mat-icon class="no__painel" matTooltip="Não aparece no painel de TV">tv_off</mat-icon>
+              }
+            </div>
+
+            <!-- Entradas: balanceadores (em quantos níveis houver) ou serviços diretos -->
+            @if (sistema.entradas.length) {
+              <div class="haste"></div>
+              <ul class="filhos">
+                @for (entrada of sistema.entradas; track $index) {
+                  <li><app-no-organograma [no]="entrada" /></li>
+                }
+              </ul>
+            }
+          </div>
+        </article>
+      } @empty {
+        @if (mapa() && sistemasCadastrados().length > 0) {
+          <div class="vazio vazio--pequeno">Nenhum sistema atende ao filtro.</div>
+        }
+      }
+    </div>
+
+    @if (sistemasSemCadastro().length && !soProblemas()) {
+      <section class="sem-cadastro">
+        <h3><mat-icon>link_off</mat-icon> Sistemas fora do mapa ({{ sistemasSemCadastro().length }})</h3>
+        <p>Estes sistemas não entram no mapa nem nos impactos do painel até terem as entradas cadastradas (balanceador ou serviço direto).</p>
+        <div class="chips">
+          @for (s of sistemasSemCadastro(); track s.codSistema) {
+            <a class="chip" routerLink="/dispositivo/balanceadores-sistemas" [queryParams]="{ sistema: s.codSistema }">{{ s.nome }}</a>
+          }
+        </div>
+      </section>
+    }
+  } @else {
+    <!-- ───────────── Visão por servidor ───────────── -->
+    <div class="servidores">
+      @for (servidor of servidoresVisiveis(); track servidor.codServidor) {
+        <article class="servidor" [class]="corItem(servidor.situacao)">
+          <header class="servidor__topo">
+            <mat-icon class="servidor__icone">{{ servidor.situacao === 'FORA' ? 'cloud_off' : 'dns' }}</mat-icon>
+            <div class="servidor__nome">
+              <b>{{ servidor.nome }}</b>
+              <span>{{ servidor.ip }} · {{ servidor.so ?? 'SO não informado' }}{{ servidor.grupo ? ' · ' + servidor.grupo : '' }}</span>
+            </div>
+            <span class="selo" [class]="corItem(servidor.situacao)">{{ rotuloItem(servidor.situacao) }}</span>
+          </header>
+
+          <div class="servidor__detalhe">
+            <span>{{ servidor.detalhe }}</span>
+            @if (servidor.situacao !== 'FORA' && (servidor.load || servidor.disco)) {
+              <span class="metricas">
+                @if (servidor.load) {
+                  <span matTooltip="Load de 1, 5 e 15 min">load {{ servidor.load }}{{ servidor.cpus ? ' · ' + servidor.cpus + ' CPUs' : '' }}</span>
+                }
+                @if (servidor.disco) {
+                  <span matTooltip="Disco mais cheio">disco {{ servidor.disco }}</span>
+                }
+              </span>
+            }
+          </div>
+
+          @if (servidor.servicos.length) {
+            <ul class="servicos">
+              @for (sv of servidor.servicos; track sv.codProcesso) {
+                <li [matTooltip]="sv.detalhe ?? ''">
+                  <i class="ponto" [class]="corItem(sv.situacao)"></i>
+                  <span class="servicos__nome">{{ sv.nome }}</span>
+                  <span class="servicos__tipo">{{ sv.tipo }}{{ sv.porta ? ' :' + sv.porta : '' }}</span>
+                  <span class="servicos__sit">{{ rotuloItem(sv.situacao) }}</span>
+                </li>
+              }
+            </ul>
+          } @else {
+            <div class="servidor__vazio">Nenhum serviço cadastrado</div>
+          }
+
+          @if (servidor.sistemas.length) {
+            <footer class="servidor__sistemas">
+              <span>Sistemas:</span>
+              @for (nome of servidor.sistemas; track nome) {
+                <span class="chip chip--pequeno">{{ nome }}</span>
+              }
+            </footer>
+          }
+        </article>
+      } @empty {
+        @if (mapa()) {
+          <div class="vazio vazio--pequeno">Nenhum servidor atende ao filtro.</div>
+        }
+      }
+    </div>
+  }
+</div>

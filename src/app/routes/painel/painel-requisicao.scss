@@ -1,0 +1,210 @@
+// Cor própria de cada situação do fluxo. Tons contidos: servem para identificar
+// o card, não para competir entre si — o destaque forte fica só nas situações
+// que dependem de alguém agir (.contador--acao).
+$cores-situacao: (
+  'solicitado': #5b8def,
+  'gestor': #f28c3b,
+  'requisitos': #e9763f,
+  'analise': #48b7c9,
+  'pausado': #a1724a,
+  'validacao': #a06cf0,
+  'reprovado': #ef5350,
+  'para-execucao': #2f9e5e,
+  'em-execucao': #56c271,
+  'total': #8b95a8,
+);
+
+:host {
+  display: block;
+  height: 100%;
+  min-height: 0;
+}
+
+.requisicao {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(8px, 1.2vh, 16px);
+  height: 100%;
+  min-height: 0;
+
+  &__colunas {
+    display: grid;
+    flex: 1 1 auto;
+    grid-template-columns: 1fr 1fr;
+    gap: clamp(10px, 1.5vw, 24px);
+    min-height: 0;
+  }
+}
+
+.coluna {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(8px, 1.2vh, 16px);
+  min-width: 0;
+  min-height: 0;
+
+  /*
+   * Linhas fixas (--linhas = itens por página). Com a página cheia ou com um
+   * único item, o card tem sempre a mesma altura: o resto da grade fica vazio,
+   * em vez de esticar o card e mudar de tamanho a cada virada de página.
+   */
+  &__grade {
+    display: grid;
+    flex: 1 1 auto;
+    grid-template-rows: repeat(var(--linhas, 8), 1fr);
+    gap: clamp(6px, 1vh, 14px);
+    min-height: 0;
+  }
+}
+
+.secao {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 12px;
+
+  &__titulo {
+    margin: 0;
+    font-size: clamp(1.1rem, 2.2vh, 2.2rem);
+    font-weight: 700;
+    letter-spacing: 0.5px;
+  }
+
+  &__contador {
+    padding: 0 10px;
+    border-radius: 999px;
+    background: var(--pn-superficie-alta);
+    color: var(--pn-texto-fraco);
+    font-size: clamp(0.9rem, 1.6vh, 1.5rem);
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+  }
+}
+
+// Indicador de página: texto legível de longe + bolinhas mostrando quantas faltam.
+.paginacao {
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+  gap: 8px;
+  padding: 3px 12px;
+  border: 1px solid var(--pn-borda);
+  border-radius: 999px;
+  background: var(--pn-superficie-alta);
+
+  &__texto {
+    color: var(--pn-texto);
+    font-size: clamp(0.8rem, 1.5vh, 1.4rem);
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+  }
+
+  &__ponto {
+    width: clamp(6px, 0.9vh, 11px);
+    height: clamp(6px, 0.9vh, 11px);
+    border-radius: 50%;
+    background: var(--pn-neutro);
+
+    &--ativo {
+      background: var(--pn-info);
+      box-shadow: 0 0 0 3px rgb(91 141 239 / 25%);
+    }
+  }
+}
+
+// Sem isto a cor da faixa do card não significa nada para quem só olha a TV.
+.legenda {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  gap: clamp(10px, 1.5vw, 28px);
+  padding: 0 2px;
+  color: var(--pn-texto-fraco);
+  font-size: clamp(0.7rem, 1.3vh, 1.2rem);
+
+  &__item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  &__cor {
+    width: clamp(10px, 1.4vh, 18px);
+    height: clamp(10px, 1.4vh, 18px);
+    border-radius: 3px;
+
+    &--requisicao {
+      background: var(--pn-info);
+    }
+
+    &--pendente {
+      background: var(--pn-atencao);
+    }
+
+    &--pausado {
+      background: var(--pn-neutro);
+    }
+
+    &--reprovado {
+      background: var(--pn-critico);
+    }
+  }
+}
+
+.contadores {
+  display: grid;
+  flex: 0 0 auto;
+  grid-template-columns: repeat(10, 1fr);
+  gap: clamp(4px, 0.6vw, 10px);
+}
+
+.contador {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(6px, 1vh, 14px) 4px;
+  border-top: 5px solid var(--cor-situacao, var(--pn-neutro));
+  border-radius: 6px;
+  background: var(--pn-superficie);
+  text-align: center;
+
+  &__numero {
+    color: var(--cor-situacao, var(--pn-texto));
+    font-size: clamp(1.5rem, 4vh, 3.4rem);
+    font-variant-numeric: tabular-nums;
+    font-weight: 800;
+    line-height: 1;
+  }
+
+  &__rotulo {
+    padding-top: 6px;
+    color: var(--pn-texto-fraco);
+    font-size: clamp(0.65rem, 1.2vh, 1.1rem);
+    font-weight: 600;
+  }
+
+  // Depende de alguém agir: ganha fundo tingido além da cor da borda.
+  &--acao {
+    background: var(--pn-superficie-alta);
+
+    .contador__rotulo {
+      color: var(--pn-texto);
+    }
+  }
+
+  @each $nome, $cor in $cores-situacao {
+    &--#{$nome} {
+      --cor-situacao: #{$cor};
+    }
+  }
+
+  // Total fecha a faixa: é soma, não situação, então fica com o número em branco.
+  &--total {
+    background: var(--pn-superficie-alta);
+
+    .contador__numero {
+      color: var(--pn-texto);
+    }
+  }
+}

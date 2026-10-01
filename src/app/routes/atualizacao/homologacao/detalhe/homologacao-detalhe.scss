@@ -1,0 +1,418 @@
+// Cabeçalho compacto: duas linhas (título + dados + ações; progresso + sistemas) e avisos de uma linha.
+.cabecalho {
+  gap: 4px;
+  padding: 6px 12px;
+}
+
+.cabecalho__linha {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  align-items: center;
+  min-height: 32px;
+}
+
+.numero {
+  font-weight: 600;
+}
+
+.titulo {
+  max-width: 420px;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 1rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.meta {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 2px 12px;
+  font-size: .78rem;
+  color: var(--mat-sys-on-surface-variant, rgba(0, 0, 0, .65));
+
+  .atrasada {
+    font-weight: 600;
+    color: #d32f2f;
+  }
+}
+
+.progresso {
+  min-height: 26px;
+
+  .barra-geral {
+    flex: 1 1 220px;
+    max-width: 480px;
+  }
+}
+
+.sistema-chip {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  font-size: .8rem;
+}
+
+.pequeno {
+  --mdc-icon-button-state-layer-size: 30px;
+
+  width: 30px;
+  height: 30px;
+  padding: 3px;
+
+  mat-icon {
+    font-size: 20px;
+  }
+}
+
+.mini {
+  --mdc-icon-button-state-layer-size: 22px;
+
+  width: 22px;
+  height: 22px;
+  padding: 1px;
+
+  mat-icon {
+    width: 16px;
+    height: 16px;
+    font-size: 16px;
+  }
+}
+
+.aviso {
+  padding: 2px 8px;
+  margin: 0;
+  font-size: .76rem;
+  background: color-mix(in srgb, #e08a00 13%, transparent);
+  border-radius: 6px;
+
+  &--neutro {
+    background: color-mix(in srgb, var(--mat-sys-on-surface, #000) 7%, transparent);
+  }
+}
+
+.link {
+  min-width: 0;
+  height: auto;
+  padding: 0 4px;
+  line-height: 1.4;
+}
+
+.aba {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 12px;
+}
+
+.busca {
+  min-width: 220px;
+}
+
+.filtros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.filtro {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  padding: 3px 10px;
+  font: inherit;
+  font-size: .8rem;
+  color: inherit;
+  cursor: pointer;
+  background: transparent;
+  border: 1px solid var(--mat-sys-outline-variant, rgba(0, 0, 0, .15));
+  border-radius: 999px;
+
+  .qtd {
+    font-variant-numeric: tabular-nums;
+    opacity: .7;
+  }
+
+  &--ativo {
+    font-weight: 600;
+    background: color-mix(in srgb, #1976d2 12%, transparent);
+    border-color: #1976d2;
+  }
+}
+
+.sistema {
+  gap: 10px;
+}
+
+.sistema--vazio {
+  gap: 2px;
+  padding: 6px 16px;
+}
+
+.tela {
+  padding: 0 6px;
+  font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: .72rem;
+  background: var(--mat-sys-surface-container-high, rgba(0, 0, 0, .06));
+  border-radius: 4px;
+}
+
+.agrupamento {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.agrupamento__cab {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  padding-top: 6px;
+  border-top: 1px solid var(--mat-sys-outline-variant, rgba(0, 0, 0, .1));
+
+  .mini {
+    flex: 0 1 220px;
+  }
+}
+
+// A tabela de itens só rola na horizontal (tela estreita); na vertical nunca — a altura é a das linhas.
+.agrupamento .rolagem {
+  overflow-y: hidden;
+}
+
+// Layout fixo: as colunas têm a mesma largura em todos os agrupamentos (a situação não "anda" com o tamanho do título).
+table.itens {
+  width: 100%;
+  min-width: 860px;
+  table-layout: fixed;
+
+  td {
+    vertical-align: middle;
+  }
+
+  // A caixa de seleção tem 40px: a coluna precisa caber nela (sem espaçamento lateral).
+  .c-sel {
+    width: 44px;
+  }
+
+  td.sel {
+    padding: 0 2px;
+  }
+
+  .c-estado {
+    width: 170px;
+  }
+
+  .c-responsavel {
+    width: 150px;
+  }
+
+  .c-registro {
+    width: 210px;
+  }
+
+  // Cabe "Registrar" (ou "Reservar") + o menu sem estourar a célula (estourar gerava rolagem horizontal).
+  .c-acoes {
+    width: 176px;
+  }
+
+  tr.fora {
+    opacity: .55;
+  }
+
+  // Reprovado: a linha inteira em vermelho.
+  tr.reprovado > td {
+    background: color-mix(in srgb, #d32f2f 12%, transparent);
+  }
+
+  tr.reprovado > td:first-child {
+    box-shadow: inset 3px 0 0 #d32f2f;
+  }
+
+  // Reprovado impeditivo: vermelho mais forte, faixa mais grossa e título em negrito — é o que reprova a versão.
+  tr.impeditivo > td {
+    background: color-mix(in srgb, #b71c1c 24%, transparent);
+  }
+
+  tr.impeditivo > td:first-child {
+    box-shadow: inset 6px 0 0 #b71c1c;
+  }
+
+  tr.impeditivo .titulo-item {
+    font-weight: 700;
+  }
+}
+
+.selo-impeditivo {
+  display: inline-flex;
+  gap: 2px;
+  align-items: center;
+  padding: 0 6px;
+  margin: 2px 0 0 4px;
+  font-size: .7rem;
+  font-weight: 700;
+  vertical-align: middle;
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: .02em;
+  background: #b71c1c;
+  border-radius: 4px;
+}
+
+table.itens {
+  .item {
+    overflow-wrap: anywhere;
+  }
+
+  .registro {
+    > * {
+      margin-right: 8px;
+    }
+  }
+
+  .acoes {
+    text-align: right;
+    white-space: nowrap;
+
+    // A área de toque invisível (48px) dos botões compactos vazava da célula e criava rolagem horizontal e vertical.
+    // Ela fica dentro do componente do botão: sem ::ng-deep o estilo isolado deste componente não a alcança.
+    ::ng-deep .mat-mdc-button-touch-target {
+      display: none;
+    }
+
+    .mat-mdc-button-base:not(.mat-mdc-icon-button) {
+      --mat-button-filled-container-height: 32px;
+      --mat-button-outlined-container-height: 32px;
+      --mat-button-filled-horizontal-padding: 12px;
+      --mat-button-outlined-horizontal-padding: 12px;
+    }
+
+    .mat-mdc-icon-button {
+      --mat-icon-button-state-layer-size: 36px;
+
+      padding: 6px;
+    }
+  }
+}
+
+.perigo {
+  color: #d32f2f;
+}
+
+.titulo-item {
+  padding: 0;
+  font: inherit;
+  font-weight: 500;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  background: none;
+  border: 0;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.marcas {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-left: 6px;
+}
+
+.marca {
+  padding: 0 6px;
+  font-size: .68rem;
+  background: color-mix(in srgb, var(--mat-sys-on-surface, #000) 8%, transparent);
+  border-radius: 4px;
+
+  &--critico {
+    color: #fff;
+    background: #d32f2f;
+  }
+
+  &--alerta {
+    background: color-mix(in srgb, #e08a00 22%, transparent);
+  }
+}
+
+.sem-ticket {
+  font-size: .76rem;
+  color: #b26a00;
+}
+
+.registrar {
+  min-width: 0;
+}
+
+.texto {
+  white-space: pre-wrap;
+}
+
+.linha-tempo {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+
+  li {
+    display: grid;
+    grid-template-columns: 120px 160px 1fr;
+    gap: 10px;
+    padding: 6px 0;
+    font-size: .82rem;
+    border-bottom: 1px solid var(--mat-sys-outline-variant, rgba(0, 0, 0, .08));
+  }
+
+  .quando,
+  .quem {
+    color: var(--mat-sys-on-surface-variant, rgba(0, 0, 0, .6));
+  }
+}
+
+@media (width <= 720px) {
+  .linha-tempo li {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+}
+
+.filtro--fora {
+  margin-left: auto;
+}
+
+.filtro-sistema {
+  width: 220px;
+  margin-left: auto;
+}
+
+.filtro-modulo {
+  width: 260px;
+  margin-left: auto;
+}
+
+.filtro-sistema + .filtro-modulo {
+  margin-left: 0;
+}
+
+.modulo__cab {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  padding: 4px 8px;
+  margin-top: 4px;
+  background: var(--mat-sys-surface-container, rgba(0, 0, 0, .04));
+  border-radius: 8px;
+
+  .mini {
+    width: 160px;
+  }
+}
+
+.agrupamento--modulo {
+  margin-left: 16px;
+}

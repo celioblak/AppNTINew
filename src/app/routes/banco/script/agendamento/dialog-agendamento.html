@@ -1,0 +1,206 @@
+<mat-card style="height: 100%; display: flex; flex-direction: column;">
+
+  <mat-card-header>
+    <div mat-card-avatar>
+      <mat-icon>schedule</mat-icon>
+    </div>
+    <mat-card-title>{{ data.modo === 'editar' ? 'Editar Agendamento' : 'Adicionar Agendamento' }}</mat-card-title>
+  </mat-card-header>
+
+  <mat-divider></mat-divider>
+
+  <mat-card-content style="flex: 1; overflow-y: auto;">
+    <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+      <formly-form [model]="model" [fields]="fields" [form]="form"></formly-form>
+
+      <!-- Frequência -->
+      <h4>Frequência</h4>
+      <mat-button-toggle-group
+        [(ngModel)]="tipoFrequencia"
+        [ngModelOptions]="{standalone: true}"
+        (change)="onTipoFrequenciaChange()"
+        class="frequencia-toggle">
+        <mat-button-toggle value="diario">Diariamente</mat-button-toggle>
+        <mat-button-toggle value="semanal">Dias da Semana</mat-button-toggle>
+        <mat-button-toggle value="mensal">Mensalmente</mat-button-toggle>
+        <mat-button-toggle value="personalizado">Cron Avançado</mat-button-toggle>
+      </mat-button-toggle-group>
+
+      <div class="frequencia-body">
+
+        <!-- Horário: comum a diário/semanal/mensal -->
+        <mat-form-field appearance="outline" class="campo-horario" *ngIf="tipoFrequencia !== 'personalizado'">
+          <mat-label>Horário</mat-label>
+          <input matInput type="time" [(ngModel)]="horario" [ngModelOptions]="{standalone: true}"
+            (ngModelChange)="atualizarCronExpression()">
+        </mat-form-field>
+
+        <!-- Dias da semana -->
+        <div *ngIf="tipoFrequencia === 'semanal'" class="dias-semana">
+          <mat-checkbox *ngFor="let dia of diasSemanaLista"
+            [(ngModel)]="diasSemana[dia.codigo]" [ngModelOptions]="{standalone: true}"
+            (change)="atualizarCronExpression()">
+            {{ dia.label }}
+          </mat-checkbox>
+        </div>
+
+        <!-- Dia do mês -->
+        <mat-form-field appearance="outline" class="campo-dia-mes" *ngIf="tipoFrequencia === 'mensal'">
+          <mat-label>Dia do Mês</mat-label>
+          <input matInput type="number" min="1" max="31"
+            [(ngModel)]="diaDoMes" [ngModelOptions]="{standalone: true}"
+            (ngModelChange)="atualizarCronExpression()">
+        </mat-form-field>
+
+        <!-- Cron avançado -->
+        <mat-form-field appearance="outline" class="full-width" *ngIf="tipoFrequencia === 'personalizado'">
+          <mat-label>Expressão Cron (Quartz)</mat-label>
+          <input matInput [(ngModel)]="cronPersonalizado" [ngModelOptions]="{standalone: true}"
+            (ngModelChange)="onCronPersonalizadoChange($event)"
+            placeholder="ex: 0 0 6 * * ?">
+          <mat-hint>Formato: segundo minuto hora dia-do-mês mês dia-da-semana.</mat-hint>
+        </mat-form-field>
+
+        <!-- Prévia legível + cron gerado -->
+        <div class="cron-preview" *ngIf="tipoFrequencia !== 'personalizado'">
+          <mat-icon inline>event_available</mat-icon>
+          <span>{{ descricaoFrequencia() }}</span>
+          <code>{{ model.cronExpression }}</code>
+        </div>
+
+        <div class="misfire-option">
+          <mat-checkbox [(ngModel)]="model.recuperarMisfire" [ngModelOptions]="{standalone: true}">
+            Recuperar disparo perdido
+          </mat-checkbox>
+          <mat-icon class="misfire-help"
+            matTooltip="Se a aplicação estiver fora do ar no horário agendado, o disparo perdido é executado uma vez assim que ela voltar. Desmarque para ignorar disparos perdidos e aguardar o próximo horário.">
+            help_outline
+          </mat-icon>
+        </div>
+
+      </div>
+
+      <!-- Parâmetros do agendamento (definição + valor vivem aqui, não no Script) -->
+      <div class="parametros-section" *ngIf="model.codSql">
+        <div class="parametros-header">
+          <h4>Parâmetros</h4>
+          <div class="parametros-header-actions">
+            <button mat-stroked-button type="button" *ngIf="tipoSqlSelecionado === 'QUERY'"
+              (click)="redetectarParametros()"
+              matTooltip="Reanalisa o SQL do script em busca de binds :NOME (preserva tipos/valores já preenchidos)">
+              <mat-icon>auto_fix_high</mat-icon> Detectar novamente
+            </button>
+            <button mat-stroked-button type="button" *ngIf="tipoSqlSelecionado !== 'QUERY'"
+              (click)="adicionarParametroManual()">
+              <mat-icon>add</mat-icon> Adicionar Parâmetro
+            </button>
+          </div>
+        </div>
+
+        <div class="parametros-hint" *ngIf="tipoSqlSelecionado !== 'QUERY'">
+          Para PROCEDURE/FUNCTION os parâmetros não podem ser detectados automaticamente.
+          Cadastre na ORDEM exata da assinatura PL/SQL. Valor vazio vira NULL no bind.
+        </div>
+        <div class="parametros-hint" *ngIf="tipoSqlSelecionado === 'QUERY' && parametros.length > 0">
+          Binds detectados do SQL. Defina o TIPO correto de cada um (essencial para datas/números).
+          Valor vazio vira NULL no bind (use NVL no SQL para tratar).
+        </div>
+
+        <div class="parametros-table-wrapper" *ngIf="parametros.length > 0">
+          <table class="parametros-table">
+            <thead>
+              <tr>
+                <th class="col-nome">Nome</th>
+                <th class="col-tipo">Tipo</th>
+                <th class="col-valor">Valor</th>
+                <th class="col-ordem" *ngIf="tipoSqlSelecionado !== 'QUERY'">Ordem</th>
+                <th class="col-acao"></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let p of parametros; let i = index">
+                <td>
+                  <mat-form-field appearance="outline" class="cell-field">
+                    <input matInput [(ngModel)]="p.nome" [ngModelOptions]="{standalone: true}"
+                      [readonly]="p.detectado" placeholder="NOME_PARAMETRO">
+                  </mat-form-field>
+                </td>
+                <td>
+                  <mat-form-field appearance="outline" class="cell-field">
+                    <mat-select [(ngModel)]="p.tipo" [ngModelOptions]="{standalone: true}">
+                      <mat-option value="DATE">DATE</mat-option>
+                      <mat-option value="NUMBER">NUMBER</mat-option>
+                      <mat-option value="VARCHAR2">VARCHAR2</mat-option>
+                    </mat-select>
+                  </mat-form-field>
+                </td>
+                <td>
+                  <mat-form-field appearance="outline" class="cell-field">
+                    <input matInput [(ngModel)]="p.valor" [ngModelOptions]="{standalone: true}"
+                      [placeholder]="p.tipo === 'DATE' ? 'dd/MM/yyyy ou SYSDATE-1' : ''">
+                  </mat-form-field>
+                </td>
+                <td *ngIf="tipoSqlSelecionado !== 'QUERY'">
+                  <mat-form-field appearance="outline" class="cell-field cell-field-narrow">
+                    <input matInput type="number" [(ngModel)]="p.ordem" [ngModelOptions]="{standalone: true}">
+                  </mat-form-field>
+                </td>
+                <td class="cell-acao">
+                  <button mat-icon-button color="warn" type="button" *ngIf="!p.detectado"
+                    (click)="removerParametro(i)" matTooltip="Remover parâmetro">
+                    <mat-icon>close</mat-icon>
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="parametros-hint" *ngIf="parametros.length === 0">
+          {{ tipoSqlSelecionado === 'QUERY'
+             ? 'Nenhum bind (:NOME) encontrado no SQL deste script — sem parâmetros a preencher.'
+             : 'Nenhum parâmetro cadastrado. Se o objeto PL/SQL recebe parâmetros, clique em "Adicionar Parâmetro".' }}
+        </div>
+      </div>
+
+      <!-- Destinatários -->
+      <h4>Destinatários</h4>
+      <div style="display: flex; gap: 8px; align-items: flex-start; margin-bottom: 8px;">
+        <mat-form-field appearance="outline" style="flex: 1;">
+          <mat-label>E-mail</mat-label>
+          <input matInput [(ngModel)]="novoDestinatarioEmail" [ngModelOptions]="{standalone: true}"
+            (keyup.enter)="adicionarDestinatario()">
+        </mat-form-field>
+        <mat-form-field appearance="outline" style="width: 110px;">
+          <mat-label>Tipo</mat-label>
+          <mat-select [(ngModel)]="novoDestinatarioTipo" [ngModelOptions]="{standalone: true}">
+            <mat-option value="TO">TO</mat-option>
+            <mat-option value="CC">CC</mat-option>
+            <mat-option value="CCO">CCO</mat-option>
+          </mat-select>
+        </mat-form-field>
+        <button mat-icon-button color="primary" type="button" (click)="adicionarDestinatario()" style="margin-top: 8px;">
+          <mat-icon>add_circle</mat-icon>
+        </button>
+      </div>
+
+      <mat-list>
+        <mat-list-item *ngFor="let d of destinatarios; let i = index">
+          <span matListItemTitle>{{ d.email }}</span>
+          <span matListItemLine>{{ d.tipo }}</span>
+          <button mat-icon-button color="warn" type="button" (click)="removerDestinatario(i)">
+            <mat-icon>close</mat-icon>
+          </button>
+        </mat-list-item>
+      </mat-list>
+
+      <div class="d-flex justify-content-center m-t-8">
+        <button mat-button class="m-x-8" type="button" (click)="cancelar()">Cancelar</button>
+        <button mat-flat-button color="primary" type="submit" [disabled]="!form.valid">
+          {{ data.modo === 'adicionar' ? 'Salvar' : 'Atualizar' }}
+        </button>
+      </div>
+    </form>
+  </mat-card-content>
+
+</mat-card>

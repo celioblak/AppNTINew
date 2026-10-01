@@ -1,0 +1,337 @@
+<div class="container">
+  <!-- Cabeçalho -->
+  <div class="header">
+    <h1>Criar Nova Sprint</h1>
+  </div>
+
+  <!-- Formulário Principal - AGORA COM LAYOUT FLEX -->
+  <form [formGroup]="form" (ngSubmit)="onSubmit()" class="form-grid">
+
+    <!-- SEÇÃO SUPERIOR (Informações + Filtros) -->
+    <div class="top-section">
+
+      <!-- Seção 1: Informações da Sprint -->
+      <div class="form-section info-section">
+        <h2>Informações da Sprint</h2>
+
+        <!-- Nome da Sprint -->
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Nome da Sprint</mat-label>
+          <input matInput
+                 formControlName="nome"
+                 placeholder="Ex: Sprint 1 - Melhorias do Sistema"
+                 maxlength="100"
+                 required>
+          <mat-error *ngIf="form.get('nome')?.hasError('required')">
+            Nome da sprint é obrigatório
+          </mat-error>
+          <mat-error *ngIf="form.get('nome')?.hasError('maxlength')">
+            O nome deve ter no máximo 100 caracteres
+          </mat-error>
+        </mat-form-field>
+
+        <!-- Objetivo da Sprint -->
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Objetivo da Sprint</mat-label>
+          <textarea matInput
+                    formControlName="objetivo"
+                    placeholder="Descreva o objetivo principal desta sprint..."
+                    rows="2"
+                    maxlength="500"></textarea>
+          <mat-hint align="end">{{ form.get('objetivo')?.value?.length || 0 }}/500</mat-hint>
+          <mat-error *ngIf="form.get('objetivo')?.hasError('maxlength')">
+            O objetivo deve ter no máximo 500 caracteres
+          </mat-error>
+        </mat-form-field>
+
+        <!-- Datas da Sprint -->
+        <div class="date-row">
+          <!-- Data de Início -->
+          <mat-form-field appearance="outline" class="half-width">
+            <mat-label>Data de Início</mat-label>
+            <input matInput
+                   [matDatepicker]="inicioPicker"
+                   formControlName="dataInicio"
+                   placeholder="DD/MM/AAAA"
+                   required>
+            <mat-datepicker-toggle matSuffix [for]="inicioPicker"></mat-datepicker-toggle>
+            <mat-datepicker #inicioPicker></mat-datepicker>
+            <mat-error *ngIf="form.get('dataInicio')?.hasError('required')">
+              Data de início é obrigatória
+            </mat-error>
+          </mat-form-field>
+
+          <!-- Data de Fim -->
+          <mat-form-field appearance="outline" class="half-width">
+            <mat-label>Data de Fim</mat-label>
+            <input matInput
+                   [matDatepicker]="fimPicker"
+                   formControlName="dataFim"
+                   placeholder="DD/MM/AAAA"
+                   required>
+            <mat-datepicker-toggle matSuffix [for]="fimPicker"></mat-datepicker-toggle>
+            <mat-datepicker #fimPicker></mat-datepicker>
+            <mat-error *ngIf="form.get('dataFim')?.hasError('required')">
+              Data de fim é obrigatória
+            </mat-error>
+            <mat-error *ngIf="form.get('dataFim')?.hasError('dataInvalida')">
+              Data de fim não pode ser anterior à data de início
+            </mat-error>
+          </mat-form-field>
+        </div>
+      </div>
+
+      <!-- Seção 2: Filtros -->
+      <div class="form-section filters-section">
+        <h2>Seleção de Tickets</h2>
+
+        <!-- Resumo -->
+        <div class="section-header">
+          <div class="tickets-summary">
+            <div class="summary-card">
+              <div class="summary-label">Total de Tickets</div>
+              <div class="summary-value">{{ todosTickets.length }}</div>
+            </div>
+            <div class="summary-card">
+              <div class="summary-label">Selecionados</div>
+              <div class="summary-value">{{ ticketsSelecionados.length }}</div>
+            </div>
+            <div class="summary-card">
+              <div class="summary-label">Disponíveis</div>
+              <div class="summary-value">{{ ticketsDisponiveis.length }}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Filtros -->
+        <div class="filtros-container">
+          <!-- Campo de busca -->
+          <mat-form-field appearance="outline" class="search-field">
+            <mat-label>Buscar tickets</mat-label>
+            <input matInput placeholder="Digite para buscar..."
+                   [formControl]="buscaControl">
+            <mat-icon matPrefix>search</mat-icon>
+          </mat-form-field>
+
+          <!-- Filtros por prioridade -->
+          <div class="filtros-chips">
+            <div class="filtros-group">
+              <div class="filtro-group-header">
+                <div class="filtro-label">Prioridade</div>
+                <button type="button"
+                        class="limpar-filtros-btn"
+                        mat-stroked-button
+                        (click)="limparFiltros()">
+                  <mat-icon>clear_all</mat-icon>
+                  Limpar Filtros
+                </button>
+              </div>
+
+              <div class="chips-container">
+                <button type="button"
+                        class="filtro-button prioridade-alta"
+                        [class.active]="filtroPrioridade === 'ALTA'"
+                        (click)="aplicarFiltroPrioridade('ALTA')">
+                  <mat-icon class="priority-icon">arrow_upward</mat-icon>
+                  Alta
+                  <span class="badge-count">{{ contarTicketsPorPrioridade('ALTA') }}</span>
+                </button>
+                <button type="button"
+                        class="filtro-button prioridade-media"
+                        [class.active]="filtroPrioridade === 'MEDIA'"
+                        (click)="aplicarFiltroPrioridade('MEDIA')">
+                  <mat-icon class="priority-icon">remove</mat-icon>
+                  Média
+                  <span class="badge-count">{{ contarTicketsPorPrioridade('MEDIA') }}</span>
+                </button>
+                <button type="button"
+                        class="filtro-button prioridade-baixa"
+                        [class.active]="filtroPrioridade === 'BAIXA'"
+                        (click)="aplicarFiltroPrioridade('BAIXA')">
+                  <mat-icon class="priority-icon">arrow_downward</mat-icon>
+                  Baixa
+                  <span class="badge-count">{{ contarTicketsPorPrioridade('BAIXA') }}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAINEL DE SUGESTÕES -->
+    <app-painel-sugestoes
+      [idSprint]="null"
+      [idsTicketsDisponiveis]="todosTickets"
+      (incluirTicket)="incluirTicketSugerido($event)">
+    </app-painel-sugestoes>
+
+    <!-- SEÇÃO INFERIOR (Tickets) - COM SCROLL INTERNO -->
+    <div class="bottom-section">
+      <div class="form-section tickets-section">
+
+        <!-- Container dos tickets COM LAYOUT FLEX -->
+        <div class="tickets-container">
+
+          <!-- Coluna de tickets disponíveis -->
+          <div class="tickets-column">
+            <div class="column-header">
+              <h3>
+                Tickets Disponíveis
+                <span class="badge" [class.selected]="ticketsDisponiveis.length > 0">
+                  {{ ticketsDisponiveis.length }}
+                </span>
+              </h3>
+            </div>
+
+            <div class="tickets-list-container">
+              <div class="tickets-list">
+                <!-- Estado de loading -->
+                <div *ngIf="carregandoTickets" class="loading">
+                  <mat-spinner diameter="40"></mat-spinner>
+                  <p>Carregando tickets...</p>
+                </div>
+
+                <!-- Estado vazio -->
+                <div *ngIf="!carregandoTickets && ticketsDisponiveis.length === 0" class="empty-state">
+                  <mat-icon>inbox</mat-icon>
+                  <p>Nenhum ticket disponível</p>
+                  <small>Aplique outros filtros ou tente novamente</small>
+                </div>
+
+                <!-- Lista de tickets -->
+                <div *ngFor="let ticket of ticketsDisponiveis"
+                     class="ticket-list-item"
+                     [class.selected]="isTicketSelected(ticket)"
+                     (click)="selecionarTicket(ticket)">
+
+                  <div class="ticket-list-content">
+                    <div class="ticket-list-header">
+                      <span class="ticket-id">#{{ ticket.id }}</span>
+                      <span class="ticket-prioridade"
+                            [class.prioridade-alta]="ticket.prioridade === 'ALTA'"
+                            [class.prioridade-media]="ticket.prioridade === 'MEDIA'"
+                            [class.prioridade-baixa]="ticket.prioridade === 'BAIXA'">
+                        {{ ticket.prioridade }}
+                      </span>
+                    </div>
+
+                    <div class="ticket-title">{{ ticket.titulo }}</div>
+
+                    <!-- Descrição curta -->
+                    <div *ngIf="ticket.descricao" class="ticket-descricao">
+                      {{ ticket.descricao | slice:0:100 }}{{ ticket.descricao.length > 100 ? '...' : '' }}
+                    </div>
+                  </div>
+
+                  <button type="button"  class="add-btn" mat-icon-button (click)="adicionarTicket(ticket); $event.stopPropagation()">
+                    <mat-icon>add_circle</mat-icon>
+                  </button>
+                </div>
+              </div>
+
+              <div class="list-info">
+                <mat-icon>info</mat-icon>
+                <span>Clique em um ticket para selecionar</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Coluna de tickets selecionados -->
+          <div class="tickets-column">
+            <div class="column-header">
+              <h3>
+                Tickets Selecionados
+                <span class="badge selected">{{ ticketsSelecionados.length }}</span>
+              </h3>
+            </div>
+
+            <div class="tickets-list-container">
+              <div class="tickets-list">
+                <div *ngIf="ticketsSelecionados.length === 0" class="empty-state">
+                  <mat-icon>playlist_add_check</mat-icon>
+                  <p>Nenhum ticket selecionado</p>
+                  <small>Selecione tickets da coluna ao lado</small>
+                </div>
+
+                <div *ngFor="let ticket of ticketsSelecionados"
+                     class="ticket-list-item selected">
+
+                  <div class="ticket-list-content">
+                    <div class="ticket-list-header">
+                      <span class="ticket-id">#{{ ticket.id }}</span>
+                      <span class="ticket-prioridade"
+                            [class.prioridade-alta]="ticket.prioridade === 'ALTA'"
+                            [class.prioridade-media]="ticket.prioridade === 'MEDIA'"
+                            [class.prioridade-baixa]="ticket.prioridade === 'BAIXA'">
+                        {{ ticket.prioridade }}
+                      </span>
+
+                      <!-- Criticidade compacta -->
+                      <div class="ticket-criticidade-compact">
+                        <mat-form-field appearance="outline" class="compact-field" (click)="$event.stopPropagation()">
+                          <mat-label>Crítico</mat-label>
+                          <mat-select [(value)]="ticket.criticidade"
+                                      (selectionChange)="atualizarCriticidade(ticket, $event.value)">
+                            <mat-option *ngFor="let opcao of opcoesCriticidade" [value]="opcao.valor">
+                              {{opcao.descricao}}
+                            </mat-option>
+                          </mat-select>
+                        </mat-form-field>
+                      </div>
+                    </div>
+
+                    <div class="ticket-title">{{ ticket.titulo }}</div>
+
+                    <!-- Descrição curta -->
+                    <div *ngIf="ticket.descricao" class="ticket-descricao">
+                      {{ ticket.descricao | slice:0:100 }}{{ ticket.descricao.length > 100 ? '...' : '' }}
+                    </div>
+                  </div>
+
+                  <button type="button" class="remove-btn" mat-icon-button (click)="removerTicketSelecionado(ticket); $event.stopPropagation()">
+                    <mat-icon>remove_circle</mat-icon>
+                  </button>
+                </div>
+              </div>
+
+              <div class="list-info">
+                <mat-icon>info</mat-icon>
+                <span>Clique para remover da seleção</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Seção de ações -->
+    <div class="form-section actions-section">
+      <div class="actions-compact">
+        <button type="button"
+                class="cancel-btn"
+                mat-stroked-button
+                (click)="cancelar()">
+          <mat-icon>close</mat-icon>
+          Cancelar
+        </button>
+
+        <button type="submit"
+                class="submit-btn"
+                mat-raised-button
+                color="primary"
+                [disabled]="!form.valid || enviando || ticketsSelecionados.length === 0">
+
+          <mat-spinner *ngIf="enviando" diameter="20"></mat-spinner>
+          <mat-icon *ngIf="!enviando">save</mat-icon>
+
+          {{ enviando ? 'Criando...' : 'Criar Sprint' }}
+
+          <span *ngIf="ticketsSelecionados.length > 0" class="tickets-badge">
+            {{ ticketsSelecionados.length }}
+          </span>
+        </button>
+      </div>
+    </div>
+  </form>
+</div>

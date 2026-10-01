@@ -1,0 +1,60 @@
+.formulario {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 12px;
+}
+
+.inteiro {
+  grid-column: 1 / -1;
+}
+
+.opcao-caminho {
+  margin-left: 8px;
+  font-family: 'Cascadia Mono', Consolas, monospace;
+  font-size: .72rem;
+  color: var(--mat-sys-on-surface-variant, rgba(0, 0, 0, .6));
+}
+
+.icone-previa {
+  margin: 0 4px 0 8px;
+}
+
+.previa {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--mat-sys-outline-variant, rgba(0, 0, 0, .12));
+  border-radius: 8px;
+  background-color: var(--mat-sys-surface-container-low, rgba(0, 0, 0, .02));
+}
+
+.previa-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+
+  code {
+    font-family: 'Cascadia Mono', Consolas, monospace;
+    font-size: .8rem;
+  }
+}
+
+.previa-rotulo {
+  min-width: 130px;
+  font-size: .75rem;
+  color: var(--mat-sys-on-surface-variant, rgba(0, 0, 0, .6));
+}
+
+.alerta {
+  font-size: .8rem;
+  color: #ef6c00;
+}
+
+@media (max-width: 600px) {
+  .formulario {
+    grid-template-columns: 1fr;
+  }
+}

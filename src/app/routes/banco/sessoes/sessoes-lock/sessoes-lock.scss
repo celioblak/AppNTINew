@@ -1,0 +1,151 @@
+// A altura vem do AlturaAteRodapeDirective (hostDirectives); a grade ocupa o que sobra.
+:host {
+  display: flex;
+  flex-direction: column;
+  --mat-table-row-item-container-height: 2rem;
+}
+
+.filtros {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+
+  .campo {
+    width: 180px;
+  }
+
+  .campo-sm {
+    width: 110px;
+  }
+}
+
+.acoes {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.resumo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.resumo-item {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 4px 12px;
+  border: 1px solid var(--mat-sys-outline-variant, rgba(0, 0, 0, .12));
+  border-radius: 8px;
+  background-color: var(--mat-sys-surface-container, rgba(0, 0, 0, .03));
+
+  &.resumo-critico {
+    border-color: transparent;
+    background-color: #f44336;
+    color: white;
+
+    .resumo-rotulo {
+      color: inherit;
+    }
+  }
+}
+
+.resumo-valor {
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.resumo-rotulo,
+.resumo-atualizacao,
+.objeto-owner,
+.vazio {
+  color: var(--mat-sys-on-surface-variant, rgba(0, 0, 0, .6));
+}
+
+.resumo-rotulo {
+  font-size: .8rem;
+}
+
+.resumo-atualizacao {
+  margin-left: auto;
+  font-size: .75rem;
+}
+
+mat-card,
+.resumo {
+  flex-shrink: 0;
+}
+
+:host ::ng-deep .mtx-grid.grid-locks {
+  flex: 1 1 0;
+  min-height: 240px;
+
+  .linha-critica {
+    background-color: light-dark(#fdecea, #4a1f1c);
+  }
+
+  // Botões de ação lado a lado e compactos: a coluna não quebra em duas linhas.
+  mtx-grid-cell:has(.mtx-grid-action-button) {
+    white-space: nowrap;
+
+    .mtx-grid-action-button {
+      --mat-icon-button-state-layer-size: 32px;
+      width: 32px;
+      height: 32px;
+      padding: 4px;
+    }
+  }
+}
+
+.situacao {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background-color: var(--mat-sys-surface-container-high, rgba(0, 0, 0, .06));
+  font-size: .75rem;
+  font-weight: 500;
+  white-space: nowrap;
+
+  .mat-icon {
+    width: 16px;
+    height: 16px;
+    font-size: 16px;
+  }
+
+  &.critico {
+    background-color: #f44336;
+    color: white;
+  }
+
+  &.atencao {
+    background-color: light-dark(#fff3cd, #5c4a00);
+    color: light-dark(#664d03, #ffe08a);
+  }
+}
+
+.sessao-id {
+  font-family: monospace;
+
+  .sessao-inst {
+    opacity: .6;
+  }
+}
+
+.tag {
+  margin-left: 6px;
+  padding: 0 6px;
+  border: 1px solid var(--mat-sys-outline-variant, rgba(0, 0, 0, .2));
+  border-radius: 4px;
+  font-size: .65rem;
+}
+
+.lock-tabela {
+  color: #d32f2f;
+  font-weight: 600;
+}

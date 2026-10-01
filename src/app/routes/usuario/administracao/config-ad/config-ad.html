@@ -1,0 +1,248 @@
+<div class="config-ad">
+  <div class="cabecalho">
+    <div>
+      <h2 class="titulo"><mat-icon>domain</mat-icon> Login pela rede (Active Directory)</h2>
+      <p class="subtitulo">
+        Permite entrar no APP com o usuário e a senha da rede, ou automaticamente com o usuário do Windows. O vínculo
+        com o usuário do APP é feito no cadastro de usuários ou pelo próprio usuário em Perfil.
+      </p>
+    </div>
+    @if (atualizacao(); as a) {
+      <span class="atualizacao">
+        Atualizado em {{ a.data | date: 'dd/MM/yyyy HH:mm' }}{{ a.usuario ? ' por ' + a.usuario : '' }}
+      </span>
+    }
+  </div>
+
+  @if (carregando()) {
+    <mat-progress-bar mode="indeterminate" />
+  }
+
+  <form [formGroup]="form" class="grade">
+    <mat-card class="bloco">
+      <mat-card-header>
+        <mat-card-title>Situação</mat-card-title>
+      </mat-card-header>
+      <mat-card-content class="toggles">
+        <mat-slide-toggle formControlName="ativo">Login pela rede habilitado</mat-slide-toggle>
+        <mat-slide-toggle formControlName="autoAtivacao">
+          Usuário pode ativar o próprio login em Perfil (confirmando a senha da rede)
+        </mat-slide-toggle>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="bloco">
+      <mat-card-header>
+        <mat-card-title>Servidor</mat-card-title>
+      </mat-card-header>
+      <mat-card-content class="campos">
+        <mat-form-field appearance="outline" class="largo">
+          <mat-label>URL</mat-label>
+          <input matInput formControlName="url" placeholder="ldaps://dc01.empresa.local:636" autocomplete="off" />
+          <mat-hint>Mais de um controlador de domínio: separe por espaço</mat-hint>
+          @if (form.controls.url.hasError('pattern')) {
+            <mat-error>Use ldap://servidor:389 ou ldaps://servidor:636</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Timeout (ms)</mat-label>
+          <input matInput type="number" formControlName="timeoutMs" min="1000" max="60000" />
+          @if (form.controls.timeoutMs.invalid) {
+            <mat-error>Entre 1000 e 60000</mat-error>
+          }
+        </mat-form-field>
+
+        @if (usaLdapSemTls) {
+          <p class="alerta largo">
+            <mat-icon>warning</mat-icon>
+            Com ldap:// a senha dos usuários trafega sem criptografia até o AD. Prefira ldaps:// (porta 636).
+          </p>
+        }
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="bloco bloco-largo">
+      <mat-card-header>
+        <mat-card-title>Localização do usuário</mat-card-title>
+      </mat-card-header>
+      <mat-card-content class="campos">
+        <mat-form-field appearance="outline">
+          <mat-label>Domínio</mat-label>
+          <input matInput formControlName="dominio" placeholder="empresa.local" autocomplete="off" />
+          <mat-hint>DNS (empresa.local → usuario&#64;empresa.local) ou NetBIOS (EMPRESA → EMPRESA\usuario)</mat-hint>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Base DN</mat-label>
+          <input matInput formControlName="baseDn" placeholder="DC=empresa,DC=local" autocomplete="off" />
+          <mat-hint>Onde procurar os usuários (obrigatório com conta de serviço ou grupo)</mat-hint>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Conta de serviço</mat-label>
+          <input matInput formControlName="usuarioBind" placeholder="svc_ntiapp&#64;empresa.local" autocomplete="off" />
+          <mat-hint>Opcional; basta permissão de leitura no AD</mat-hint>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Senha da conta de serviço</mat-label>
+          <input
+            matInput
+            [type]="ocultarSenha() ? 'password' : 'text'"
+            formControlName="senhaBind"
+            autocomplete="new-password"
+          />
+          <button
+            matIconButton
+            matSuffix
+            type="button"
+            [attr.aria-label]="ocultarSenha() ? 'Mostrar senha' : 'Ocultar senha'"
+            (click)="ocultarSenha.set(!ocultarSenha())"
+          >
+            <mat-icon>{{ ocultarSenha() ? 'visibility' : 'visibility_off' }}</mat-icon>
+          </button>
+          <mat-hint>
+            {{ senhaBindDefinida() ? 'Senha gravada: em branco mantém (redigite ao trocar URL ou conta)' : 'Nenhuma senha gravada' }}
+          </mat-hint>
+        </mat-form-field>
+
+        @if (senhaBindDefinida()) {
+          <mat-checkbox formControlName="removerSenhaBind" class="largo">Remover a senha gravada ao salvar</mat-checkbox>
+        }
+
+        <mat-form-field appearance="outline" class="largo">
+          <mat-label>Filtro de usuário</mat-label>
+          <input matInput formControlName="filtroUsuario" class="mono" autocomplete="off" />
+          <button matIconButton matSuffix type="button" matTooltip="Restaurar o filtro padrão" (click)="restaurarFiltro()">
+            <mat-icon>restart_alt</mat-icon>
+          </button>
+          <mat-hint>{{ '{0}' }} é trocado pelo login digitado (sAMAccountName no padrão)</mat-hint>
+          @if (form.controls.filtroUsuario.invalid) {
+            <mat-error>O filtro precisa conter {{ '{0}' }}</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="largo">
+          <mat-label>Grupo permitido (DN)</mat-label>
+          <input
+            matInput
+            formControlName="grupoPermitido"
+            placeholder="CN=NTIAPP-Usuarios,OU=Grupos,DC=empresa,DC=local"
+            autocomplete="off"
+          />
+          <mat-hint>Opcional: só membros deste grupo entram (considera grupos aninhados)</mat-hint>
+        </mat-form-field>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="bloco bloco-largo">
+      <mat-card-header>
+        <mat-card-title>Login automático (usuário do Windows)</mat-card-title>
+        <mat-card-subtitle>
+          Kerberos: em computadores do domínio entra sem digitar senha; fora deles, ou se falhar, vale o formulário
+        </mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content class="campos">
+        <mat-slide-toggle formControlName="sso" class="largo">
+          Tentar o login automático na tela de login (para os usuários com a opção ativada)
+        </mat-slide-toggle>
+
+        <mat-form-field appearance="outline">
+          <mat-label>SPN do serviço</mat-label>
+          <input
+            matInput
+            formControlName="spn"
+            class="mono"
+            placeholder="HTTP/nti.empresa.local&#64;EMPRESA.LOCAL"
+            autocomplete="off"
+          />
+          <mat-hint>HTTP/ + nome DNS usado no navegador + &#64; + domínio</mat-hint>
+          @if (form.controls.spn.hasError('pattern')) {
+            <mat-error>Formato: HTTP/servidor.empresa.local&#64;EMPRESA.LOCAL</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Keytab (caminho no servidor)</mat-label>
+          <input matInput formControlName="keytab" class="mono" placeholder="C:\ntiapp\ntiapp.keytab" autocomplete="off" />
+          <mat-hint>Arquivo gerado pelo ktpass, com leitura para o usuário do Tomcat</mat-hint>
+        </mat-form-field>
+
+        <details class="largo instrucoes">
+          <summary>Como preparar no AD</summary>
+          <ol>
+            <li>
+              Registrar o SPN na conta de serviço:
+              <code>setspn -S HTTP/nti.empresa.local svc_ntiapp</code>
+            </li>
+            <li>
+              Gerar o keytab (redefine a senha da conta: atualize-a acima se for a mesma conta de serviço do LDAP):
+              <code>
+                ktpass /princ HTTP/nti.empresa.local&#64;EMPRESA.LOCAL /mapuser EMPRESA\svc_ntiapp /pass * /crypto AES256-SHA1
+                /ptype KRB5_NT_PRINCIPAL /out ntiapp.keytab
+              </code>
+            </li>
+            <li>Na conta de serviço, marcar "Esta conta oferece suporte à criptografia AES de 256 bits".</li>
+            <li>
+              Acessar o sistema pelo nome DNS (não por IP) e incluir o endereço na zona Intranet local do Edge/Chrome
+              (política de grupo); no Firefox, em network.negotiate-auth.trusted-uris.
+            </li>
+            <li>Cada usuário ativa o login automático em Perfil (ou o administrador no cadastro de usuários).</li>
+          </ol>
+        </details>
+      </mat-card-content>
+    </mat-card>
+  </form>
+
+  <mat-card class="bloco">
+    <mat-card-header>
+      <mat-card-title>Testar configuração</mat-card-title>
+      <mat-card-subtitle>Usa os valores da tela, mesmo sem salvar (com o login automático marcado, confere também o keytab)</mat-card-subtitle>
+    </mat-card-header>
+    <mat-card-content>
+      <form [formGroup]="teste" class="campos-teste" (ngSubmit)="testar()">
+        <mat-form-field appearance="outline">
+          <mat-label>Usuário de teste (opcional)</mat-label>
+          <input matInput formControlName="usuario" autocomplete="off" />
+          <mat-hint>usuario, DOMINIO\usuario ou usuario&#64;dominio</mat-hint>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Senha do usuário de teste</mat-label>
+          <input matInput type="password" formControlName="senha" autocomplete="new-password" />
+        </mat-form-field>
+
+        <button matButton="outlined" type="submit" class="botao-testar" [disabled]="testando() || carregando()">
+          <mat-icon>network_check</mat-icon> Testar
+        </button>
+      </form>
+
+      @if (testando()) {
+        <mat-progress-bar mode="indeterminate" />
+      }
+
+      @if (resultado(); as r) {
+        <ul class="etapas">
+          @for (etapa of r.etapas; track $index) {
+            <li [class.falha]="!etapa.ok">
+              <mat-icon>{{ etapa.ok ? 'check_circle' : 'error' }}</mat-icon>
+              <span>{{ etapa.mensagem }}</span>
+            </li>
+          }
+        </ul>
+        @if (r.baseDnSugerido && r.baseDnSugerido !== form.controls.baseDn.value) {
+          <button matButton type="button" (click)="usarBaseDnSugerido(r.baseDnSugerido)">
+            <mat-icon>auto_fix_high</mat-icon> Usar o Base DN do servidor: {{ r.baseDnSugerido }}
+          </button>
+        }
+      }
+    </mat-card-content>
+  </mat-card>
+
+  <div class="rodape">
+    <button matButton="filled" type="button" [disabled]="salvando() || carregando()" (click)="salvar()">
+      <mat-icon>save</mat-icon> Salvar
+    </button>
+  </div>
+</div>

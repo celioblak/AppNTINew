@@ -4,7 +4,7 @@
     <mat-form-field appearance="outline">
       <mat-label>Selecione um Grupo</mat-label>
       <mat-select [(ngModel)]="grupoSelecionado" (selectionChange)="changeGrupo($event.value)" name="grupo">
-        <mat-option>Nenhum</mat-option>
+        <mat-option [value]="todosGrupos">TODOS</mat-option>
         <mat-option *ngFor="let grupo of listGrupo" [value]="grupo">
           {{grupo.dsGrupo}}
         </mat-option>
@@ -13,7 +13,11 @@
 
     <mat-form-field appearance="outline">
       <mat-label>Valor Pesquisa</mat-label>
-      <input #filterValue matInput name="vlPesquisar">
+      <input #filterValue matInput name="vlPesquisar"
+             [(ngModel)]="termoPesquisa"
+             (input)="searchFiltro(filterValue)"
+             (keyup.enter)="searchFiltro(filterValue)"
+             placeholder="Qualquer atributo do servidor...">
     </mat-form-field>
 
     <div class="search-button-wrapper">
@@ -21,6 +25,15 @@
         <mat-icon>search</mat-icon>
       </button>
     </div>
+
+    <mat-slide-toggle class="toggle-ativos"
+                      [(ngModel)]="apenasAtivos"
+                      (change)="onToggleApenasAtivos()"
+                      color="primary"
+                      matTooltip="Exibir somente servidores ativos"
+                      matTooltipPosition="above">
+      Apenas ativos
+    </mat-slide-toggle>
   </div>
 
   <mat-card>
@@ -44,10 +57,14 @@
             <mat-icon>delete</mat-icon>
             <span>Excluir</span>
           </button>
+          <button [disabled]="!servidorSelecionado.codServidor" mat-menu-item (click)="abrirTerminalSsh()">
+            <mat-icon>terminal</mat-icon>
+            <span>Terminal SSH</span>
+          </button>
         </mat-menu>
       </div>
 
-      <div class="grid-wrapper">
+      <div class="grid-wrapper" tabindex="0" (keydown)="onGridKeyDown($event, 'servidor')">
         <mtx-grid [data]="list"
                   [columns]="isMobile ? columnsServidorMobile : columnsServidorDesktop"
                   [rowStriped]="true"
@@ -82,7 +99,7 @@
             </mat-menu>
           </div>
 
-          <div class="grid-wrapper">
+          <div class="grid-wrapper" tabindex="0" (keydown)="onGridKeyDown($event, 'processo')">
             <mtx-grid [data]="listProcesso"
                       [columns]="isMobile ? columnsProcessoMobile : columnsProcessoDesktop"
                       [rowStriped]="true"
@@ -90,7 +107,7 @@
                       [pageSize]="10"
                       [noResultText]="noResult"
                       (rowClick)="onRowClick($event, 'processo')"
-                      [cellTemplate]="{ dsStatus: statusProcessoTpl, snMonitorado: statusMonitoramentoTpl }" />
+                      [cellTemplate]="{ dsStatus: statusProcessoTpl, snMonitorado: statusMonitoramentoTpl, dsProcesso: dsProcessoTpl }" />
           </div>
         </div>
 
@@ -116,7 +133,7 @@
             </mat-menu>
           </div>
 
-          <div class="grid-wrapper">
+          <div class="grid-wrapper" tabindex="0" (keydown)="onGridKeyDown($event, 'parametro')">
             <mtx-grid [data]="listParamentro"
                       [columns]="isMobile ? columnsParamentroMobile : columnsParamentroDesktop"
                       [rowStriped]="true"
@@ -135,22 +152,37 @@
 <!-- TEMPLATES -->
 <ng-template #statusAtivoTpl let-row>
   <div class="center_item">
-    <mat-icon *ngIf="row.snAtivo" color="primary">power</mat-icon>
-    <mat-icon *ngIf="!row.snAtivo" color="warn">power_off</mat-icon>
+    <mat-icon *ngIf="row.snAtivo" color="primary"
+              [matTooltip]="'Servidor Ativo'" matTooltipPosition="above">power</mat-icon>
+    <mat-icon *ngIf="!row.snAtivo" color="warn"
+              [matTooltip]="'Servidor Inativo'" matTooltipPosition="above">power_off</mat-icon>
   </div>
 </ng-template>
 
 <ng-template #statusProcessoTpl let-row>
   <div class="center_item">
-    <mat-icon *ngIf="row.dsStatus == 'INICIADO'" color="primary">cloud_queue</mat-icon>
-    <mat-icon *ngIf="row.dsStatus == 'PARADO'" color="warn">cloud_off</mat-icon>
-    <mat-icon *ngIf="!row.dsStatus">cloud</mat-icon>
+    <mat-icon *ngIf="row.dsStatus == 'INICIADO'" color="primary"
+              [matTooltip]="'Processo Iniciado'" matTooltipPosition="above">cloud_queue</mat-icon>
+    <mat-icon *ngIf="row.dsStatus == 'PARADO'" color="warn"
+              [matTooltip]="'Processo Parado'" matTooltipPosition="above">cloud_off</mat-icon>
+    <mat-icon *ngIf="!row.dsStatus"
+              [matTooltip]="'Status não informado'" matTooltipPosition="above">cloud</mat-icon>
   </div>
 </ng-template>
 
 <ng-template #statusMonitoramentoTpl let-row>
   <div class="center_item">
-    <mat-icon *ngIf="row.snMonitorado" color="primary">toggle_on</mat-icon>
-    <mat-icon *ngIf="!row.snMonitorado">toggle_off</mat-icon>
+    <mat-icon *ngIf="row.snMonitorado" color="primary"
+              [matTooltip]="'Monitorado'" matTooltipPosition="above">toggle_on</mat-icon>
+    <mat-icon *ngIf="!row.snMonitorado"
+              [matTooltip]="'Não Monitorado'" matTooltipPosition="above">toggle_off</mat-icon>
   </div>
+</ng-template>
+
+<ng-template #dsProcessoTpl let-row>
+  <span [matTooltip]="row.dsProcessoDetalhe || row.dsProcesso"
+        matTooltipPosition="above"
+        matTooltipClass="tooltip-multiline">
+    {{ row.dsProcesso }}
+  </span>
 </ng-template>

@@ -1,0 +1,62 @@
+<div class="central">
+  <div class="central__topo">
+    <h3>
+      Notificações
+      @if (svc.aoVivo()) {
+        <small class="ao-vivo" matTooltip="Recebendo em tempo real">● ao vivo</small>
+      }
+    </h3>
+    <button matIconButton matTooltip="Atualizar" (click)="carregar()"><mat-icon>refresh</mat-icon></button>
+    <button matButton type="button" [disabled]="!svc.naoLidas()" (click)="marcarTodas()">Marcar todas como lidas</button>
+  </div>
+
+  <mat-tab-group [selectedIndex]="aba()" (selectedIndexChange)="trocarAba($event)" animationDuration="0ms">
+    <mat-tab [label]="'Não lidas (' + svc.naoLidas() + ')'" />
+    <mat-tab [label]="'Todas (' + svc.diasHistorico() + ' dias)'" />
+  </mat-tab-group>
+
+  <div class="filtros">
+    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="busca">
+      <mat-icon matPrefix>search</mat-icon>
+      <mat-label>Pesquisar</mat-label>
+      <input matInput [ngModel]="busca()" (ngModelChange)="pesquisar($event)" />
+    </mat-form-field>
+    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="gravidade">
+      <mat-label>Gravidade</mat-label>
+      <mat-select [ngModel]="gravidade()" (ngModelChange)="gravidade.set($event); carregar()">
+        <mat-option [value]="null">Todas</mat-option>
+        <mat-option value="ERRO">Erro</mat-option>
+        <mat-option value="ALERTA">Alerta</mat-option>
+        <mat-option value="INFO">Informação</mat-option>
+      </mat-select>
+    </mat-form-field>
+  </div>
+
+  @if (carregando()) {
+    <mat-progress-bar mode="indeterminate" />
+  }
+
+  <div class="lista">
+    @for (n of lista(); track n.codigo) {
+      <div class="item item--{{ classe(n) }}" [class.item--lida]="n.lida" [class.item--aberto]="aberto() === n.codigo">
+        <button type="button" class="item__cabecalho" (click)="alternar(n)">
+          <mat-icon>{{ icone(n) }}</mat-icon>
+          <span class="item__texto">
+            <span class="item__titulo">{{ titulo(n) }}</span>
+            <small>{{ n.quando | date: 'dd/MM/yyyy HH:mm' }} · {{ n.tipo }}</small>
+          </span>
+          @if (!n.lida) {
+            <i class="nao-lida" matTooltip="Não lida"></i>
+          }
+        </button>
+        @if (aberto() === n.codigo) {
+          <div class="item__corpo" [innerHTML]="corpo(n)"></div>
+        }
+      </div>
+    } @empty {
+      <p class="vazio">
+        {{ aba() === 0 ? 'Nenhuma notificação não lida.' : 'Nenhuma notificação nos últimos ' + svc.diasHistorico() + ' dias.' }}
+      </p>
+    }
+  </div>
+</div>

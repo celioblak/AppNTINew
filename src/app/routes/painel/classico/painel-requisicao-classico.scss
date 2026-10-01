@@ -1,0 +1,149 @@
+:host {
+  display: block;
+  height: 100%;
+}
+
+.painel-requisicao {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+
+  &__colunas {
+    display: flex;
+    flex: 1 1 auto;
+    gap: 8px;
+    min-height: 0;
+    padding: 8px;
+  }
+
+  &__coluna {
+    display: flex;
+    flex: 1 1 50%;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+  }
+
+  &__titulo {
+    flex: 0 0 auto;
+    padding: 4px;
+    color: #fff;
+    font-size: 2rem;
+    font-weight: bold;
+    text-align: center;
+
+    &--analise {
+      background: rgb(255 103 56);
+    }
+
+    &--execucao {
+      background: #0fa30a;
+    }
+  }
+
+  &__lista {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  // Faixa de contadores no rodapé, como no painel antigo.
+  &__totais {
+    display: flex;
+    flex: 0 0 auto;
+    gap: 4px;
+    padding: 4px;
+  }
+}
+
+.chamado {
+  margin-top: 5px;
+  padding: 4px;
+  color: #fff;
+  font-size: 1.8rem;
+  line-height: 1.15;
+  word-break: break-word;
+
+  &--normal {
+    background: #3b5998;
+  }
+
+  &--pendente {
+    background: #feda90;
+    color: #000;
+  }
+
+  &--pausado {
+    background: #8b4513;
+  }
+
+  &--reprovado {
+    background: #f00;
+  }
+}
+
+.total {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 2px;
+  border-radius: 5px;
+  color: #fff;
+  text-align: center;
+
+  &__numero {
+    font-size: 3rem;
+    font-weight: bold;
+    line-height: 1;
+  }
+
+  &__rotulo {
+    padding-top: 5px;
+    font-size: 1.1rem;
+    font-weight: bold;
+  }
+
+  &--solicitado {
+    background: rgb(55 71 219 / 62%);
+  }
+
+  &--gestor {
+    background: rgb(255 119 0 / 88%);
+  }
+
+  &--requisitos {
+    background: rgb(255 103 56);
+  }
+
+  &--em-analise {
+    background: rgb(253 164 0);
+  }
+
+  &--pausado {
+    background: #8b4513;
+  }
+
+  &--validacao {
+    background: #a00af7;
+  }
+
+  &--reprovado {
+    background: rgb(255 21 0);
+  }
+
+  &--para-execucao {
+    background: #067c01;
+  }
+
+  &--em-execucao {
+    background: rgb(89 255 0);
+    color: #10240a;
+  }
+
+  &--geral {
+    background: rgb(126 126 126 / 88%);
+  }
+}

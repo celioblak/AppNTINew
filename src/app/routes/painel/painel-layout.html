@@ -1,0 +1,55 @@
+<div
+  class="painel-tv efeito-{{ efeito() }}"
+  [class.painel-tv--classico]="visual() === 'classico'"
+>
+  @if (semAlertas()) {
+    <div class="tarja">
+      Conexão de alertas perdida — os dados continuam atualizando; reconectando sozinho
+    </div>
+  }
+
+  @if (visual() === 'moderno') {
+    <header class="topo">
+      <h1 class="topo__titulo">{{ titulo() }}</h1>
+
+      <div class="topo__estado" [class.topo__estado--velho]="dadosVelhos()">
+        <span class="ponto ponto--{{ estadoConexao().toLowerCase() }}"></span>
+        @if (idadeDados() < 0) {
+          <span>carregando…</span>
+        } @else {
+          <span>dados de {{ idadeDados() }}s atrás</span>
+        }
+      </div>
+
+      <time class="topo__relogio">{{ agora() | date: 'HH:mm' }}</time>
+    </header>
+  }
+
+  <main class="painel-tv__conteudo">
+    <router-outlet />
+  </main>
+
+  <footer class="rodape">
+    @if (visual() === 'classico') {
+      <span class="ponto ponto--{{ estadoConexao().toLowerCase() }}"></span>
+      <span class="rodape__estado">{{ estadoConexao() }}</span>
+    }
+
+    @if (statusExecucao()) {
+      <span class="rodape__log">{{ statusExecucao() }}</span>
+    }
+
+    @if (ultimaCarga(); as carga) {
+      <span class="rodape__atualizacao">Atualizado às {{ carga | date: 'HH:mm:ss' }}</span>
+    }
+  </footer>
+
+  <div class="avisos">
+    @for (aviso of avisos(); track aviso.id) {
+      <div class="aviso aviso--{{ aviso.severidade }}">
+        <strong>{{ aviso.titulo }}</strong>
+        <span>{{ aviso.mensagem }}</span>
+      </div>
+    }
+  </div>
+</div>

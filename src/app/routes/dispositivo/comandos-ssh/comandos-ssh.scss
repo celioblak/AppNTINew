@@ -1,0 +1,67 @@
+:host {
+  display: block;
+}
+
+// A altura vem do alturaAteRodape; a grade ocupa o que sobra abaixo da barra.
+.comandos-ssh {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.barra {
+  display: flex;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.busca {
+  flex: 1 1 280px;
+}
+
+.campo {
+  width: 180px;
+}
+
+.campo-servidor {
+  width: 240px;
+}
+
+.espaco {
+  flex: 1;
+}
+
+.total {
+  font-size: .8rem;
+  color: var(--mat-sys-on-surface-variant, rgba(0, 0, 0, .6));
+}
+
+.grade {
+  flex: 1 1 0;
+  min-height: 240px;
+}
+
+.codigo {
+  font-family: 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', monospace;
+  font-size: .78rem;
+  white-space: nowrap;
+}
+
+.todos {
+  font-weight: 500;
+  color: #2e7d32;
+}
+
+// Botões de ação lado a lado e compactos: a coluna não quebra em duas linhas.
+:host ::ng-deep .grade mtx-grid-cell:has(.mtx-grid-action-button) {
+  white-space: nowrap;
+
+  .mtx-grid-action-button {
+    --mat-icon-button-state-layer-size: 32px;
+    width: 32px;
+    height: 32px;
+    padding: 4px;
+  }
+}

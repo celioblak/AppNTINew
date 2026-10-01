@@ -1,0 +1,197 @@
+<div class="incidente" [class.incidente--com-monitoramento]="temMonitoramento()">
+  <section class="incidente__chamados">
+    <header class="secao">
+      <h2 class="secao__titulo">Chamados</h2>
+      <span class="secao__contador">{{ qtdChamados() }}</span>
+      @if (totalPaginas() > 1) {
+        <span class="paginacao">
+          <span class="paginacao__texto">Página {{ pagina() + 1 }} de {{ totalPaginas() }}</span>
+          @for (indice of indicesPagina(); track indice) {
+            <span class="paginacao__ponto" [class.paginacao__ponto--ativo]="indice === pagina()"></span>
+          }
+        </span>
+      }
+    </header>
+
+    @if (qtdChamados() > 0) {
+      <div class="incidente__grade" [style.--linhas]="porPagina">
+        @for (chamado of chamadosDaPagina(); track chamado.idChamado) {
+          <app-chamado-card
+            [chamado]="chamado"
+            [tom]="tomDoChamado(chamado)"
+            [novo]="ehNovo(chamado)"
+          />
+        }
+      </div>
+    } @else {
+      <div class="vazio">
+        <span class="vazio__icone">✓</span>
+        <span class="vazio__texto">Nenhum chamado em aberto</span>
+      </div>
+    }
+
+    @if (qtdChamados() > 0) {
+      <div class="legenda">
+        @for (item of legenda; track item.cor) {
+          <span class="legenda__item">
+            <i class="legenda__cor legenda__cor--{{ item.cor }}"></i>
+            {{ item.texto }}
+          </span>
+        }
+      </div>
+    }
+  </section>
+
+  @if (temMonitoramento()) {
+    <aside class="incidente__monitoramento">
+      @if (problemas().length > 0) {
+        <section>
+          <header class="secao">
+            <h2 class="secao__titulo">Sistemas impactados</h2>
+            @if (sistemasAfetados().length > 0) {
+              <span class="etiqueta" [class.etiqueta--critico]="sistemasParados() > 0" [class.etiqueta--alerta]="sistemasParados() === 0">
+                {{ sistemasAfetados().length }} {{ sistemasAfetados().length === 1 ? 'SISTEMA' : 'SISTEMAS' }}
+              </span>
+            }
+          </header>
+
+          <div class="impactos">
+            @for (problema of problemasVisiveis(); track problema.chave) {
+              <article class="impacto impacto--{{ problema.gravidade.toLowerCase() }}">
+                <div class="impacto__topo">
+                  <span class="impacto__icone" aria-hidden="true">{{ iconeProblema(problema) }}</span>
+                  <span class="impacto__rotulo">{{ rotuloProblema(problema) }}</span>
+                  @if (desdeProblema(problema)) {
+                    <span class="impacto__desde">{{ desdeProblema(problema) }}</span>
+                  }
+                </div>
+
+                <div class="impacto__nome">
+                  {{ problema.nome }}
+                  @if (problema.servidor && problema.servidor !== problema.nome) {
+                    <span class="impacto__servidor">em {{ problema.servidor }}</span>
+                  }
+                </div>
+
+                @if (problema.descricao) {
+                  <div class="impacto__descricao">{{ problema.descricao }}</div>
+                }
+
+                @if (problema.sistemas.length > 0) {
+                  <div class="impacto__sistemas">
+                    @for (sistema of problema.sistemas; track sistema.codSistema) {
+                      <span class="sistema-chip sistema-chip--{{ sistema.situacao.toLowerCase() }}">
+                        <b>{{ sistema.nome }}</b>
+                        <span>{{ situacaoSistema(sistema) }}</span>
+                      </span>
+                    }
+                  </div>
+                } @else {
+                  <div class="impacto__sem-sistema">Nenhum sistema cadastrado depende deste item</div>
+                }
+              </article>
+            }
+
+            @if (problemasOcultos() > 0) {
+              <span class="locks__ocultos">+ {{ problemasOcultos() }} {{ problemasOcultos() === 1 ? 'problema' : 'problemas' }} não listados</span>
+            }
+          </div>
+        </section>
+      }
+
+      @if (servidores().length > 0) {
+        <section>
+          <header class="secao">
+            <h2 class="secao__titulo">Servidores</h2>
+          </header>
+
+          <div class="servidores">
+            @for (servidor of servidores(); track $index) {
+              <article class="servidor servidor--{{ nivelServidor(servidor) }}">
+                <div class="servidor__topo">
+                  <span class="servidor__nome">{{ servidor.dsservidor }}</span>
+                  <span class="etiqueta etiqueta--{{ nivelServidor(servidor) }}">
+                    {{ rotuloNivel(nivelServidor(servidor)) }}
+                  </span>
+                </div>
+
+                <div class="indicador">
+                  <div class="indicador__cabecalho">
+                    <span>Load</span>
+                    <b>{{ loadTexto(servidor) }}</b>
+                  </div>
+                  <div class="barra">
+                    <div
+                      class="barra__valor barra__valor--{{ nivelLoad(servidor) }}"
+                      [style.width.%]="larguraLoad(servidor)"
+                    ></div>
+                  </div>
+                  <span class="indicador__nota">{{ cpusTexto(servidor) }}</span>
+                </div>
+
+                @if (servidor.usodisco) {
+                  <div class="indicador">
+                    <div class="indicador__cabecalho">
+                      <span>Disco</span>
+                      <b>{{ servidor.usodisco }}</b>
+                    </div>
+                    <div class="barra">
+                      <div
+                        class="barra__valor barra__valor--{{ nivelDisco(servidor.usodisco) }}"
+                        [style.width.%]="usoDisco(servidor.usodisco)"
+                      ></div>
+                    </div>
+                    <span class="indicador__nota">{{ 100 - usoDisco(servidor.usodisco) }}% livre</span>
+                  </div>
+                }
+              </article>
+            }
+          </div>
+        </section>
+      }
+
+      @if (totalLocks() > 0) {
+        <section>
+          <header class="secao">
+            <h2 class="secao__titulo">Sessões em lock</h2>
+            @if (locksAntigos()) {
+              <span class="etiqueta etiqueta--lock">MAIS DE 10 MIN</span>
+            }
+          </header>
+
+          <div class="locks">
+            <div class="locks__resumo">
+              <span class="locks__numero">{{ totalLocks() }}</span>
+              <span class="locks__texto">
+                {{ totalLocks() === 1 ? 'sessão travada' : 'sessões travadas' }} ·
+                mais antiga há {{ lockMaisLongo() }} min
+              </span>
+            </div>
+
+            @for (sessao of locksVisiveis(); track $index) {
+              <div class="lock lock--{{ nivelLock(sessao) }}">
+                <span class="lock__usuario">{{ sessao.username }}</span>
+                <span class="lock__detalhe">sid {{ sessao.sid }} · bloqueia {{ sessao.lc_final_user }}</span>
+                <span class="lock__tempo">{{ tempoLock(sessao) }} min</span>
+              </div>
+            }
+
+            @if (locksOcultos() > 0) {
+              <span class="locks__ocultos">+ {{ locksOcultos() }} não listadas</span>
+            }
+
+            <div class="legenda">
+              <span>Tempo em lock:</span>
+              @for (item of legendaLocks; track item.cor) {
+                <span class="legenda__item">
+                  <i class="legenda__cor legenda__cor--{{ item.cor }}"></i>
+                  {{ item.texto }}
+                </span>
+              }
+            </div>
+          </div>
+        </section>
+      }
+    </aside>
+  }
+</div>

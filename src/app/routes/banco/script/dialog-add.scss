@@ -1,0 +1,150 @@
+:host {
+  display: block;
+  height: 100%;
+}
+
+.dialog-add-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  max-height: min(85vh, 800px);
+}
+
+.dialog-add-content {
+  flex: 1;
+  overflow-y: auto;
+  padding-bottom: 8px;
+}
+
+.dialog-add-form {
+  display: flex;
+  flex-direction: column;
+}
+
+.full-width {
+  width: 100%;
+  margin-bottom: 12px;
+}
+
+.editor-wrapper {
+  height: min(40vh, 340px);
+  margin-bottom: 12px;
+}
+
+.dialog-add-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 12px;
+  flex-wrap: wrap;
+}
+
+// ------------------------------------------------------------- Parâmetros
+.section-divider {
+  margin: 16px 0;
+}
+
+.parametros-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.parametros-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+
+  h4 {
+    margin: 0;
+  }
+}
+
+.parametros-header-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.parametros-hint,
+.empty-parametros {
+  font-size: 12px;
+  opacity: 0.7;
+  padding: 8px 0;
+}
+
+.parametros-table-wrapper {
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+.parametros-table {
+  width: 100%;
+  min-width: 560px;
+  border-collapse: collapse;
+
+  th {
+    text-align: left;
+    font-size: 12px;
+    font-weight: 600;
+    opacity: 0.7;
+    padding: 4px 8px;
+  }
+
+  td {
+    padding: 2px 8px;
+    vertical-align: middle;
+  }
+
+  .col-nome { width: 32%; }
+  .col-tipo { width: 24%; }
+  .col-ordem { width: 16%; }
+  .col-obrig { width: 12%; text-align: center; }
+  .col-acao { width: 40px; }
+}
+
+.cell-field {
+  width: 100%;
+
+  ::ng-deep .mat-mdc-form-field-subscript-wrapper {
+    display: none;
+  }
+
+  ::ng-deep .mat-mdc-text-field-wrapper {
+    padding-top: 0;
+  }
+}
+
+.cell-field-narrow {
+  max-width: 90px;
+}
+
+.cell-checkbox,
+.cell-acao {
+  text-align: center;
+}
+
+@media (max-width: 600px) {
+  .dialog-add-card {
+    max-height: 92vh;
+  }
+
+  .editor-wrapper {
+    height: min(32vh, 280px);
+  }
+
+  .dialog-add-actions {
+    justify-content: stretch;
+
+    button {
+      flex: 1;
+    }
+  }
+
+  .parametros-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

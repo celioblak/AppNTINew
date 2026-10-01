@@ -1,0 +1,553 @@
+<div class="advanced-dialog-container">
+  <h2 mat-dialog-title class="dialog-title">
+    <mat-icon>settings</mat-icon>
+    Gerenciamento Avançado do Scheduler
+  </h2>
+
+  <mat-dialog-content class="dialog-content">
+    <mat-tab-group [(selectedIndex)]="selectedTabIndex" animationDuration="200ms">
+
+      <!-- Aba de Saúde do Scheduler -->
+      <mat-tab label="Saúde do Scheduler">
+        <div class="tab-content">
+          <div class="section-header">
+            <h3>
+              <mat-icon>health_and_safety</mat-icon>
+              Status do Sistema
+            </h3>
+            <button mat-raised-button color="primary" (click)="checkSchedulerHealth()" [disabled]="isLoadingHealth">
+              <mat-icon *ngIf="!isLoadingHealth">refresh</mat-icon>
+              <mat-spinner *ngIf="isLoadingHealth" diameter="20" class="spinner"></mat-spinner>
+              {{isLoadingHealth ? 'Verificando...' : 'Verificar Saúde'}}
+            </button>
+          </div>
+
+          <div *ngIf="schedulerHealth && !isLoadingHealth" class="health-cards">
+            <!-- Card de Status do Scheduler -->
+            <mat-card class="health-card">
+              <mat-card-header>
+                <mat-card-title>
+                  <mat-icon>schedule</mat-icon>
+                  Status do Scheduler
+                </mat-card-title>
+              </mat-card-header>
+              <mat-card-content>
+                <div class="status-info">
+                  <div class="status-item">
+                    <span class="label">Status:</span>
+                    <span class="value {{getSchedulerStatusClass()}}">{{getSchedulerStatusText()}}</span>
+                  </div>
+
+                  <div *ngIf="schedulerHealth" class="status-details">
+                    <div class="detail-item">
+                      <mat-icon>{{schedulerHealth.started ? 'check_circle' : 'cancel'}}</mat-icon>
+                      <span>Iniciado: {{schedulerHealth.started ? 'Sim' : 'Não'}}</span>
+                    </div>
+                    <div class="detail-item">
+                      <mat-icon>{{schedulerHealth.shutdown ? 'check_circle' : 'cancel'}}</mat-icon>
+                      <span>Parado: {{schedulerHealth.shutdown ? 'Sim' : 'Não'}}</span>
+                    </div>
+                    <div class="detail-item">
+                      <mat-icon>{{schedulerHealth.standby ? 'check_circle' : 'cancel'}}</mat-icon>
+                      <span>Em espera: {{schedulerHealth.standby ? 'Sim' : 'Não'}}</span>
+                    </div>
+                    <div class="detail-item">
+                      <mat-icon>list</mat-icon>
+                      <span>Jobs ativos: {{schedulerHealth.jobs || 0}}</span>
+                    </div>
+                    <div class="detail-item">
+                      <mat-icon>schedule</mat-icon>
+                      <span>Triggers: {{schedulerHealth.triggers || 0}}</span>
+                    </div>
+                    <div class="detail-item">
+                      <mat-icon>fingerprint</mat-icon>
+                      <span>Instância: {{schedulerHealth.instanceId || 'N/A'}}</span>
+                    </div>
+                  </div>
+                </div>
+              </mat-card-content>
+            </mat-card>
+
+            <!-- Card de Metadados -->
+            <mat-card *ngIf="schedulerMetaData" class="health-card">
+              <mat-card-header>
+                <mat-card-title>
+                  <mat-icon>info</mat-icon>
+                  Informações do Scheduler
+                </mat-card-title>
+              </mat-card-header>
+              <mat-card-content>
+                <div class="metadata-info">
+                  <div class="metadata-item">
+                    <span class="label">Nome:</span>
+                    <span class="value">{{schedulerMetaData.schedulerName || 'N/A'}}</span>
+                  </div>
+                  <div class="metadata-item">
+                    <span class="label">Instância:</span>
+                    <span class="value">{{schedulerMetaData.schedulerInstanceId || 'N/A'}}</span>
+                  </div>
+                  <div class="metadata-item">
+                    <span class="label">Versão:</span>
+                    <span class="value">{{schedulerMetaData.version || 'N/A'}}</span>
+                  </div>
+                  <div class="metadata-item">
+                    <span class="label">Jobs Executados:</span>
+                    <span class="value">{{schedulerMetaData.numberOfJobsExecuted || 0}}</span>
+                  </div>
+                  <div class="metadata-item">
+                    <span class="label">Desde:</span>
+                    <span class="value">
+                      {{schedulerMetaData.runningSince ?
+                        (datepipe.transform(schedulerMetaData.runningSince, 'dd/MM/yyyy HH:mm') || 'N/A') :
+                        'N/A'}}
+                    </span>
+                  </div>
+                  <div class="metadata-item">
+                    <span class="label">Cluster:</span>
+                    <span class="value">{{schedulerMetaData.jobStoreClustered ? 'Sim' : 'Não'}}</span>
+                  </div>
+                  <div class="metadata-item">
+                    <span class="label">Thread Pool:</span>
+                    <span class="value">{{schedulerMetaData.threadPoolSize || 0}}</span>
+                  </div>
+                </div>
+              </mat-card-content>
+            </mat-card>
+
+            <!-- Card de Resumo -->
+            <mat-card class="health-card">
+              <mat-card-header>
+                <mat-card-title>
+                  <mat-icon>assessment</mat-icon>
+                  Resumo do Sistema
+                </mat-card-title>
+              </mat-card-header>
+              <mat-card-content>
+                <div class="status-info">
+                  <div class="status-item">
+                    <span class="label">Status Geral:</span>
+                    <span class="value {{getSchedulerStatusClass()}}">{{getSchedulerStatusText()}}</span>
+                  </div>
+                  <div *ngIf="schedulerHealth?.status" class="status-item">
+                    <span class="label">Código Status:</span>
+                    <span class="value">{{schedulerHealth.status}}</span>
+                  </div>
+                  <div *ngIf="schedulerHealth?.error" class="status-item">
+                    <span class="label">Erro:</span>
+                    <span class="value error">{{schedulerHealth.error}}</span>
+                  </div>
+                  <div class="status-item">
+                    <span class="label">Última Verificação:</span>
+                    <span class="value">{{currentDate | date:'dd/MM/yyyy HH:mm:ss'}}</span>
+                  </div>
+                </div>
+              </mat-card-content>
+            </mat-card>
+          </div>
+
+          <div *ngIf="!schedulerHealth && !isLoadingHealth" class="empty-state">
+            <mat-icon>search_off</mat-icon>
+            <p>Clique em "Verificar Saúde" para obter informações do scheduler</p>
+          </div>
+
+          <div *ngIf="isLoadingHealth" class="loading-state">
+            <mat-spinner diameter="40"></mat-spinner>
+            <p>Verificando saúde do scheduler...</p>
+          </div>
+        </div>
+      </mat-tab>
+
+      <!-- Aba de Diagnóstico -->
+      <mat-tab label="Diagnóstico">
+        <div class="tab-content">
+          <div class="section-header">
+            <h3>
+              <mat-icon>bug_report</mat-icon>
+              Diagnóstico do Sistema
+            </h3>
+            <button mat-raised-button color="primary" (click)="runDiagnostic()" [disabled]="isLoadingDiagnostic">
+              <mat-icon *ngIf="!isLoadingDiagnostic">play_arrow</mat-icon>
+              <mat-spinner *ngIf="isLoadingDiagnostic" diameter="20" class="spinner"></mat-spinner>
+              {{isLoadingDiagnostic ? 'Executando...' : 'Executar Diagnóstico'}}
+            </button>
+          </div>
+
+          <div *ngIf="diagnosticInfo && !isLoadingDiagnostic" class="diagnostic-results">
+            <!-- Seção de Banco de Dados -->
+            <mat-card class="diagnostic-card">
+              <mat-card-header>
+                <mat-card-title>
+                  <mat-icon>database</mat-icon>
+                  Banco de Dados
+                </mat-card-title>
+              </mat-card-header>
+              <mat-card-content>
+                <div class="diagnostic-item">
+                  <div class="diagnostic-label">Conexão:</div>
+                  <div class="diagnostic-value" [ngClass]="{
+                    'status-success': diagnosticInfo.database_connection?.includes('OK'),
+                    'status-error': diagnosticInfo.database_connection?.includes('ERROR')
+                  }">
+                    {{diagnosticInfo.database_connection || 'Não verificado'}}
+                  </div>
+                </div>
+                <div class="diagnostic-item">
+                  <div class="diagnostic-label">Jobs no banco:</div>
+                  <div class="diagnostic-value">{{diagnosticInfo.jobs_in_database || 0}}</div>
+                </div>
+              </mat-card-content>
+            </mat-card>
+
+            <!-- Seção do Scheduler -->
+            <mat-card class="diagnostic-card">
+              <mat-card-header>
+                <mat-card-title>
+                  <mat-icon>settings</mat-icon>
+                  Scheduler
+                </mat-card-title>
+              </mat-card-header>
+              <mat-card-content>
+                <div class="diagnostic-item">
+                  <div class="diagnostic-label">Status:</div>
+                  <div class="diagnostic-value">{{diagnosticInfo.scheduler_status || 'N/A'}}</div>
+                </div>
+                <div class="diagnostic-item">
+                  <div class="diagnostic-label">Iniciado:</div>
+                  <div class="diagnostic-value" [ngClass]="{'status-success': diagnosticInfo.scheduler_started, 'status-error': !diagnosticInfo.scheduler_started}">
+                    {{diagnosticInfo.scheduler_started ? 'SIM' : 'NÃO'}}
+                  </div>
+                </div>
+                <div *ngIf="diagnosticInfo.quartz_config" class="diagnostic-item">
+                  <div class="diagnostic-label">Jobs no scheduler:</div>
+                  <div class="diagnostic-value">{{diagnosticInfo.quartz_config.total_jobs || 0}}</div>
+                </div>
+                <div *ngIf="diagnosticInfo.quartz_config" class="diagnostic-item">
+                  <div class="diagnostic-label">Clusterizado:</div>
+                  <div class="diagnostic-value">{{diagnosticInfo.quartz_config.is_clustered ? 'SIM' : 'NÃO'}}</div>
+                </div>
+              </mat-card-content>
+            </mat-card>
+
+            <!-- Seção de Jobs Inconsistentes -->
+            <mat-card *ngIf="diagnosticInfo.inconsistent_jobs?.length > 0" class="diagnostic-card warning">
+              <mat-card-header>
+                <mat-card-title class="warning-title">
+                  <mat-icon>warning</mat-icon>
+                  Jobs Inconsistentes ({{diagnosticInfo.inconsistent_jobs.length}})
+                </mat-card-title>
+              </mat-card-header>
+              <mat-card-content>
+                <div class="warning-list">
+                  <div *ngFor="let job of diagnosticInfo.inconsistent_jobs" class="warning-item">
+                    <mat-icon class="warning-icon">error_outline</mat-icon>
+                    <div class="warning-details">
+                      <div class="job-name">{{job.name}} <span class="job-group">({{job.group}})</span></div>
+                      <div class="job-issue">{{job.issue}} - Status: {{job.status}}</div>
+                    </div>
+                  </div>
+                </div>
+              </mat-card-content>
+            </mat-card>
+
+            <!-- Seção de Sem Inconsistências -->
+            <mat-card *ngIf="diagnosticInfo.inconsistent_jobs?.length === 0 && diagnosticInfo.inconsistent_jobs !== undefined" class="diagnostic-card success">
+              <mat-card-header>
+                <mat-card-title class="success-title">
+                  <mat-icon>check_circle</mat-icon>
+                  Nenhuma Inconsistência Encontrada
+                </mat-card-title>
+              </mat-card-header>
+              <mat-card-content>
+                <div class="success-message">
+                  <p>Todos os jobs estão sincronizados entre o banco de dados e o scheduler.</p>
+                </div>
+              </mat-card-content>
+            </mat-card>
+
+            <!-- Resumo do Diagnóstico -->
+            <div *ngIf="diagnosticInfo" class="diagnostic-summary">
+              <div class="summary-item">
+                <div class="summary-label">Total de jobs</div>
+                <div class="summary-value">{{diagnosticInfo.jobs_in_database || 0}}</div>
+              </div>
+              <div class="summary-item">
+                <div class="summary-label">Jobs no scheduler</div>
+                <div class="summary-value">{{diagnosticInfo.quartz_config?.total_jobs || 0}}</div>
+              </div>
+              <div class="summary-item">
+                <div class="summary-label">Inconsistências</div>
+                <div class="summary-value" [ngClass]="{'summary-error': diagnosticInfo.inconsistent_jobs?.length > 0}">
+                  {{diagnosticInfo.inconsistent_jobs?.length || 0}}
+                </div>
+              </div>
+              <div class="summary-item">
+                <div class="summary-label">Cluster</div>
+                <div class="summary-value">{{diagnosticInfo.quartz_config?.is_clustered ? 'Ativo' : 'Inativo'}}</div>
+              </div>
+            </div>
+          </div>
+
+          <div *ngIf="!diagnosticInfo && !isLoadingDiagnostic" class="empty-state">
+            <mat-icon>search_off</mat-icon>
+            <p>Clique em "Executar Diagnóstico" para analisar o sistema</p>
+          </div>
+
+          <div *ngIf="isLoadingDiagnostic" class="loading-state">
+            <mat-spinner diameter="40"></mat-spinner>
+            <p>Executando diagnóstico do sistema...</p>
+          </div>
+        </div>
+      </mat-tab>
+
+      <!-- Aba de Ações Avançadas -->
+      <mat-tab label="Ações Avançadas">
+        <div class="tab-content">
+          <div class="section-header">
+            <h3>
+              <mat-icon>build</mat-icon>
+              Ações de Gerenciamento
+            </h3>
+            <p class="section-subtitle">Ações que afetam todo o scheduler</p>
+          </div>
+
+          <div class="actions-grid">
+            <!-- Reiniciar Scheduler -->
+            <mat-card class="action-card">
+              <mat-card-header>
+                <mat-card-title>
+                  <mat-icon>restart_alt</mat-icon>
+                  Reiniciar Scheduler
+                </mat-card-title>
+                <mat-card-subtitle>Reinicia o scheduler quando ele travar</mat-card-subtitle>
+              </mat-card-header>
+              <mat-card-content>
+                <p class="action-description">
+                  Esta ação irá parar e reiniciar completamente o scheduler.
+                  Jobs em execução serão interrompidos.
+                </p>
+                <div class="action-details">
+                  <mat-icon>info</mat-icon>
+                  <span>Apenas esta instância será reiniciada (ambiente cluster)</span>
+                </div>
+              </mat-card-content>
+              <mat-card-actions>
+                <button mat-raised-button color="warn" (click)="restartScheduler()" [disabled]="isLoadingActions">
+                  <mat-icon>power_settings_new</mat-icon>
+                  Reiniciar Scheduler
+                </button>
+              </mat-card-actions>
+            </mat-card>
+
+            <!-- Limpar Jobs Órfãos -->
+            <mat-card class="action-card">
+              <mat-card-header>
+                <mat-card-title>
+                  <mat-icon>cleaning_services</mat-icon>
+                  Limpar Jobs Órfãos
+                </mat-card-title>
+                <mat-card-subtitle>Remove jobs que estão no scheduler mas não no banco</mat-card-subtitle>
+              </mat-card-header>
+              <mat-card-content>
+                <p class="action-description">
+                  Remove jobs que estão registrados no scheduler mas não existem
+                  no banco de dados (jobs órfãos).
+                </p>
+                <div class="action-details">
+                  <mat-icon>info</mat-icon>
+                  <span>Será executado em todas as instâncias do cluster</span>
+                </div>
+              </mat-card-content>
+              <mat-card-actions>
+                <button mat-raised-button color="primary" (click)="cleanupOrphanedJobs()" [disabled]="isLoadingActions">
+                  <mat-icon>delete_sweep</mat-icon>
+                  Limpar Órfãos
+                </button>
+              </mat-card-actions>
+            </mat-card>
+
+            <!-- Cancelar Todos os Jobs -->
+            <mat-card class="action-card">
+              <mat-card-header>
+                <mat-card-title>
+                  <mat-icon>block</mat-icon>
+                  Cancelar Todos os Jobs
+                </mat-card-title>
+                <mat-card-subtitle>Impide triggers futuros, mas não interrompe jobs em execução</mat-card-subtitle>
+              </mat-card-header>
+              <mat-card-content>
+                <p class="action-description">
+                  Cancela todos os triggers futuros. Jobs atualmente em execução
+                  serão concluídos normalmente.
+                </p>
+                <div class="action-details">
+                  <mat-icon>info</mat-icon>
+                  <span>Afeta todas as instâncias do cluster (estado compartilhado)</span>
+                </div>
+              </mat-card-content>
+              <mat-card-actions>
+                <button mat-raised-button color="warn" (click)="cancelAllJobs()" [disabled]="isLoadingActions">
+                  <mat-icon>cancel</mat-icon>
+                  Cancelar Todos
+                </button>
+              </mat-card-actions>
+            </mat-card>
+
+            <!-- Recriar Todos os Jobs -->
+            <mat-card class="action-card">
+              <mat-card-header>
+                <mat-card-title>
+                  <mat-icon>replay</mat-icon>
+                  Recriar Todos os Jobs
+                </mat-card-title>
+                <mat-card-subtitle>Recria todos os jobs do banco no scheduler</mat-card-subtitle>
+              </mat-card-header>
+              <mat-card-content>
+                <p class="action-description">
+                  Recria todos os jobs registrados no banco de dados no scheduler.
+                  Útil após problemas de sincronização.
+                </p>
+                <div class="action-details">
+                  <mat-icon>info</mat-icon>
+                  <span>Será executado apenas nesta instância</span>
+                </div>
+              </mat-card-content>
+              <mat-card-actions>
+                <button mat-raised-button color="accent" (click)="recreateAllJobs()" [disabled]="isLoadingActions">
+                  <mat-icon>refresh</mat-icon>
+                  Recriar Todos
+                </button>
+              </mat-card-actions>
+            </mat-card>
+          </div>
+
+          <div class="cluster-section" *ngIf="schedulerMetaData?.jobStoreClustered">
+            <div class="section-header">
+              <h3>
+                <mat-icon>dns</mat-icon>
+                Ações de Cluster (Todas as Instâncias)
+              </h3>
+              <p class="section-subtitle">Estas ações afetarão TODAS as instâncias do cluster</p>
+            </div>
+
+            <div class="actions-grid">
+              <!-- Reiniciar TODAS as Instâncias -->
+              <mat-card class="action-card cluster-card">
+                <mat-card-header>
+                  <mat-card-title>
+                    <mat-icon>restart_alt</mat-icon>
+                    Reiniciar TODAS as Instâncias
+                  </mat-card-title>
+                  <mat-card-subtitle>Reinicia o scheduler em todos os nós do cluster</mat-card-subtitle>
+                </mat-card-header>
+                <mat-card-content>
+                  <p class="action-description">
+                    Esta ação enviará um comando para reiniciar o scheduler em TODAS as instâncias
+                    do cluster simultaneamente.
+                  </p>
+                  <div class="cluster-warning">
+                    <mat-icon>warning</mat-icon>
+                    <span><strong>ATENÇÃO:</strong> Interromperá jobs em execução em TODOS os nós</span>
+                  </div>
+                </mat-card-content>
+                <mat-card-actions>
+                  <button mat-raised-button color="warn" (click)="restartAllInstances()" [disabled]="isLoadingActions">
+                    <mat-icon>power_settings_new</mat-icon>
+                    Reiniciar TODOS
+                  </button>
+                </mat-card-actions>
+              </mat-card>
+
+              <!-- Recriar Jobs em TODAS as Instâncias -->
+              <mat-card class="action-card cluster-card">
+                <mat-card-header>
+                  <mat-card-title>
+                    <mat-icon>replay</mat-icon>
+                    Recriar Jobs em TODAS as Instâncias
+                  </mat-card-title>
+                  <mat-card-subtitle>Sincroniza e recria jobs em todos os nós</mat-card-subtitle>
+                </mat-card-header>
+                <mat-card-content>
+                  <p class="action-description">
+                    Sincroniza todos os nós do cluster com o banco de dados e recria
+                    todos os jobs em cada instância.
+                  </p>
+                </mat-card-content>
+                <mat-card-actions>
+                  <button mat-raised-button color="accent" (click)="recreateAllJobsClusterWide()" [disabled]="isLoadingActions">
+                    <mat-icon>sync</mat-icon>
+                    Sincronizar TODOS
+                  </button>
+                </mat-card-actions>
+              </mat-card>
+
+              <!-- Cancelar TODOS os Jobs em TODAS as Instâncias -->
+              <mat-card class="action-card cluster-card">
+                <mat-card-header>
+                  <mat-card-title>
+                    <mat-icon>block</mat-icon>
+                    Cancelar TODOS os Jobs (Cluster)
+                  </mat-card-title>
+                  <mat-card-subtitle>Pausa todos os triggers em todo o cluster</mat-card-subtitle>
+                </mat-card-header>
+                <mat-card-content>
+                  <p class="action-description">
+                    Pausa todos os triggers em TODAS as instâncias do cluster.
+                    O estado é compartilhado via banco de dados.
+                  </p>
+                </mat-card-content>
+                <mat-card-actions>
+                  <button mat-raised-button color="warn" (click)="cancelAllJobsClusterWide()" [disabled]="isLoadingActions">
+                    <mat-icon>pause_circle</mat-icon>
+                    Cancelar em TODOS
+                  </button>
+                </mat-card-actions>
+              </mat-card>
+            </div>
+          </div>
+
+          <div class="actions-warning">
+            <mat-icon>warning</mat-icon>
+            <p>
+              <strong>Atenção:</strong> Estas ações afetam todo o scheduler e podem interromper
+              a execução de jobs. Use com cautela. Em ambiente cluster, algumas ações
+              afetam apenas a instância local, enquanto outras afetam todo o cluster.
+            </p>
+          </div>
+
+          <div *ngIf="isLoadingActions" class="loading-state">
+            <mat-spinner diameter="40"></mat-spinner>
+            <p>Processando ação...</p>
+          </div>
+        </div>
+
+      </mat-tab>
+    </mat-tab-group>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end" class="dialog-actions">
+    <button mat-button (click)="closeDialog()">
+      <mat-icon>close</mat-icon>
+      Fechar
+    </button>
+    <button mat-raised-button color="primary" (click)="checkSchedulerHealth()" *ngIf="selectedTabIndex === 0 && !isLoadingHealth">
+      <mat-icon>refresh</mat-icon>
+      Verificar Saúde
+    </button>
+    <button mat-raised-button color="primary" (click)="runDiagnostic()" *ngIf="selectedTabIndex === 1 && !isLoadingDiagnostic">
+      <mat-icon>bug_report</mat-icon>
+      Executar Diagnóstico
+    </button>
+  </mat-dialog-actions>
+
+  <!-- Loading overlay global -->
+  <div class="loading-overlay" *ngIf="isLoadingHealth || isLoadingDiagnostic || isLoadingActions">
+    <mat-progress-spinner diameter="40" mode="indeterminate"></mat-progress-spinner>
+    <span class="loading-text">
+      <span *ngIf="isLoadingHealth">Verificando saúde do scheduler...</span>
+      <span *ngIf="isLoadingDiagnostic">Executando diagnóstico...</span>
+      <span *ngIf="isLoadingActions && !isLoadingHealth && !isLoadingDiagnostic">Processando ação...</span>
+    </span>
+  </div>
+
+
+</div>

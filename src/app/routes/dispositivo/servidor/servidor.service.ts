@@ -51,6 +51,20 @@ carregarGrupos() {
   return this.http.get<any>(`${url}`);
 }
 
+carregarTipoProcesso() {
+  let url: string = this.apiUrl;
+  url = url + '/processo/tipo';
+  // Retorna List<ServidorTipoProcesso> com { codTipoProcesso, dsTipoProcesso }
+  return this.http.get<any[]>(`${url}`);
+}
+
+carregarTipoParametro() {
+  let url: string = this.apiUrl;
+  url = url + '/processo/parametro/tipos';
+  // Retorna List<{key: string, value: string}> — backend serializa enum nesse formato
+  return this.http.get<{ key: string; value: string }[]>(`${url}`);
+}
+
  salvarServidor(servidor:Servidor) {
   let url:string = this.apiUrl;
   url = url +'/';

@@ -9,7 +9,6 @@ export function loggingInterceptor(req: HttpRequest<unknown>, next: HttpHandlerF
 
   let ok: string;
 
-
   // extend server response observable with logging
   return next(req).pipe(
     tap({
@@ -20,7 +19,6 @@ export function loggingInterceptor(req: HttpRequest<unknown>, next: HttpHandlerF
     }),
     // Log when response observable either completes or errors
     finalize(() => {
-
       const elapsed = Date.now() - started;
       const msg = `${req.method} "${req.urlWithParams}" ${ok} in ${elapsed} ms.`;
       messenger.add(msg);

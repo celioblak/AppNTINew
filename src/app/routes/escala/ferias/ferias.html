@@ -1,0 +1,90 @@
+<div class="container-fluid" [class.mobile]="isMobile">
+  <!-- Filtros -->
+  <div class="filter-container" [class.mobile-layout]="isMobile">
+    <mat-form-field appearance="outline">
+      <mat-label>Mês</mat-label>
+      <mat-select [(ngModel)]="mes" (selectionChange)="onFiltroChange()">
+        <mat-option *ngFor="let m of [1,2,3,4,5,6,7,8,9,10,11,12]" [value]="m">
+          {{ m | number: '2.0' }}
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Ano</mat-label>
+      <mat-select [(ngModel)]="ano" (selectionChange)="onFiltroChange()">
+        <mat-option *ngFor="let a of [2022,2023,2024,2025,2026]" [value]="a">
+          {{ a }}
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="usuario-filter">
+      <mat-label>Usuário (opcional)</mat-label>
+      <input
+        matInput
+        [matAutocomplete]="autoUsuario"
+        [(ngModel)]="usuarioFiltroNome"
+        (ngModelChange)="filtrarUsuarios()"
+        placeholder="Digite para buscar"
+      />
+      <mat-autocomplete
+        #autoUsuario="matAutocomplete"
+        (optionSelected)="onUsuarioSelecionado($event.option.value)"
+      >
+        <mat-option *ngFor="let user of usuariosFiltrados" [value]="user.codUsuario">
+          {{ user.nome }}
+        </mat-option>
+      </mat-autocomplete>
+    </mat-form-field>
+
+    <div class="search-button-wrapper">
+      <button mat-fab color="primary" (click)="onFiltroChange()" matTooltip="Atualizar">
+        <mat-icon>refresh</mat-icon>
+      </button>
+    </div>
+  </div>
+
+  <!-- Card principal -->
+  <mat-card>
+    <mat-card-content>
+      <!-- Título com menu de ações -->
+      <div class="section-title">
+        <h3>Férias</h3>
+        <button mat-icon-button [matMenuTriggerFor]="menuFerias" aria-label="Ações">
+          <mat-icon>more_vert</mat-icon>
+        </button>
+        <mat-menu #menuFerias="matMenu">
+          <button mat-menu-item (click)="openAddDialog()">
+            <mat-icon>add</mat-icon>
+            <span>Adicionar</span>
+          </button>
+        </mat-menu>
+      </div>
+
+      <!-- Grid -->
+      <div class="grid-wrapper">
+        <mtx-grid
+          [data]="feriasList"
+          [columns]="columns"
+          [rowStriped]="true"
+          [showPaginator]="true"
+          [pageSize]="10"
+          [noResultText]="'Nenhum registro encontrado'"
+        />
+      </div>
+    </mat-card-content>
+  </mat-card>
+</div>
+
+<!-- Template para coluna de ações -->
+<ng-template #acoesTpl let-row>
+  <div class="acoes-cell">
+    <button mat-icon-button color="primary" (click)="openEditDialog(row)" matTooltip="Editar">
+      <mat-icon>edit</mat-icon>
+    </button>
+    <button mat-icon-button color="warn" (click)="openDeleteDialog(row)" matTooltip="Excluir">
+      <mat-icon>delete</mat-icon>
+    </button>
+  </div>
+</ng-template>

@@ -1,0 +1,344 @@
+<div class="pagina">
+  @if (carregando()) {
+    <mat-progress-bar mode="indeterminate" />
+  }
+
+  <mat-tab-group animationDuration="0ms">
+    <!-- ═════════════ Servidores ═════════════ -->
+    <mat-tab>
+      <ng-template mat-tab-label><mat-icon>dns</mat-icon>&nbsp;Servidores</ng-template>
+
+      @let r = resumo();
+      <div class="resumo">
+        <span><b>{{ r.servidores }}</b> servidores ativos</span>
+        <span [class.alerta]="r.fora > 0"><b>{{ r.fora }}</b> fora do ar</span>
+        <span [class.alerta]="r.servicosFora > 0"><b>{{ r.servicosFora }}</b> serviços fora</span>
+        <span [class.aviso]="r.pendencias > 0"><b>{{ r.pendencias }}</b> pendências</span>
+        <span class="espaco"></span>
+        <button mat-icon-button matTooltip="Atualizar" (click)="carregar()"><mat-icon>refresh</mat-icon></button>
+        <button mat-flat-button (click)="novoServidor()"><mat-icon>add</mat-icon> Novo servidor</button>
+      </div>
+
+      <div class="corpo">
+        <!-- ───── Lista ───── -->
+        <aside class="lista">
+          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+            <mat-icon matPrefix>search</mat-icon>
+            <mat-label>Pesquisar</mat-label>
+            <input matInput [ngModel]="filtro()" (ngModelChange)="filtro.set($event)" placeholder="Servidor, IP, serviço..." />
+          </mat-form-field>
+          <div class="filtros">
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>Ambiente</mat-label>
+              <mat-select [ngModel]="filtroAmbiente()" (ngModelChange)="filtroAmbiente.set($event)">
+                <mat-option [value]="null">Todos</mat-option>
+                @for (a of opcoes()?.ambientes ?? []; track a.codigo) {
+                  <mat-option [value]="a.codigo">{{ a.nome }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>Situação</mat-label>
+              <mat-select [ngModel]="filtroSituacao()" (ngModelChange)="filtroSituacao.set($event)">
+                <mat-option [value]="null">Todas</mat-option>
+                <mat-option value="FORA">Fora do ar</mat-option>
+                <mat-option value="ALERTA">Atenção</mat-option>
+                <mat-option value="DESCONHECIDO">Sem leitura</mat-option>
+                <mat-option value="OK">No ar</mat-option>
+              </mat-select>
+            </mat-form-field>
+          </div>
+          <div class="chaves">
+            <mat-slide-toggle [checked]="soPendencias()" (change)="soPendencias.set($event.checked)">Com pendências</mat-slide-toggle>
+            <mat-slide-toggle [checked]="mostrarInativos()" (change)="mostrarInativos.set($event.checked)">Inativos</mat-slide-toggle>
+          </div>
+
+          <div class="itens">
+            @for (s of filtrados(); track s.codServidor) {
+              <button class="item sit--{{ s.situacao.toLowerCase() }}" [class.item--ativo]="s.codServidor === selecionado()"
+                      [class.item--inativo]="!s.ativo" (click)="selecionado.set(s.codServidor)">
+                <i class="ponto"></i>
+                <b class="item__nome">{{ s.nome }}</b>
+                <span class="item__fim">
+                  @if (totalPendencias(s); as n) {
+                    <span class="contador" matTooltip="Pendências a corrigir">{{ n }}</span>
+                  }
+                  <span [class]="classeDisponibilidade(s.disponibilidade)" [matTooltip]="tooltipDisponibilidade(s.disponibilidade)">
+                    {{ percentual(s.disponibilidade) }}
+                  </span>
+                </span>
+                <small class="item__info">{{ s.maquina ? s.maquina + ' · ' : '' }}{{ s.ip ?? 'sem IP' }} · {{ s.servicos.length }} serviço(s)</small>
+                @if (s.ambientes.length) {
+                  <span class="item__ambs">
+                    @for (amb of s.ambientes; track amb) {
+                      <span class="amb" [style.--cor]="corAmbiente(amb)">{{ nomeAmbiente(amb) }}</span>
+                    }
+                  </span>
+                } @else {
+                  <span class="item__ambs">
+                    <span class="amb" [style.--cor]="corAmbiente(null)" matTooltip="Defina o ambiente padrão no servidor ou cadastre os serviços dele">sem ambiente</span>
+                  </span>
+                }
+              </button>
+            } @empty {
+              <p class="vazio">Nenhum servidor atende aos filtros.</p>
+            }
+          </div>
+        </aside>
+
+        <!-- ───── Detalhe ───── -->
+        <section class="detalhe">
+          @if (atual(); as s) {
+            <header class="cabecalho sit--{{ s.situacao.toLowerCase() }}">
+              <mat-icon class="cabecalho__icone">{{ s.situacao === 'FORA' ? 'cloud_off' : 'dns' }}</mat-icon>
+              <div class="cabecalho__titulo">
+                <h2>{{ s.nome }} @if (!s.ativo) { <span class="tag">Inativo</span> }</h2>
+                <span>
+                  {{ s.ip ?? 'sem IP' }} · {{ rotuloLocal[s.tipoLocal] }} · {{ s.so ?? 'SO não informado' }}
+                  · {{ s.hospedagem ?? 'hospedagem não informada' }}{{ s.grupo ? ' · grupo ' + s.grupo : '' }}
+                </span>
+              </div>
+              <span class="selo">{{ rotuloSituacao[s.situacao] }}</span>
+              <button mat-stroked-button (click)="abrirServidor(s)"><mat-icon>edit</mat-icon> Editar</button>
+            </header>
+
+            <div class="caixa sit--{{ s.situacao.toLowerCase() }}">
+              <b>{{ s.detalhe }}</b>
+              @if (s.orientacao) {
+                <p class="orientacao"><mat-icon inline>lightbulb_outline</mat-icon> {{ s.orientacao }}</p>
+              }
+            </div>
+
+            @if (s.pendencias.length) {
+              <div class="pendencias">
+                @for (p of s.pendencias; track $index) {
+                  <div class="pendencia pendencia--{{ p.gravidade.toLowerCase() }}">
+                    <mat-icon>{{ iconePendencia(p) }}</mat-icon>
+                    <div><b>{{ p.mensagem }}</b>@if (p.orientacao) { <span> — {{ p.orientacao }}</span> }</div>
+                  </div>
+                }
+              </div>
+            }
+
+            <div class="blocos">
+              <!-- Cofre -->
+              <article class="bloco">
+                <h3><mat-icon>vpn_key</mat-icon> Credenciais
+                  <button mat-icon-button class="ml-auto" matTooltip="Quem consultou as senhas" (click)="consultas(s)">
+                    <mat-icon>history</mat-icon>
+                  </button>
+                </h3>
+                @for (c of [{ tipo: 'ADMIN', rotulo: 'Administrador (SSH)', usuario: s.usuarioAdmin, tem: s.senhaAdminCadastrada },
+                            { tipo: 'ACESSO_REMOTO', rotulo: 'Acesso remoto' + (s.tipoAcessoRemoto ? ' (' + s.tipoAcessoRemoto + ')' : ''), usuario: s.usuarioAcessoRemoto, tem: s.senhaAcessoRemotoCadastrada }];
+                     track c.tipo) {
+                  @let tipo = $any(c.tipo);
+                  @let aberta = reveladas()[chave(s.codServidor, tipo)];
+                  <div class="credencial">
+                    <span class="credencial__rotulo">{{ c.rotulo }}</span>
+                    <span class="credencial__usuario">{{ c.usuario ?? '—' }}</span>
+                    <code class="credencial__senha">{{ aberta ? (aberta.senha ?? '(sem senha)') : (c.tem ? '••••••••' : 'sem senha') }}</code>
+                    @if (c.tem) {
+                      @if (aberta) {
+                        <button mat-icon-button matTooltip="Esconder" (click)="esconder(chave(s.codServidor, tipo))"><mat-icon>visibility_off</mat-icon></button>
+                      } @else {
+                        <button mat-icon-button matTooltip="Mostrar (a consulta fica registrada)" (click)="revelar(s, tipo)"><mat-icon>visibility</mat-icon></button>
+                      }
+                      <button mat-icon-button matTooltip="Copiar senha (a consulta fica registrada)" (click)="revelar(s, tipo, true)"><mat-icon>content_copy</mat-icon></button>
+                    }
+                  </div>
+                }
+                <p class="nota">A senha exibida some sozinha em 30 segundos.</p>
+              </article>
+
+              <!-- Métricas e disponibilidade -->
+              <article class="bloco">
+                <h3><mat-icon>assessment</mat-icon> Situação</h3>
+                <dl>
+                  <dt>Load</dt><dd>{{ s.load ?? '—' }}{{ s.cpus ? ' · ' + s.cpus + ' CPUs' : '' }}</dd>
+                  <dt>Ativo há</dt><dd>{{ s.tempoAtividade ?? '—' }}</dd>
+                  <dt>Última conexão</dt><dd>{{ s.ultimaConexao ? (s.ultimaConexao | date: 'dd/MM HH:mm') : '—' }}</dd>
+                  <dt>Ambientes atendidos</dt>
+                  <dd>{{ s.ambientes.length ? ambientesTexto(s.ambientes) : '—' }}</dd>
+                  <dt>Ambiente padrão</dt>
+                  <dd [matTooltip]="'Usado pelos serviços que não têm ambiente próprio'">{{ s.ambiente ? nomeAmbiente(s.ambiente) : 'nenhum' }}</dd>
+                </dl>
+                <button class="disp-grande" [class]="classeDisponibilidade(s.disponibilidade)"
+                        (click)="historico('SERVIDOR', s.codServidor, s.nome, s.disponibilidade)"
+                        [matTooltip]="tooltipDisponibilidade(s.disponibilidade)">
+                  <b>{{ percentual(s.disponibilidade) }}</b> disponível em 30 dias <mat-icon inline>chevron_right</mat-icon>
+                </button>
+              </article>
+
+              @if (s.memoria; as m) {
+                <article class="bloco">
+                  <h3><mat-icon>memory</mat-icon> Memória
+                    @if (m.quando) { <small class="ml-auto nota-hora">lida {{ m.quando | date: 'dd/MM HH:mm' }}</small> }
+                  </h3>
+                  @let usoMem = uso(m.emUsoKb, m.totalKb);
+                  <div class="disco">
+                    <span>Em uso</span>
+                    <div class="barra"><div [style.width.%]="usoMem ?? 0" [class.barra--cheia]="(usoMem ?? 0) >= 90"></div></div>
+                    <span class="disco__valor">{{ usoMem != null ? usoMem + '%' : '—' }} · {{ tamanhoKb(m.emUsoKb) }} de {{ tamanhoKb(m.totalKb) }}</span>
+                  </div>
+                  @if (m.swapTotalKb) {
+                    @let usoSwap = uso(m.swapUsadoKb, m.swapTotalKb);
+                    <div class="disco">
+                      <span>{{ m.swapRotulo }}</span>
+                      <div class="barra"><div [style.width.%]="usoSwap ?? 0" [class.barra--cheia]="(usoSwap ?? 0) >= 50"></div></div>
+                      <span class="disco__valor">{{ usoSwap != null ? usoSwap + '%' : '—' }} · {{ tamanhoKb(m.swapUsadoKb) }} de {{ tamanhoKb(m.swapTotalKb) }}</span>
+                    </div>
+                  }
+                  <dl class="mt">
+                    <dt>Disponível</dt>
+                    <dd matTooltip="O que os programas ainda podem usar sem recorrer ao swap (já conta o cache que pode ser liberado)">
+                      {{ tamanhoKb(m.disponivelKb) }}
+                    </dd>
+                    @if (m.cacheKb != null) {
+                      <dt>Cache</dt>
+                      <dd matTooltip="Arquivos em cache: o sistema libera quando falta memória, por isso não conta como em uso">{{ tamanhoKb(m.cacheKb) }}</dd>
+                    }
+                    @if (m.swapTotalKb === 0) {
+                      <dt>{{ m.swapRotulo }}</dt><dd>não configurado</dd>
+                    }
+                    @if (m.paginacaoSeg != null) {
+                      <dt>Paginação</dt>
+                      <dd [class.texto-alerta]="m.paginacaoSeg >= 100"
+                          matTooltip="Páginas trocadas com o swap por segundo. Alta e constante = falta memória de verdade">
+                        {{ numero(m.paginacaoSeg) }} pág/s
+                      </dd>
+                    }
+                    @if (m.cpuPercentual != null) {
+                      <dt>CPU</dt><dd [class.texto-alerta]="m.cpuPercentual >= 90">{{ numero(m.cpuPercentual) }}%</dd>
+                    }
+                  </dl>
+                </article>
+              }
+
+              @if (s.winrm) {
+                <article class="bloco">
+                  <h3><mat-icon>settings_remote</mat-icon> WinRM</h3>
+                  <dl>
+                    <dt>Protocolo</dt><dd>{{ s.winrm === 'HTTP' ? 'HTTP · porta 5985' : 'HTTPS · porta 5986' }}</dd>
+                  </dl>
+                  <p class="nota">O NTI lê CPU, memória e discos do Windows pelo WinRM, com o usuário administrador do cofre.
+                    Servidor novo: rode o script de preparação uma vez e teste.</p>
+                  <div class="acoes">
+                    <button mat-stroked-button (click)="prepararWinRm(s)"><mat-icon>code</mat-icon> Preparar WinRM</button>
+                    <button mat-stroked-button (click)="testarWinRm(s)" [disabled]="testandoWinRm() === s.codServidor">
+                      <mat-icon>network_check</mat-icon> Testar WinRM
+                    </button>
+                  </div>
+                  @if (testandoWinRm() === s.codServidor) {
+                    <mat-progress-bar mode="indeterminate" />
+                  }
+                  @if (testesWinRm()[s.codServidor]; as t) {
+                    <div class="teste" [class.teste--ok]="t.ok">
+                      <mat-icon inline>{{ t.ok ? 'check_circle' : 'error' }}</mat-icon>
+                      <div><b>{{ t.mensagem }}</b>@if (t.orientacao) { <span> — {{ t.orientacao }}</span> }</div>
+                    </div>
+                  }
+                </article>
+              }
+
+              @if (s.discos.length) {
+                <article class="bloco">
+                  <h3><mat-icon>storage</mat-icon> Discos</h3>
+                  @for (d of s.discos; track d.local) {
+                    <div class="disco">
+                      <span>{{ d.local }}</span>
+                      <div class="barra"><div [style.width]="d.percentual" [class.barra--cheia]="+d.percentual.replace('%','') > 80"></div></div>
+                      <span class="disco__valor" [matTooltip]="tamanho(d.disponivel) + ' livres'">{{ d.percentual }} · {{ tamanho(d.usado) }} de {{ tamanho(d.total) }}</span>
+                    </div>
+                  }
+                </article>
+              }
+            </div>
+
+            <!-- Serviços -->
+            <div class="servicos__topo">
+              <h3>Serviços ({{ s.servicos.length }})</h3>
+              <span class="espaco"></span>
+              <button mat-stroked-button (click)="abrirServico(s, null)"><mat-icon>add</mat-icon> Novo serviço</button>
+            </div>
+            <div class="servicos">
+              @for (sv of s.servicos; track sv.codProcesso) {
+                <article class="servico sit--{{ sv.situacao.toLowerCase() }}" [class.servico--off]="!sv.monitorado">
+                  <div class="servico__linha">
+                    <i class="ponto"></i>
+                    <div class="servico__nome">
+                      <b>{{ sv.nome }}</b>
+                      <small>
+                        {{ sv.tipo ?? 'sem tipo' }}{{ sv.papel ? ' · ' + rotuloPapel[sv.papel] : '' }}
+                        · {{ rotuloForma[sv.formaExecucao] }}{{ porta(sv) ? ' · :' + porta(sv) : '' }}
+                        {{ sv.monitorado ? '' : ' · não monitorado' }}
+                      </small>
+                    </div>
+                    <span class="amb" [style.--cor]="corAmbiente(sv.ambienteEfetivo)"
+                          [matTooltip]="sv.ambienteHerdado ? 'Herdado do servidor' : ''">
+                      {{ nomeAmbiente(sv.ambienteEfetivo) }}{{ sv.ambienteHerdado ? ' ↴' : '' }}
+                    </span>
+                    <span class="servico__sit">{{ rotuloSituacao[sv.situacao] }}</span>
+                    <button [class]="classeDisponibilidade(sv.disponibilidade)" [matTooltip]="tooltipDisponibilidade(sv.disponibilidade)"
+                            (click)="historico('SERVICO', sv.codProcesso, sv.nome, sv.disponibilidade)">
+                      {{ percentual(sv.disponibilidade) }}
+                    </button>
+                    <button mat-icon-button matTooltip="Sistemas que dependem deste serviço" (click)="sistemasDoServico(sv)"><mat-icon>apps</mat-icon></button>
+                    <button mat-icon-button matTooltip="Editar" (click)="abrirServico(s, sv)"><mat-icon>edit</mat-icon></button>
+                    <button mat-icon-button matTooltip="Excluir" (click)="excluirServico(sv)"><mat-icon>delete</mat-icon></button>
+                  </div>
+                  @if (sv.situacao !== 'OK' && sv.detalhe && sv.monitorado) {
+                    <div class="servico__detalhe">{{ sv.detalhe }}</div>
+                  }
+                  @for (p of sv.pendencias; track $index) {
+                    <div class="pendencia pendencia--{{ p.gravidade.toLowerCase() }} pendencia--compacta">
+                      <mat-icon>{{ iconePendencia(p) }}</mat-icon>
+                      <div><b>{{ p.mensagem }}</b>@if (p.orientacao) { <span> — {{ p.orientacao }}</span> }</div>
+                    </div>
+                  }
+                </article>
+              } @empty {
+                <p class="vazio">Nenhum serviço cadastrado neste servidor.</p>
+              }
+            </div>
+          } @else {
+            <div class="vazio vazio--grande">
+              <mat-icon>dns</mat-icon>
+              <p>Escolha um servidor na lista.</p>
+            </div>
+          }
+        </section>
+      </div>
+    </mat-tab>
+
+    <!-- ═════════════ Tipos de serviço ═════════════ -->
+    <mat-tab>
+      <ng-template mat-tab-label><mat-icon>category</mat-icon>&nbsp;Tipos de serviço</ng-template>
+      <p class="dica">
+        O papel diz o que o serviço é: o mapa desenha balanceadores e bancos de forma própria, e os cadastros de
+        balanceadores e bancos só oferecem serviços com o papel certo.
+      </p>
+      <div class="tipos">
+        @for (t of opcoes()?.tipos ?? []; track t.codTipoProcesso) {
+          <div class="tipo" [class.tipo--pendente]="!t.papel">
+            <div>
+              <b>{{ t.nome }}</b>
+              <small>{{ t.servicos }} serviço(s)</small>
+            </div>
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>Papel</mat-label>
+              <mat-select [ngModel]="t.papel" (ngModelChange)="definirPapel(t, $event)">
+                <mat-option [value]="null">— a definir —</mat-option>
+                @for (p of papeis; track p) {
+                  <mat-option [value]="p">{{ rotuloPapel[p] }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+            @if (!t.papel) {
+              <span class="tipo__aviso"><mat-icon inline>warning</mat-icon> Defina o papel</span>
+            }
+          </div>
+        }
+      </div>
+    </mat-tab>
+  </mat-tab-group>
+</div>

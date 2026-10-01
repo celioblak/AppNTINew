@@ -1,0 +1,109 @@
+<mat-tab-group class="abas" mat-stretch-tabs="false" mat-align-tabs="start" animationDuration="0ms" preserveContent>
+  <mat-tab>
+    <ng-template mat-tab-label>
+      <mat-icon class="m-r-8">web</mat-icon>
+      Telas
+    </ng-template>
+
+    <div class="aba" alturaAteRodape>
+      <div class="barra">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="busca">
+          <mat-icon matPrefix>search</mat-icon>
+          <mat-label>Pesquisar</mat-label>
+          <input matInput placeholder="Código, nome, módulo..." [ngModel]="filtroTela()" (ngModelChange)="filtroTela.set($event)">
+        </mat-form-field>
+        <span class="espaco"></span>
+        <span class="total">{{ telasFiltradas().length }} de {{ telas().length }} telas</span>
+        <button mat-flat-button (click)="abrirTela()">
+          <mat-icon>add</mat-icon>
+          Nova tela
+        </button>
+      </div>
+
+      <mtx-grid class="grade"
+                [data]="telasFiltradas()"
+                [columns]="colunasTelas"
+                [loading]="carregandoTelas()"
+                [rowStriped]="true"
+                [columnResizable]="true"
+                [showPaginator]="true"
+                [pageSize]="50"
+                noResultText="Nenhuma tela encontrada" />
+    </div>
+  </mat-tab>
+
+  <mat-tab>
+    <ng-template mat-tab-label>
+      <mat-icon class="m-r-8">account_tree</mat-icon>
+      Menu
+    </ng-template>
+
+    <div class="aba" alturaAteRodape>
+      <div class="barra">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="busca">
+          <mat-icon matPrefix>search</mat-icon>
+          <mat-label>Pesquisar</mat-label>
+          <input matInput placeholder="Texto, rota, chave ou tela" [ngModel]="filtroMenu()" (ngModelChange)="filtroMenu.set($event)">
+        </mat-form-field>
+        <span class="espaco"></span>
+        <span class="total">{{ menus().length }} itens</span>
+        <button mat-flat-button (click)="abrirMenu(undefined, null)">
+          <mat-icon>add</mat-icon>
+          Novo item na raiz
+        </button>
+      </div>
+
+      <div class="arvore">
+        <div class="linha cabecalho">
+          <span class="coluna-item">Item</span>
+          <span class="coluna-tipo">Tipo</span>
+          <span class="coluna-tela">Tela vinculada</span>
+          <span class="coluna-ordem">Ordem</span>
+          <span class="coluna-acoes"></span>
+        </div>
+
+        @if (carregandoMenus()) {
+          <p class="vazio">Carregando menu...</p>
+        }
+
+        @for (linha of linhasMenu(); track linha.menu.codMenu) {
+          <div class="linha" [attr.data-tipo]="linha.menu.tipo">
+            <span class="coluna-item" [style.padding-left.px]="linha.nivel * 24">
+              <mat-icon class="item-icone">{{ linha.menu.icone || (linha.menu.tipo === 'M' ? 'folder' : 'description') }}</mat-icon>
+              <span class="item-textos">
+                <span class="item-rotulo">
+                  {{ linha.rotulo ?? linha.menu.nome }}
+                  @if (!linha.rotulo) {
+                    <span class="sem-traducao" [matTooltip]="'Adicione a chave ' + linha.chave + ' em public/i18n/pt-BR.json'">sem tradução</span>
+                  }
+                </span>
+                <span class="item-detalhe">{{ linha.caminho }} · {{ linha.chave }}</span>
+              </span>
+            </span>
+            <span class="coluna-tipo"><span class="tipo">{{ rotuloTipo[linha.menu.tipo] ?? linha.menu.tipo }}</span></span>
+            <span class="coluna-tela">{{ linha.menu.dsTela ?? '—' }}</span>
+            <span class="coluna-ordem">{{ linha.menu.ordem ?? '—' }}</span>
+            <span class="coluna-acoes">
+              @if (linha.menu.tipo === 'M') {
+                <button mat-icon-button matTooltip="Adicionar subitem" (click)="abrirMenu(undefined, linha.menu.codMenu)">
+                  <mat-icon>add</mat-icon>
+                </button>
+              }
+              <button mat-icon-button matTooltip="Editar" (click)="abrirMenu(linha.menu)">
+                <mat-icon>edit</mat-icon>
+              </button>
+              <button mat-icon-button [matTooltip]="linha.menu.qtdFilhos ? 'Exclua ou mova os subitens antes' : 'Excluir'"
+                      [disabled]="(linha.menu.qtdFilhos ?? 0) > 0" (click)="excluirMenu(linha.menu)">
+                <mat-icon>delete</mat-icon>
+              </button>
+            </span>
+          </div>
+        } @empty {
+          @if (!carregandoMenus()) {
+            <p class="vazio">Nenhum item encontrado.</p>
+          }
+        }
+      </div>
+    </div>
+  </mat-tab>
+</mat-tab-group>

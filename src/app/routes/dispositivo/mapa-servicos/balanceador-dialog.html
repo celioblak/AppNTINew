@@ -1,0 +1,185 @@
+<h2 mat-dialog-title>{{ data.balanceador ? 'Balanceador ' + data.balanceador.nome : 'Novo balanceador' }}</h2>
+
+<mat-dialog-content class="conteudo">
+  @if (data.balanceador && (data.balanceador.sistemas.length || data.balanceador.pais.length)) {
+    <div class="nota">
+      <mat-icon>info</mat-icon>
+      <span>
+        @if (data.balanceador.sistemas.length) {
+          Entrada de: <b>{{ data.balanceador.sistemas.join(', ') }}</b>.
+        }
+        @if (data.balanceador.pais.length) {
+          Membro de: <b>{{ data.balanceador.pais.join(', ') }}</b>.
+        }
+        Mudanças aqui valem para todos.
+      </span>
+    </div>
+  }
+
+  <!-- 1. Identificação -->
+  <section class="passo">
+    <h3><span class="passo__num">1</span> Balanceador</h3>
+    <mat-form-field appearance="outline" class="cheio">
+      <mat-label>Nome</mat-label>
+      <input matInput [(ngModel)]="nome" required maxlength="100" placeholder="Ex.: Apache Soul (srv-web01), F5 PEP" />
+    </mat-form-field>
+
+    <p class="dica">
+      O processo que executa o balanceador. Com o parâmetro <b>JK_STATUS</b> no processo, o mapa lê o estado de cada
+      membro direto do Apache. Deixe vazio para um balanceador externo (F5, NetScaler...): o estado dele vem dos membros.
+    </p>
+    <div class="linha">
+      <mat-form-field appearance="outline" class="cresce">
+        <mat-label>Processo do balanceador</mat-label>
+        <mtx-select [items]="candidatosProcesso" bindLabel="rotulo" bindValue="codProcesso" [searchable]="true"
+                    [clearable]="true" [appendTo]="painelDoDialogo" placeholder="Nenhum (balanceador externo)"
+                    [ngModel]="codProcesso()" (ngModelChange)="trocarProcesso($event)">
+          <ng-template ng-option-tmp let-item="item">
+            <div class="opcao">
+              <span>{{ item.rotulo }}</span>
+              @if (item.temJkStatus) {
+                <span class="tag tag--ok">jk-status</span>
+              }
+            </div>
+          </ng-template>
+        </mtx-select>
+      </mat-form-field>
+
+      <button mat-stroked-button type="button" (click)="lerJk()"
+              [disabled]="!codProcesso() || !processoEscolhido()?.temJkStatus || lendoJk()"
+              matTooltip="Lê workers e membros no jk-status do Apache">
+        <mat-icon>sync</mat-icon> Ler balanceador
+      </button>
+    </div>
+
+    @if (lendoJk()) {
+      <mat-progress-bar mode="indeterminate" />
+    }
+    @if (codProcesso() && !processoEscolhido()?.temJkStatus) {
+      <div class="nota nota--alerta">
+        <mat-icon>info</mat-icon>
+        Processo sem o parâmetro JK_STATUS: o mapa usa só a situação do processo, sem o estado de cada membro.
+      </div>
+    }
+    @if (jk(); as j) {
+      @if (j.acessivel) {
+        <div class="nota nota--ok">
+          <mat-icon>check_circle</mat-icon>
+          Balanceador respondeu: {{ j.workers.length }} {{ j.workers.length === 1 ? 'worker' : 'workers' }}.
+        </div>
+      } @else {
+        <div class="nota nota--erro"><mat-icon>error</mat-icon> Não foi possível ler o balanceador: {{ j.erro }}</div>
+      }
+    }
+
+    @if (codProcesso()) {
+      <mat-form-field appearance="outline" class="cheio">
+        <mat-label>Worker do mod_jk</mat-label>
+        <mtx-select [items]="workers()" [addTag]="true" addTagText="Usar" [clearable]="true" [appendTo]="painelDoDialogo"
+                    placeholder="Nome do balancer no jk-status"
+                    [ngModel]="worker()" (ngModelChange)="worker.set($event)" />
+        <mat-hint>Ex.: lb_soulmv. Escolha da lista lida do balanceador ou digite o nome.</mat-hint>
+      </mat-form-field>
+    }
+  </section>
+
+  <!-- 2. Membros -->
+  <section class="passo">
+    <div class="passo__cabecalho">
+      <h3><span class="passo__num">2</span> Membros</h3>
+      <span class="espaco"></span>
+      <button mat-stroked-button type="button" (click)="importarMembros()" [disabled]="!workerLido()"
+              matTooltip="Inclui cada membro do worker com o serviço (ou balanceador) sugerido">
+        <mat-icon>download</mat-icon> Importar do worker
+      </button>
+      <button mat-stroked-button type="button" (click)="adicionar('SERVICO')">
+        <mat-icon>memory</mat-icon> + Serviço
+      </button>
+      <button mat-stroked-button type="button" (click)="adicionar('BALANCEADOR')" [disabled]="!candidatosBalanceador.length"
+              matTooltip="Outro balanceador atrás deste (balanceador de balanceadores)">
+        <mat-icon>alt_route</mat-icon> + Balanceador
+      </button>
+    </div>
+    <p class="dica">
+      Quem recebe o acesso deste balanceador: serviços (Tomcat) ou outros balanceadores. Ligue cada um ao seu nome no
+      jk-status para o mapa mostrar quem está recebendo acesso e quem foi retirado.
+    </p>
+
+    @if (membros().length === 0) {
+      <div class="vazio">Nenhum membro. Importe do worker ou adicione.</div>
+    }
+
+    @for (m of membros(); track m.chave) {
+      @let lido = membroLido(m.membro);
+      <div class="membro">
+        <mat-button-toggle-group class="membro__tipo" [value]="m.tipo" (change)="trocarTipo(m.chave, $event.value)"
+                                 hideSingleSelectionIndicator>
+          <mat-button-toggle value="SERVICO" matTooltip="Serviço"><mat-icon>memory</mat-icon></mat-button-toggle>
+          <mat-button-toggle value="BALANCEADOR" matTooltip="Balanceador" [disabled]="!candidatosBalanceador.length">
+            <mat-icon>alt_route</mat-icon>
+          </mat-button-toggle>
+        </mat-button-toggle-group>
+
+        <!-- O campo inteiro troca com o tipo: trocar só o controle deixa o mat-form-field preso ao antigo. -->
+        @if (m.tipo === 'SERVICO') {
+          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="membro__alvo">
+            <mat-label>Serviço</mat-label>
+            <mtx-select [items]="candidatosServico()" bindLabel="rotulo" bindValue="codProcesso" [searchable]="true"
+                        [appendTo]="painelDoDialogo" [ngModel]="m.alvo" (ngModelChange)="alterar(m.chave, { alvo: $event })" />
+          </mat-form-field>
+        } @else {
+          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="membro__alvo">
+            <mat-label>Balanceador</mat-label>
+            <mtx-select [items]="candidatosBalanceador" bindLabel="nome" bindValue="codBalanceador" [searchable]="true"
+                        [appendTo]="painelDoDialogo" [ngModel]="m.alvo" (ngModelChange)="alterar(m.chave, { alvo: $event })" />
+          </mat-form-field>
+        }
+
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="membro__jk">
+          <mat-label>Nome no jk-status</mat-label>
+          <mtx-select [items]="nomesMembroJk()" [addTag]="true" addTagText="Usar" [clearable]="true" [appendTo]="painelDoDialogo"
+                      [ngModel]="m.membro" (ngModelChange)="alterar(m.chave, { membro: $event })" />
+        </mat-form-field>
+
+        <span class="membro__estado">
+          @if (lido) {
+            <span class="tag" [class.tag--ok]="(lido.estado ?? '').toUpperCase().startsWith('OK')"
+                  [class.tag--erro]="(lido.estado ?? '').toUpperCase().startsWith('ERR')"
+                  [matTooltip]="lido.host + ':' + lido.porta + ' · ' + lido.sessoes + ' sessões'">
+              {{ lido.estado }}{{ lido.ativacao && lido.ativacao !== 'ACT' ? ' · ' + lido.ativacao : '' }}
+            </span>
+          } @else if (m.membro && workerLido()) {
+            <span class="tag tag--erro" matTooltip="Este nome não existe no worker lido">não encontrado</span>
+          }
+        </span>
+
+        <button mat-icon-button type="button" (click)="remover(m.chave)" matTooltip="Remover">
+          <mat-icon>delete</mat-icon>
+        </button>
+      </div>
+    }
+  </section>
+
+  <mat-form-field appearance="outline" class="cheio">
+    <mat-label>Observação</mat-label>
+    <textarea matInput [(ngModel)]="observacao" maxlength="1000" rows="2"></textarea>
+  </mat-form-field>
+
+  @if (pendencias().length) {
+    <ul class="pendencias">
+      @for (p of pendencias(); track p) {
+        <li>{{ p }}</li>
+      }
+    </ul>
+  }
+  @if (erro()) {
+    <div class="nota nota--erro"><mat-icon>error</mat-icon> {{ erro() }}</div>
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button type="button" mat-dialog-close>Cancelar</button>
+  <button mat-flat-button type="button" (click)="salvar()" [disabled]="!nome.trim() || pendencias().length > 0 || salvando()">
+    Salvar
+  </button>
+</mat-dialog-actions>

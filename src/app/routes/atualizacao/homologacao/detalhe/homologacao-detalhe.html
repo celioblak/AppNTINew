@@ -1,0 +1,496 @@
+<div class="pagina detalhe">
+  @if (carregando() && !detalhe()) {
+    <mat-progress-bar mode="indeterminate" />
+  }
+  @if (detalhe(); as h) {
+    <header class="secao cabecalho">
+      <div class="cabecalho__linha">
+        <button mat-icon-button type="button" class="pequeno" aria-label="Voltar ao painel" (click)="voltar()"><mat-icon>arrow_back</mat-icon></button>
+        <span class="mono numero">{{ h.numero }}</span>
+        <h2 class="titulo" [matTooltip]="h.descricao || ''">{{ h.titulo }}</h2>
+        <app-etiqueta [tom]="situacaoInfo[h.situacao].tom">{{ situacaoInfo[h.situacao].rotulo }}</app-etiqueta>
+        @if (h.atrasada) {
+          <app-etiqueta tom="critico">Atrasada</app-etiqueta>
+        }
+        <span class="meta">
+          <span matTooltip="Ambiente">{{ h.ambiente }}</span>
+          <span [class.atrasada]="h.atrasada" matTooltip="Previsão">{{ data(h.previsaoInicio) }} → {{ data(h.previsaoFim) }}</span>
+          <span matTooltip="Responsável">{{ h.nomeResponsavel }}</span>
+          <span matTooltip="Participação">{{ h.participacao === 'TODOS' ? 'todos com acesso' : h.designados.length + ' designados' }}</span>
+          @if (h.ticketMv) {
+            <span>Ticket MV {{ h.ticketMv }}</span>
+          }
+        </span>
+        <span class="espaco"></span>
+        @if (ocupado()) {
+          <span class="suave">Salvando…</span>
+        }
+        <button mat-icon-button type="button" class="pequeno" matTooltip="Relatório (PDF)" aria-label="Relatório em PDF" (click)="relatorio()">
+          <mat-icon>picture_as_pdf</mat-icon>
+        </button>
+        @if (h.eu.gestao) {
+          @if (h.situacao === 'PLANEJADA') {
+            <button mat-flat-button type="button" (click)="iniciar()"><mat-icon>play_arrow</mat-icon> Iniciar</button>
+          }
+          @if (h.situacao === 'EM_ANDAMENTO') {
+            <button mat-stroked-button type="button" (click)="registrarEntrega()"><mat-icon>local_shipping</mat-icon> Entrega</button>
+          }
+          <button mat-icon-button type="button" class="pequeno" [matMenuTriggerFor]="menuGestao" aria-label="Mais ações de gestão"><mat-icon>more_vert</mat-icon></button>
+          <mat-menu #menuGestao="matMenu">
+            @if (aberta()) {
+              <button mat-menu-item type="button" (click)="editarCadastro()"><mat-icon>edit</mat-icon> Editar cadastro</button>
+            }
+            @if (h.situacao === 'EM_ANDAMENTO') {
+              <button mat-menu-item type="button" (click)="alterarPrevisao()"><mat-icon>event</mat-icon> Alterar previsão</button>
+              <button mat-menu-item type="button" (click)="encerrar()"><mat-icon>stop</mat-icon> Encerrar antes do fim</button>
+            }
+            @if (aberta()) {
+              <button mat-menu-item type="button" (click)="cancelar()"><mat-icon>cancel</mat-icon> Cancelar</button>
+            }
+            @if (h.situacao === 'CONCLUIDA' || h.situacao === 'ENCERRADA') {
+              <button mat-menu-item type="button" (click)="reabrir()"><mat-icon>lock_open</mat-icon> Reabrir</button>
+            }
+            <button mat-menu-item type="button" (click)="exportar()"><mat-icon>file_download</mat-icon> Exportar itens (CSV)</button>
+          </mat-menu>
+        }
+      </div>
+
+      <div class="cabecalho__linha progresso">
+        <app-barra-homologacao
+          class="barra-geral"
+          [contagem]="h.contagem"
+          [ritmo]="h.situacao === 'EM_ANDAMENTO' ? h.ritmoEsperado : null"
+          [matTooltip]="h.contagem.concluidos + ' de ' + h.contagem.total + ' itens testados · ' + h.contagem.reprovados + ' reprovados · ' + h.contagem.bloqueados + ' bloqueados · esperado hoje ' + h.ritmoEsperado + '%'" />
+        @for (s of h.sistemas; track s.codHomologacaoSistema) {
+          <span class="sistema-chip" [matTooltip]="(s.versaoAtual ? s.versaoAtual + ' → ' : '') + (s.versaoNova || 'sem versão no ambiente') + (s.falta ? ' · ' + s.falta : '') + (s.observacaoParecer ? ' · ' + s.observacaoParecer : '')">
+            <strong>{{ s.nome }}</strong>
+            @if (s.parecer) {
+              <app-etiqueta [tom]="parecerInfo[s.parecer].tom">{{ parecerInfo[s.parecer].rotulo }}</app-etiqueta>
+            } @else if (s.parecerPrevisto) {
+              <app-etiqueta [tom]="parecerInfo[s.parecerPrevisto].tom">previsto: {{ parecerInfo[s.parecerPrevisto].rotulo }}</app-etiqueta>
+            }
+            @if (h.eu.gestao && h.situacao !== 'CANCELADA') {
+              <button mat-icon-button type="button" class="mini" matTooltip="Observação no parecer" (click)="observarParecer(s.codHomologacaoSistema)">
+                <mat-icon>add_comment</mat-icon>
+              </button>
+            }
+          </span>
+        }
+      </div>
+
+      @if (!h.eu.participa && h.eu.motivoNaoParticipa && aberta()) {
+        <p class="aviso"><mat-icon inline>info</mat-icon> {{ h.eu.motivoNaoParticipa }} Você pode acompanhar, mas não reservar nem registrar.</p>
+      }
+      @if (h.situacao === 'PLANEJADA') {
+        <p class="aviso"><mat-icon inline>schedule</mat-icon> Planejada: já dá para reservar; os testes começam quando a gestão iniciar.</p>
+      }
+      @if (h.numeroSubstitui) {
+        <p class="aviso">
+          Substitui <button mat-button type="button" class="link" (click)="irPara(h.codSubstitui!)">{{ h.numeroSubstitui }}</button> (outra versão
+          do fabricante) — veja "Falhas da versão anterior".
+        </p>
+      }
+      @if (h.situacao === 'CANCELADA') {
+        <p class="aviso aviso--neutro">
+          Cancelada ({{ h.motivoCancelamento === 'NOVA_VERSAO' ? 'outra versão do fabricante' : 'problemas' }}): {{ h.justificativaCancelamento }}
+          @if (h.numeroSubstituidaPor) {
+            — substituída por <button mat-button type="button" class="link" (click)="irPara(h.codSubstituidaPor!)">{{ h.numeroSubstituidaPor }}</button>
+          }
+        </p>
+      }
+      @if (h.situacao === 'ENCERRADA') {
+        <p class="aviso aviso--neutro">Encerrada antes do fim: {{ h.justificativaEncerramento }}</p>
+      }
+    </header>
+
+
+    <mat-tab-group mat-stretch-tabs="false" animationDuration="0ms" class="abas">
+      <!-- ============================================================ roteiro e execução (T-03) -->
+      <mat-tab label="Roteiro">
+        <div class="aba">
+          <div class="barra">
+            @if (h.eu.geral) {
+              <mat-button-toggle-group [value]="trilha()" (change)="trocarTrilha($event.value)" aria-label="Trilha">
+                <mat-button-toggle value="DISTRIBUICAO">Distribuição</mat-button-toggle>
+                <mat-button-toggle value="GERAL">Minha homologação geral</mat-button-toggle>
+              </mat-button-toggle-group>
+              <button mat-button type="button" (click)="desistirGeral()">Desistir da geral</button>
+            } @else if (h.eu.participa && aberta()) {
+              <button
+                mat-stroked-button
+                type="button"
+                (click)="optarGeral()"
+                matTooltip="Checagem dupla: testar todo o roteiro em paralelo, com resultados próprios, sem mexer na distribuição">
+                <mat-icon>assignment_turned_in</mat-icon> Homologar tudo
+              </button>
+            }
+            <mat-form-field appearance="outline" subscriptSizing="dynamic" class="busca">
+              <mat-icon matPrefix>search</mat-icon>
+              <mat-label>Pesquisar item</mat-label>
+              <input matInput [ngModel]="texto()" (ngModelChange)="texto.set($event)" />
+            </mat-form-field>
+            <span class="espaco"></span>
+            @if (selecionados().size) {
+              <span class="suave">{{ selecionados().size }} selecionado{{ selecionados().size > 1 ? 's' : '' }}</span>
+              @if (podeReservarSelecionados()) {
+                <button mat-flat-button type="button" (click)="reservarSelecionados()">Reservar para mim</button>
+              }
+              @if (podeLiberarSelecionados()) {
+                <button mat-stroked-button type="button" (click)="liberarSelecionados()">Liberar</button>
+              }
+              @if (h.eu.gestao && aberta()) {
+                <button mat-stroked-button type="button" (click)="atribuir(itensSelecionados())">Atribuir…</button>
+              }
+              @if (podeMover()) {
+                <button mat-stroked-button type="button" (click)="mover(itensSelecionados())"><mat-icon>open_with</mat-icon> Mover…</button>
+              }
+              <button mat-button type="button" (click)="limparSelecao()">Limpar</button>
+            }
+            @if (aberta() && (h.eu.podeIncluirSoNesta || h.eu.roteiros)) {
+              <button mat-stroked-button type="button" (click)="incluirItem()"><mat-icon>add</mat-icon> Incluir item</button>
+            }
+          </div>
+
+          <div class="filtros" role="group" aria-label="Filtros">
+            @for (f of filtros; track f.chave) {
+              @if (f.chave === 'TODOS' || contagemFiltros()[f.chave]) {
+                <button type="button" class="filtro" [class.filtro--ativo]="filtro() === f.chave" [attr.aria-pressed]="filtro() === f.chave" (click)="filtro.set(f.chave)">
+                  {{ f.rotulo }} <span class="qtd">{{ contagemFiltros()[f.chave] }}</span>
+                </button>
+              }
+            }
+            @if (contagemFiltros().FORA) {
+              <button type="button" class="filtro filtro--fora" [class.filtro--ativo]="mostrarFora()" [attr.aria-pressed]="mostrarFora()" (click)="mostrarFora.set(!mostrarFora())">
+                <mat-icon inline>{{ mostrarFora() ? 'visibility_off' : 'visibility' }}</mat-icon>
+                {{ mostrarFora() ? 'Ocultar' : 'Mostrar' }} fora do escopo <span class="qtd">{{ contagemFiltros().FORA }}</span>
+              </button>
+            }
+            @if (h.sistemas.length > 1) {
+              <mat-form-field appearance="outline" subscriptSizing="dynamic" class="filtro-sistema">
+                <mat-label>Sistema</mat-label>
+                <mat-select [ngModel]="filtroSistema()" (ngModelChange)="trocarFiltroSistema($event)">
+                  <mat-option [value]="null">Todos os sistemas</mat-option>
+                  @for (s of h.sistemas; track s.codHomologacaoSistema) {
+                    <mat-option [value]="s.codHomologacaoSistema">{{ s.nome }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+            }
+            @if (opcoesModulo().length) {
+              <mat-form-field appearance="outline" subscriptSizing="dynamic" class="filtro-modulo">
+                <mat-label>Módulo</mat-label>
+                <mat-select [ngModel]="filtroModulo()" (ngModelChange)="filtroModulo.set($event)">
+                  <mat-option [value]="null">Todos os módulos</mat-option>
+                  @for (m of opcoesModulo(); track m.codModulo) {
+                    <mat-option [value]="m.codModulo">{{ m.rotulo }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+            }
+          </div>
+
+          @for (g of arvore(); track g.sistema.codHomologacaoSistema) {
+            <section class="secao sistema" [class.sistema--vazio]="!g.total">
+              <h3 class="secao__titulo">
+                {{ g.sistema.nome }}
+                <span class="suave">{{ g.sistema.versaoAtual ? g.sistema.versaoAtual + ' → ' : '' }}{{ g.sistema.versaoNova || 'sem versão no ambiente' }}</span>
+                @if (g.sistema.roteiros.length) {
+                  <span class="suave">· roteiro{{ g.sistema.roteiros.length > 1 ? 's' : '' }}: {{ g.sistema.roteiros.join(', ') }}</span>
+                } @else {
+                  <span class="suave">· sem roteiro padrão (itens só desta homologação)</span>
+                }
+                <span class="espaco"></span>
+                @if (g.sistema.novosNoPadrao && h.eu.gestao && aberta()) {
+                  <button mat-stroked-button type="button" (click)="trazerNovos(g.sistema.codHomologacaoSistema)">
+                    Trazer {{ g.sistema.novosNoPadrao }} {{ g.sistema.novosNoPadrao === 1 ? 'item novo' : 'itens novos' }} do roteiro padrão
+                  </button>
+                }
+              </h3>
+
+              @if (!g.total) {
+                <!-- Sistema sem itens: uma linha só, sem ocupar a tela. -->
+                <span class="suave">{{ g.sistema.falta || 'Sem itens: inclua itens nesta homologação ou escolha um roteiro padrão no cadastro.' }}</span>
+              }
+              @for (m of g.modulos; track m.nome) {
+              @if (g.sistema.trabalhaModulo) {
+                <div class="modulo__cab">
+                  <mat-icon inline>view_module</mat-icon>
+                  <strong>{{ m.nome }}</strong>
+                  @if (m.modulo) {
+                    <app-barra-homologacao class="mini" [contagem]="m.modulo.contagem" [altura]="6" />
+                    @if (m.modulo.parecerPrevisto && h.situacao === 'EM_ANDAMENTO') {
+                      <app-etiqueta [tom]="parecerInfo[m.modulo.parecerPrevisto].tom" matTooltip="Só informativo: o parecer que vale é o do sistema">
+                        previsto: {{ parecerInfo[m.modulo.parecerPrevisto].rotulo }}
+                      </app-etiqueta>
+                    }
+                  }
+                  @if (!m.modulo?.codModulo) {
+                    <span class="suave">agrupamentos ainda sem módulo: classifique em Roteiros de homologação (ou em "Renomear / tela / módulo" os criados aqui)</span>
+                  }
+                  @if (aberta() && m.modulo?.codModulo) {
+                    <button mat-icon-button type="button" class="pequeno" [matMenuTriggerFor]="menuModulo" aria-label="Ações do módulo"><mat-icon>more_horiz</mat-icon></button>
+                    <mat-menu #menuModulo="matMenu">
+                      @if (podeReservarModulo(m.modulo!.codModulo)) {
+                        <button mat-menu-item type="button" (click)="reservarModulo(m.modulo!)"><mat-icon>bookmark_border</mat-icon> Reservar módulo para mim</button>
+                      }
+                      @if (temReservaNoModulo(m.modulo!.codModulo)) {
+                        <button mat-menu-item type="button" (click)="liberarModulo(m.modulo!)"><mat-icon>remove_circle_outline</mat-icon> Liberar meus pendentes do módulo</button>
+                      }
+                      @if (h.eu.gestao) {
+                        <button mat-menu-item type="button" (click)="atribuirModulo(m.modulo!)"><mat-icon>assignment_ind</mat-icon> Atribuir módulo…</button>
+                      }
+                    </mat-menu>
+                  }
+                </div>
+              }
+              @for (ag of m.agrupamentos; track ag.agrupamento.codAgrupamento) {
+                <div class="agrupamento" [class.agrupamento--modulo]="g.sistema.trabalhaModulo">
+                  <div class="agrupamento__cab">
+                    <strong>{{ ag.agrupamento.nome }}</strong>
+                    @if (ag.agrupamento.tela) {
+                      <span class="tela" matTooltip="Tela do sistema">{{ ag.agrupamento.tela }}</span>
+                    }
+                    @if (ag.agrupamento.nomeReserva) {
+                      <app-etiqueta tom="info">agrupamento com {{ ag.agrupamento.nomeReserva }}</app-etiqueta>
+                    }
+                    @if (!ag.agrupamento.doPadrao) {
+                      <span class="suave">(criado nesta homologação)</span>
+                    }
+                    <app-barra-homologacao class="mini" [contagem]="ag.agrupamento.contagem" [altura]="6" />
+                    @if (aberta()) {
+                      <button mat-icon-button type="button" class="pequeno" [matMenuTriggerFor]="menuAg" aria-label="Ações do agrupamento"><mat-icon>more_horiz</mat-icon></button>
+                      <mat-menu #menuAg="matMenu">
+                        @if (podeReservarAgrupamento(ag.agrupamento)) {
+                          <button mat-menu-item type="button" (click)="reservarAgrupamento(ag.agrupamento)"><mat-icon>bookmark_border</mat-icon> Reservar agrupamento para mim</button>
+                        }
+                        @if (ag.agrupamento.codReserva === h.eu.codUsuario) {
+                          <button mat-menu-item type="button" (click)="liberarAgrupamento(ag.agrupamento)"><mat-icon>remove_circle_outline</mat-icon> Liberar meus pendentes</button>
+                        }
+                        @if (h.eu.podeIncluirSoNesta || h.eu.roteiros) {
+                          <button mat-menu-item type="button" (click)="incluirItem(g.sistema.codHomologacaoSistema, ag.agrupamento.codAgrupamento)"><mat-icon>add</mat-icon> Incluir item aqui</button>
+                        }
+                        @if (h.eu.gestao && !ag.agrupamento.doPadrao) {
+                          <button mat-menu-item type="button" (click)="editarAgrupamento(ag.agrupamento)">
+                            <mat-icon>edit</mat-icon> Renomear / tela{{ g.sistema.trabalhaModulo ? ' / módulo' : '' }}
+                          </button>
+                        }
+                        @if (h.eu.gestao) {
+                          <button mat-menu-item type="button" (click)="atribuir(null, ag.agrupamento)"><mat-icon>assignment_ind</mat-icon> Atribuir agrupamento…</button>
+                          <button mat-menu-item type="button" (click)="removerReservas({ agrupamento: ag.agrupamento })"><mat-icon>remove_circle_outline</mat-icon> Remover reservas…</button>
+                        }
+                        @if (podeExcluirAgrupamento(ag.agrupamento)) {
+                          <button mat-menu-item type="button" class="perigo" (click)="excluirAgrupamento(ag.agrupamento)"><mat-icon>delete</mat-icon> Excluir agrupamento…</button>
+                        }
+                      </mat-menu>
+                    }
+                  </div>
+
+                  <div class="rolagem">
+                    <table class="tabela itens">
+                      <!-- Larguras fixas: a situação fica na mesma coluna em todos os agrupamentos, qualquer que seja o tamanho do título. -->
+                      <colgroup>
+                        <col class="c-sel" />
+                        <col />
+                        <col class="c-estado" />
+                        <col class="c-responsavel" />
+                        <col class="c-registro" />
+                        <col class="c-acoes" />
+                      </colgroup>
+                      <tbody>
+                        @for (i of ag.itens; track i.codItem) {
+                          <tr
+                            [class.fora]="i.foraEscopo"
+                            [class.reprovado]="(geral() ? i.meuResultadoGeral : i.resultado) === 'REPROVADO'"
+                            [class.impeditivo]="(geral() ? i.meuResultadoGeral === 'REPROVADO' && i.meuImpeditivoGeral : i.resultado === 'REPROVADO' && i.impeditivo)">
+                            <td class="sel">
+                              @if (!geral() && (podeReservar(i) || podeLiberar(i) || podeMover() || (h.eu.gestao && aberta() && !i.foraEscopo))) {
+                                <mat-checkbox [checked]="selecionados().has(i.codItem)" (change)="alternarSelecao(i, $event.checked)" [aria-label]="'Selecionar ' + i.titulo" />
+                              }
+                            </td>
+                            <td class="item">
+                              <button type="button" class="titulo-item" (click)="historico(i)" [matTooltip]="i.passos || 'Ver passos e histórico'">{{ i.titulo }}</button>
+                              <span class="marcas">
+                                @if (i.critico) {
+                                  <span class="marca marca--critico">crítico</span>
+                                }
+                                @if (i.reprovouAnterior) {
+                                  <span class="marca marca--alerta" matTooltip="Reprovou ou ficou bloqueado na versão anterior">versão anterior</span>
+                                }
+                                @if (i.divergente) {
+                                  <span class="marca marca--alerta" matTooltip="Resultado diferente entre a distribuição e uma homologação geral">divergente</span>
+                                }
+                                @if (i.origem === 'INCLUIDO') {
+                                  <span class="marca" [matTooltip]="i.codRoteiroItem ? 'Incluído nesta homologação e no roteiro padrão' : 'Incluído só nesta homologação'">incluído</span>
+                                }
+                              </span>
+                              @if (i.foraEscopo) {
+                                <span class="suave">Fora do escopo: {{ i.motivoForaEscopo }}</span>
+                              }
+                            </td>
+                            @if (geral()) {
+                              <td class="estado">
+                                @if (i.meuResultadoGeral) {
+                                  <app-etiqueta [tom]="resultadoInfo[i.meuResultadoGeral].tom">{{ resultadoInfo[i.meuResultadoGeral].rotulo }}</app-etiqueta>
+                                  @if (i.meuResultadoGeral === 'REPROVADO' && i.meuImpeditivoGeral) {
+                                    <span class="selo-impeditivo" matTooltip="A falha impede aprovar a versão (R-18)"><mat-icon inline>block</mat-icon> impeditivo</span>
+                                  }
+                                } @else {
+                                  <span class="suave">pendente</span>
+                                }
+                              </td>
+                              <td class="suave">Distribuição: {{ i.resultado ? resultadoInfo[i.resultado].rotulo : 'sem resultado' }}</td>
+                            } @else {
+                              <td class="estado">
+                                <app-etiqueta [tom]="estadoInfo[estado(i)].tom">{{ estadoInfo[estado(i)].rotulo }}</app-etiqueta>
+                                @if (i.resultado === 'REPROVADO' && i.impeditivo) {
+                                  <span class="selo-impeditivo" matTooltip="A falha impede aprovar a versão (R-18)"><mat-icon inline>block</mat-icon> impeditivo</span>
+                                }
+                              </td>
+                              <td class="responsavel">
+                                @if (i.nomeResponsavel) {
+                                  <span [matTooltip]="(i.forma === 'ATRIBUICAO' ? 'Atribuído' : 'Reservado') + ' em ' + (i.dataResponsavel | date: 'dd/MM HH:mm')">
+                                    {{ i.codResponsavel === h.eu.codUsuario ? 'Você' : i.nomeResponsavel }}
+                                  </span>
+                                } @else if (!i.foraEscopo) {
+                                  <span class="suave">livre</span>
+                                }
+                              </td>
+                            }
+                            <td class="registro">
+                              @if (i.dataResultado && !geral()) {
+                                <span class="suave">{{ i.nomeAutor }} · {{ i.dataResultado | date: 'dd/MM HH:mm' }}</span>
+                              }
+                              @if (i.qtdEvidencias && !geral()) {
+                                <span class="suave" matTooltip="Evidências"><mat-icon inline>attach_file</mat-icon>{{ i.qtdEvidencias }}</span>
+                              }
+                              @if (i.resultado === 'REPROVADO' && !i.ticketFabricante && !geral()) {
+                                <span class="sem-ticket" matTooltip="Informe o ticket aberto ao fabricante no histórico do item"><mat-icon inline>warning</mat-icon> sem ticket</span>
+                              }
+                            </td>
+                            <td class="acoes">
+                              @if (podeRegistrar(i)) {
+                                <button mat-flat-button type="button" class="registrar" (click)="registrar(i)">Registrar</button>
+                              } @else if (podeReservar(i)) {
+                                <button mat-stroked-button type="button" (click)="reservar(i)">Reservar</button>
+                              }
+                              <button mat-icon-button type="button" [matMenuTriggerFor]="menuItem" aria-label="Mais ações do item"><mat-icon>more_vert</mat-icon></button>
+                              <mat-menu #menuItem="matMenu">
+                                <button mat-menu-item type="button" (click)="historico(i)"><mat-icon>history</mat-icon> Passos e histórico</button>
+                                @if (podeReservar(i) && podeRegistrar(i)) {
+                                  <button mat-menu-item type="button" (click)="reservar(i)"><mat-icon>bookmark_border</mat-icon> Reservar para mim</button>
+                                }
+                                @if (podeLiberar(i)) {
+                                  <button mat-menu-item type="button" (click)="liberar(i)"><mat-icon>remove_circle_outline</mat-icon> Liberar</button>
+                                }
+                                @if (h.eu.gestao && aberta() && !i.foraEscopo) {
+                                  <button mat-menu-item type="button" (click)="atribuir([i])"><mat-icon>assignment_ind</mat-icon> Atribuir a outra pessoa…</button>
+                                  @if (i.codResponsavel) {
+                                    <button mat-menu-item type="button" (click)="removerReservas({ item: i })"><mat-icon>remove_circle_outline</mat-icon> Remover reserva…</button>
+                                  }
+                                }
+                                @if (podeEditarItem(i)) {
+                                  <button mat-menu-item type="button" (click)="editarItem(i)"><mat-icon>edit</mat-icon> Editar item…</button>
+                                }
+                                @if (podePedirReteste(i)) {
+                                  <button mat-menu-item type="button" (click)="pedirReteste(i)"><mat-icon>replay</mat-icon> Pedir reteste…</button>
+                                }
+                                @if (h.eu.gestao && aberta()) {
+                                  <button mat-menu-item type="button" (click)="alterarEscopo(i)">
+                                    <mat-icon>{{ i.foraEscopo ? 'playlist_add_check' : 'remove_done' }}</mat-icon> {{ i.foraEscopo ? 'Voltar ao escopo' : 'Tirar do escopo' }}
+                                  </button>
+                                }
+                                @if (podeMover()) {
+                                  <button mat-menu-item type="button" (click)="mover([i])"><mat-icon>open_with</mat-icon> Mover para outro agrupamento…</button>
+                                }
+                                @if (podeExcluirItem(i)) {
+                                  <button mat-menu-item type="button" class="perigo" (click)="excluirItem(i)"><mat-icon>delete</mat-icon> Excluir item…</button>
+                                }
+                              </mat-menu>
+                            </td>
+                          </tr>
+                        } @empty {
+                          <tr>
+                            <td colspan="6" class="vazio">Nenhum item neste agrupamento.</td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              }
+              }
+            </section>
+          } @empty {
+            @if (filtrando()) {
+              <p class="vazio">Nenhum item com este filtro{{ texto().trim() ? ' e esta pesquisa' : '' }}.</p>
+            }
+          }
+        </div>
+      </mat-tab>
+
+      <!-- ============================================================ acompanhamento (T-04) -->
+      <mat-tab label="Acompanhamento">
+        <div class="aba">
+          <app-hom-acompanhamento
+            [homologacao]="h"
+            (abrirItem)="historico($event)"
+            (resolver)="resolver($event)"
+            (removerReservasDe)="removerReservas({ participante: $event })" />
+        </div>
+      </mat-tab>
+
+      @if (h.falhasAnteriores.length) {
+        <mat-tab [label]="'Falhas da versão anterior (' + h.falhasAnteriores.length + ')'">
+          <div class="aba">
+            <p class="suave">Reprovados e bloqueados em {{ h.numeroSubstitui }}: teste estes primeiro. Os itens aparecem marcados "versão anterior" no roteiro.</p>
+            <div class="rolagem">
+              <table class="tabela">
+                <thead>
+                  <tr>
+                    <th>Sistema</th>
+                    <th>Agrupamento</th>
+                    <th>Item</th>
+                    <th>Resultado</th>
+                    <th>O que aconteceu</th>
+                    <th>Ticket</th>
+                    <th>Quem</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (f of h.falhasAnteriores; track $index) {
+                    <tr>
+                      <td>{{ f.sistema }}</td>
+                      <td>{{ f.agrupamento }}</td>
+                      <td>{{ f.item }}</td>
+                      <td>
+                        <app-etiqueta [tom]="resultadoInfo[f.resultado].tom">{{ resultadoInfo[f.resultado].rotulo }}{{ f.impeditivo ? ' · impeditivo' : '' }}</app-etiqueta>
+                      </td>
+                      <td class="texto">{{ f.observacao }}</td>
+                      <td>{{ f.ticketFabricante }}</td>
+                      <td class="suave">{{ f.nomeAutor }} · {{ f.data | date: 'dd/MM' }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </mat-tab>
+      }
+
+      <!-- ============================================================ linha do tempo -->
+      <mat-tab label="Linha do tempo">
+        <div class="aba">
+          <ol class="linha-tempo">
+            @for (e of h.eventos; track $index) {
+              <li>
+                <span class="quando">{{ e.data | date: 'dd/MM/yy HH:mm' }}</span>
+                <span class="quem">{{ e.nomeUsuario }}</span>
+                <span class="oque">{{ e.descricao }}</span>
+              </li>
+            }
+          </ol>
+        </div>
+      </mat-tab>
+    </mat-tab-group>
+  }
+</div>

@@ -1,0 +1,218 @@
+<div class="dashboard-container">
+  <!-- Cabeçalho simplificado -->
+  <div class="dashboard-header">
+    <h1>Dashboard de Sprints</h1>
+  </div>
+
+  <!-- Mensagem de erro -->
+  <div *ngIf="erro" class="error-message">
+    <mat-icon>error</mat-icon>
+    <span>{{ erro }}</span>
+    <button mat-button (click)="carregarSprints()">
+      <mat-icon>refresh</mat-icon>
+      Tentar Novamente
+    </button>
+  </div>
+
+  <!-- Carregando -->
+  <div *ngIf="carregando" class="loading">
+    <mat-spinner diameter="40"></mat-spinner>
+    <p>Carregando sprints...</p>
+  </div>
+
+  <!-- Conteúdo principal - Container FLEX sem scroll -->
+  <div *ngIf="!carregando && !erro" class="dashboard-content">
+
+    <!-- Card de estatísticas com navegação -->
+    <div *ngIf="sprintSelecionada" class="summary-card">
+      <mat-card>
+        <mat-card-header>
+          <mat-card-title>
+            Sprint: {{ sprintSelecionada.nome }}
+            <span class="sprint-status">{{ sprintSelecionada.status || 'Sem status' }}</span>
+          </mat-card-title>
+          <mat-card-subtitle>
+            {{ formatarData(sprintSelecionada.dataInicio) }} - {{ formatarData(sprintSelecionada.dataFim) }}
+          </mat-card-subtitle>
+        </mat-card-header>
+
+        <mat-card-content>
+          <div class="stats-grid">
+            <div class="stat-item">
+              <div class="stat-value">{{ totalTickets }}</div>
+              <div class="stat-label">Total Tickets</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-value success">{{ ticketsConcluidos }}</div>
+              <div class="stat-label">Concluídos</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-value warning">{{ ticketsPendentes }}</div>
+              <div class="stat-label">Pendentes</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-value">{{ calcularPercentual() }}%</div>
+              <div class="stat-label">Percentual de Entrega</div>
+            </div>
+          </div>
+
+          <!-- Navegação entre sprints simplificada -->
+          <div class="sprint-navigation" *ngIf="sprints.length > 0">
+            <button mat-button (click)="sprintAnterior()"
+                    [disabled]="!temAnterior() || carregandoTickets"
+                    class="nav-button anterior">
+              <mat-icon>chevron_left</mat-icon>
+              Anterior
+            </button>
+
+            <div class="sprint-info">
+              <span class="sprint-counter">
+                {{ indiceSprintAtual + 1 }} de {{ sprints.length }}
+              </span>
+            </div>
+
+            <button mat-button (click)="proximaSprint()"
+                    [disabled]="!temProxima() || carregandoTickets"
+                    class="nav-button proxima">
+              Próxima
+              <mat-icon>chevron_right</mat-icon>
+            </button>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+
+    <!-- Carregando tickets -->
+    <div *ngIf="carregandoTickets" class="loading">
+      <mat-spinner diameter="30"></mat-spinner>
+      <p>Carregando tickets...</p>
+    </div>
+
+    <!-- WRAPPER para as seções de tickets (sem scroll) -->
+    <div class="tickets-sections-wrapper">
+      <!-- Seção de Tickets dividida em Concluídos e Pendentes -->
+      <div *ngIf="!carregandoTickets && sprintSelecionada" class="tickets-sections">
+
+        <!-- Container principal para as duas colunas -->
+        <div class="tickets-columns">
+
+          <!-- Coluna de Tickets Pendentes -->
+          <div class="tickets-column pendentes-column">
+            <div class="tickets-section pendentes-section">
+              <div class="section-header">
+                <h3 class="pendentes-title">
+                  <mat-icon class="pendentes-icon">schedule</mat-icon>
+                  Tickets Pendentes
+                  <span class="ticket-count">({{ ticketsPendentesLista.length }})</span>
+                </h3>
+              </div>
+
+              <!-- Container da lista COM SCROLL isolado -->
+              <div class="tickets-list-container">
+                <div class="tickets-content">
+                  <!-- Grid de tickets pendentes -->
+                  <div *ngIf="ticketsPendentesLista.length > 0" class="tickets-grid">
+                    <div *ngFor="let ticket of ticketsPendentesLista" class="ticket-card-compact pendente">
+                      <div class="ticket-header">
+                        <div class="ticket-id">{{ ticket.ticket.id || 'Ticket sem ID' }}</div>
+                        <div class="ticket-criticidade" [ngClass]="'criticidade-' + (ticket.criticidade || 0)">
+                          {{ getCriticidadeTexto(ticket.criticidade)}}
+                        </div>
+                      </div>
+                      <div class="ticket-title">{{ ticket.ticket.titulo || 'Sem título' }}</div>
+                      <div class="ticket-info">
+                        <div *ngIf="ticket.ticket.dataTicket" class="ticket-info-item">
+                          <mat-icon>event</mat-icon>
+                          {{ formatarData(ticket.ticket.dataTicket) }}
+                        </div>
+                        <div *ngIf="ticket.dataEntregaReal" class="ticket-info-item">
+                          <mat-icon>check</mat-icon>
+                          {{ formatarData(ticket.dataEntregaReal) }}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Mensagem quando não há tickets pendentes -->
+                  <div *ngIf="ticketsPendentesLista.length === 0" class="empty-section">
+                    <div class="empty-section-content">
+                      <mat-icon>schedule</mat-icon>
+                      <p>Nenhum ticket pendente</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Coluna de Tickets Concluídos -->
+          <div class="tickets-column concluidos-column">
+            <div class="tickets-section concluidos-section">
+              <div class="section-header">
+                <h3 class="concluidos-title">
+                  <mat-icon class="concluidos-icon">check_circle</mat-icon>
+                  Tickets Concluídos
+                  <span class="ticket-count">({{ ticketsConcluidosLista.length }})</span>
+                </h3>
+              </div>
+
+              <!-- Container da lista COM SCROLL isolado -->
+              <div class="tickets-list-container">
+                <div class="tickets-content">
+                  <!-- Grid de tickets concluídos -->
+                  <div *ngIf="ticketsConcluidosLista.length > 0" class="tickets-grid">
+                    <div *ngFor="let ticket of ticketsConcluidosLista" class="ticket-card-compact concluido">
+                      <div class="ticket-header">
+                        <div class="ticket-id">{{ ticket.ticket.id || 'Ticket sem ID' }}</div>
+                        <div class="ticket-criticidade" [ngClass]="'criticidade-' + (ticket.criticidade || 0)">
+                          {{ getCriticidadeTexto(ticket.criticidade) }}
+                        </div>
+                      </div>
+                      <div class="ticket-title">{{ ticket.ticket.titulo || 'Sem título' }}</div>
+
+                      <div class="ticket-info">
+                        <div *ngIf="ticket.ticket.dataTicket" class="ticket-info-item">
+                          <mat-icon>event</mat-icon>
+                          {{ formatarData(ticket.ticket.dataTicket) }}
+                        </div>
+                        <div *ngIf="ticket.dataEntregaReal" class="ticket-info-item">
+                          <mat-icon>check_circle</mat-icon>
+                          {{ formatarData(ticket.dataEntregaReal) }}
+                        </div>
+                        <div *ngIf="ticket.dataEntregaPrevista && !ticket.dataEntregaReal" class="ticket-info-item">
+                          <mat-icon>check</mat-icon>
+                          {{ formatarData(ticket.dataEntregaReal) }}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Mensagem quando não há tickets concluídos -->
+                  <div *ngIf="ticketsConcluidosLista.length === 0" class="empty-section">
+                    <div class="empty-section-content">
+                      <mat-icon>check_circle</mat-icon>
+                      <p>Nenhum ticket concluído</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Mensagem quando não há nenhum ticket -->
+        <div *ngIf="ticketsPendentesLista.length === 0 && ticketsConcluidosLista.length === 0" class="empty-tickets">
+          <mat-icon>inbox</mat-icon>
+          <p>Nenhum ticket nesta sprint</p>
+        </div>
+      </div>
+
+      <!-- Mensagem quando não há sprints -->
+      <div *ngIf="sprints.length === 0 && !carregando" class="empty-sprints">
+        <mat-icon>inbox</mat-icon>
+        <h3>Nenhuma sprint encontrada</h3>
+        <p>Consulte o administrador para criar uma sprint</p>
+      </div>
+    </div>
+  </div>
+</div>
