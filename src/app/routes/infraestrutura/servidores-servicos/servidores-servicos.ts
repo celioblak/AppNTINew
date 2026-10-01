@@ -101,6 +101,8 @@ export class ServidoresServicosComponent implements OnInit {
   /** Último "Testar leitura" por servidor, uma linha por fonte (some ao recarregar a tela). */
   readonly testesLeitura = signal<Record<number, TesteFonte[]>>({});
   readonly testandoLeitura = signal<number | null>(null);
+  /** Servidores com o card "Leitura (Windows)" aberto à mão (sem problema ele fica escondido). */
+  private readonly leiturasAbertas = signal<ReadonlySet<number>>(new Set());
   private temporizadores = new Map<string, ReturnType<typeof setTimeout>>();
 
   readonly rotuloSituacao = ROTULO_SITUACAO;
@@ -368,6 +370,34 @@ export class ServidoresServicosComponent implements OnInit {
   }
 
   /** HB Service antigo (só memória): pela última leitura ou pelo último "Testar leitura" (R-53, R-59). */
+  /**
+   * Problema na coleta do Windows: nunca leu, agente antigo, fora do ar, sem leitura recente, sem acesso, pendência de
+   * WinRM/HB Service ou último teste com falha. Com problema o card "Leitura (Windows)" aparece sozinho; sem, fica
+   * atrás do botão discreto do cabeçalho (é usado uma vez, na preparação).
+   */
+  problemaLeitura(s: Servidor): boolean {
+    if (!s.leitura) return false;
+    if (!s.fonteLeitura || s.fonteLeitura === 'HBSERVICE_INFO') return true;
+    if (s.situacao === 'FORA' || s.situacao === 'DESCONHECIDO') return true;
+    const detalhe = s.detalhe ?? '';
+    if (detalhe.startsWith('Sem leitura') || detalhe.startsWith('Monitoramento sem acesso')) return true;
+    if (s.pendencias.some(p => /WinRM|HB Service/i.test(p.mensagem))) return true;
+    return (this.testesLeitura()[s.codServidor] ?? []).some(t => !t.ok);
+  }
+
+  leituraAberta(s: Servidor): boolean {
+    return this.leiturasAbertas().has(s.codServidor) || this.testandoLeitura() === s.codServidor;
+  }
+
+  alternarLeitura(s: Servidor) {
+    this.leiturasAbertas.update(atual => {
+      const novo = new Set(atual);
+      if (novo.has(s.codServidor)) novo.delete(s.codServidor);
+      else novo.add(s.codServidor);
+      return novo;
+    });
+  }
+
   agenteAntigo(s: Servidor): boolean {
     return s.fonteLeitura === 'HBSERVICE_INFO' || (this.testesLeitura()[s.codServidor] ?? []).some(t => t.atualizarAgente);
   }

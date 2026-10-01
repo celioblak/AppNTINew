@@ -99,6 +99,12 @@
                 </span>
               </div>
               <span class="selo">{{ rotuloSituacao[s.situacao] }}</span>
+              @if (s.leitura && !problemaLeitura(s)) {
+                <button mat-icon-button [class.leitura-ativa]="leituraAberta(s)" (click)="alternarLeitura(s)"
+                        [matTooltip]="leituraAberta(s) ? 'Esconder a leitura dos recursos' : 'Leitura dos recursos: WinRM / HB Service, Preparar WinRM, Testar leitura'">
+                  <mat-icon>settings_remote</mat-icon>
+                </button>
+              }
               <button mat-stroked-button (click)="abrirServidor(s)"><mat-icon>edit</mat-icon> Editar</button>
             </header>
 
@@ -214,9 +220,13 @@
                 </article>
               }
 
-              @if (s.leitura) {
+              @if (s.leitura && (problemaLeitura(s) || leituraAberta(s))) {
                 <article class="bloco">
-                  <h3><mat-icon>settings_remote</mat-icon> Leitura (Windows)</h3>
+                  <h3><mat-icon>settings_remote</mat-icon> Leitura (Windows)
+                    @if (!problemaLeitura(s)) {
+                      <button mat-icon-button class="ml-auto" matTooltip="Esconder" (click)="alternarLeitura(s)"><mat-icon>close</mat-icon></button>
+                    }
+                  </h3>
                   <dl>
                     <dt>Modo</dt><dd>{{ rotuloLeitura[s.leitura] }}</dd>
                     <dt>Última leitura</dt><dd>{{ s.fonteLeitura ? 'por ' + rotuloFonte[s.fonteLeitura] : '—' }}</dd>
