@@ -155,9 +155,35 @@ export interface Servidor {
   memoria: MemoriaServidor | null;
   /** Só Windows: protocolo do WinRM. */
   winrm: ProtocoloWinRm | null;
+  /** Só Windows: de onde ler os recursos (R-48). */
+  leitura: ModoLeitura | null;
+  /** Só Windows: de onde veio a última leitura. */
+  fonteLeitura: FonteLeitura | null;
 }
 
 export type ProtocoloWinRm = 'HTTPS' | 'HTTP';
+export type ModoLeitura = 'AUTO' | 'HBSERVICE' | 'WINRM';
+export type FonteLeitura = 'WINRM' | 'HBSERVICE' | 'HBSERVICE_INFO';
+
+export const ROTULO_LEITURA: Record<ModoLeitura, string> = {
+  AUTO: 'Automático (WinRM; se falhar, HB Service)',
+  HBSERVICE: 'Só HB Service',
+  WINRM: 'Só WinRM',
+};
+
+export const ROTULO_FONTE: Record<FonteLeitura, string> = {
+  WINRM: 'WinRM',
+  HBSERVICE: 'HB Service',
+  HBSERVICE_INFO: 'HB Service antigo (só memória)',
+};
+
+/** Resultado de uma fonte no "Testar leitura". */
+export interface TesteFonte {
+  fonte: 'WINRM' | 'HBSERVICE';
+  ok: boolean;
+  mensagem: string;
+  orientacao: string | null;
+}
 
 /**
  * Memória do servidor (docs/infraestrutura.md, seção 12), em KB. Em uso = total − disponível (sem o cache).
@@ -207,6 +233,8 @@ export interface ServidorEdicao {
   senhaAcessoRemoto: string | null;
   /** Só Windows. */
   winrm: ProtocoloWinRm | null;
+  /** Só Windows. */
+  leitura: ModoLeitura | null;
 }
 
 export interface ServicoEdicao {

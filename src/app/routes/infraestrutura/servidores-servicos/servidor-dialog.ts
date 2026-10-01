@@ -11,7 +11,7 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatTabsModule } from '@angular/material/tabs';
 import { finalize } from 'rxjs';
 
-import { Opcoes, ROTULO_TIPO_LOCAL, Servidor, ServidorEdicao, TipoLocal } from '../infraestrutura.models';
+import { ModoLeitura, Opcoes, ROTULO_LEITURA, ROTULO_TIPO_LOCAL, Servidor, ServidorEdicao, TipoLocal } from '../infraestrutura.models';
 import { InfraestruturaService } from '../infraestrutura.service';
 
 export interface ServidorDialogData {
@@ -80,7 +80,7 @@ export interface ServidorDialogData {
                   <mat-option value="WINDOWS">Windows</mat-option>
                   <mat-option value="OUTRO">Outro</mat-option>
                 </mat-select>
-                <mat-hint>Linux é lido por SSH; Windows, pelo WinRM</mat-hint>
+                <mat-hint>Linux é lido por SSH; Windows, pelo WinRM e/ou HB Service</mat-hint>
               </mat-form-field>
               <mat-form-field appearance="outline" subscriptSizing="dynamic">
                 <mat-label>Ambiente padrão dos serviços</mat-label>
@@ -96,7 +96,20 @@ export interface ServidorDialogData {
             @if (s.so === 'WINDOWS') {
               <div class="linha">
                 <mat-form-field appearance="outline" subscriptSizing="dynamic">
-                  <mat-label>WinRM (leitura de CPU, memória e discos)</mat-label>
+                  <mat-label>Leitura dos recursos (CPU, memória e discos)</mat-label>
+                  <mat-select [(ngModel)]="s.leitura">
+                    @for (m of modosLeitura; track m) {
+                      <mat-option [value]="m">{{ rotuloLeitura[m] }}</mat-option>
+                    }
+                  </mat-select>
+                  <mat-hint>WinRM bloqueado por política (GPO) neste servidor: escolha "Só HB Service"</mat-hint>
+                </mat-form-field>
+              </div>
+            }
+            @if (s.so === 'WINDOWS' && s.leitura !== 'HBSERVICE') {
+              <div class="linha">
+                <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                  <mat-label>WinRM</mat-label>
                   <mat-select [(ngModel)]="s.winrm">
                     <mat-option value="HTTPS">HTTPS · porta 5986 (recomendado)</mat-option>
                     <mat-option value="HTTP">HTTP · porta 5985</mat-option>
@@ -105,7 +118,7 @@ export interface ServidorDialogData {
                 </mat-form-field>
                 <p class="aviso">
                   Depois de salvar, use <b>Preparar WinRM</b> no servidor: o script liga o WinRM, libera a porta só para o
-                  NTI e confere o usuário. Ao terminar, <b>Testar WinRM</b>.
+                  NTI e confere o usuário. Ao terminar, <b>Testar leitura</b>.
                 </p>
               </div>
             }
@@ -218,6 +231,8 @@ export class ServidorDialogComponent {
 
   readonly rotuloLocal = ROTULO_TIPO_LOCAL;
   readonly tiposLocal = Object.keys(ROTULO_TIPO_LOCAL) as TipoLocal[];
+  readonly rotuloLeitura = ROTULO_LEITURA;
+  readonly modosLeitura = Object.keys(ROTULO_LEITURA) as ModoLeitura[];
   readonly ambientesAtivos = this.data.opcoes.ambientes.filter(a => a.ativo || a.codigo === this.data.servidor?.ambiente);
   readonly hospedagensAtivas = this.data.opcoes.hospedagens.filter(
     h => h.ativo || h.codHospedagem === this.data.servidor?.codHospedagem
@@ -244,6 +259,7 @@ export class ServidorDialogComponent {
       usuarioAcessoRemoto: v?.usuarioAcessoRemoto ?? null,
       senhaAcessoRemoto: null,
       winrm: v?.winrm ?? 'HTTPS',
+      leitura: v?.leitura ?? 'AUTO',
     };
   })();
 
@@ -262,6 +278,7 @@ export class ServidorDialogComponent {
       senhaAdmin: this.apagarAdmin ? '' : this.senhaAdmin ? this.senhaAdmin : null,
       senhaAcessoRemoto: this.apagarRemoto ? '' : this.senhaRemoto ? this.senhaRemoto : null,
       winrm: this.s.so === 'WINDOWS' ? this.s.winrm : null,
+      leitura: this.s.so === 'WINDOWS' ? this.s.leitura : null,
     };
     this.salvando.set(true);
     this.erro.set(null);

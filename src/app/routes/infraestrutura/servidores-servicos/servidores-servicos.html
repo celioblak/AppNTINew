@@ -214,27 +214,43 @@
                 </article>
               }
 
-              @if (s.winrm) {
+              @if (s.leitura) {
                 <article class="bloco">
-                  <h3><mat-icon>settings_remote</mat-icon> WinRM</h3>
+                  <h3><mat-icon>settings_remote</mat-icon> Leitura (Windows)</h3>
                   <dl>
-                    <dt>Protocolo</dt><dd>{{ s.winrm === 'HTTP' ? 'HTTP · porta 5985' : 'HTTPS · porta 5986' }}</dd>
+                    <dt>Modo</dt><dd>{{ rotuloLeitura[s.leitura] }}</dd>
+                    <dt>Última leitura</dt><dd>{{ s.fonteLeitura ? 'por ' + rotuloFonte[s.fonteLeitura] : '—' }}</dd>
+                    @if (s.leitura !== 'HBSERVICE') {
+                      <dt>WinRM</dt><dd>{{ s.winrm === 'HTTP' ? 'HTTP · porta 5985' : 'HTTPS · porta 5986' }}</dd>
+                    }
+                    @if (s.leitura !== 'WINRM') {
+                      <dt>HB Service</dt><dd>porta 9071</dd>
+                    }
                   </dl>
-                  <p class="nota">O NTI lê CPU, memória e discos do Windows pelo WinRM, com o usuário administrador do cofre.
-                    Servidor novo: rode o script de preparação uma vez e teste.</p>
+                  <p class="nota">
+                    @if (s.leitura === 'HBSERVICE') {
+                      O HB Service lê CPU, memória e discos na própria máquina, sem WinRM. Em servidor, instale-o como serviço
+                      (instalar-servico.bat) para rodar sem ninguém logado.
+                    } @else {
+                      O NTI lê CPU, memória e discos pelo WinRM, com o usuário administrador do cofre{{ s.leitura === 'AUTO' ? ', e usa o HB Service se o WinRM falhar' : '' }}.
+                      Servidor novo: rode o script de preparação uma vez e teste.
+                    }
+                  </p>
                   <div class="acoes">
-                    <button mat-stroked-button (click)="prepararWinRm(s)"><mat-icon>code</mat-icon> Preparar WinRM</button>
-                    <button mat-stroked-button (click)="testarWinRm(s)" [disabled]="testandoWinRm() === s.codServidor">
-                      <mat-icon>network_check</mat-icon> Testar WinRM
+                    @if (s.leitura !== 'HBSERVICE') {
+                      <button mat-stroked-button (click)="prepararWinRm(s)"><mat-icon>code</mat-icon> Preparar WinRM</button>
+                    }
+                    <button mat-stroked-button (click)="testarLeitura(s)" [disabled]="testandoLeitura() === s.codServidor">
+                      <mat-icon>network_check</mat-icon> Testar leitura
                     </button>
                   </div>
-                  @if (testandoWinRm() === s.codServidor) {
+                  @if (testandoLeitura() === s.codServidor) {
                     <mat-progress-bar mode="indeterminate" />
                   }
-                  @if (testesWinRm()[s.codServidor]; as t) {
+                  @for (t of testesLeitura()[s.codServidor] ?? []; track t.fonte) {
                     <div class="teste" [class.teste--ok]="t.ok">
                       <mat-icon inline>{{ t.ok ? 'check_circle' : 'error' }}</mat-icon>
-                      <div><b>{{ t.mensagem }}</b>@if (t.orientacao) { <span> — {{ t.orientacao }}</span> }</div>
+                      <div><b>{{ t.fonte === 'WINRM' ? 'WinRM' : 'HB Service' }}: {{ t.mensagem }}</b>@if (t.orientacao) { <span> — {{ t.orientacao }}</span> }</div>
                     </div>
                   }
                 </article>

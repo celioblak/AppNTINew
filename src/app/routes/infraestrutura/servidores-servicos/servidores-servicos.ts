@@ -31,7 +31,9 @@ import {
   Servidor,
   Situacao,
   TipoCredencial,
-  TesteWinRm,
+  ROTULO_FONTE,
+  ROTULO_LEITURA,
+  TesteFonte,
   TipoServico,
   duracao,
 } from '../infraestrutura.models';
@@ -95,15 +97,17 @@ export class ServidoresServicosComponent implements OnInit {
   /** Senhas reveladas, por servidor e tipo; somem sozinhas. */
   readonly reveladas = signal<Record<string, Credencial>>({});
 
-  /** Último "Testar WinRM" por servidor (some ao recarregar a tela). */
-  readonly testesWinRm = signal<Record<number, TesteWinRm>>({});
-  readonly testandoWinRm = signal<number | null>(null);
+  /** Último "Testar leitura" por servidor, uma linha por fonte (some ao recarregar a tela). */
+  readonly testesLeitura = signal<Record<number, TesteFonte[]>>({});
+  readonly testandoLeitura = signal<number | null>(null);
   private temporizadores = new Map<string, ReturnType<typeof setTimeout>>();
 
   readonly rotuloSituacao = ROTULO_SITUACAO;
   readonly rotuloLocal = ROTULO_TIPO_LOCAL;
   readonly rotuloForma = ROTULO_FORMA;
   readonly rotuloPapel = ROTULO_PAPEL;
+  readonly rotuloLeitura = ROTULO_LEITURA;
+  readonly rotuloFonte = ROTULO_FONTE;
   readonly papeis = Object.keys(ROTULO_PAPEL) as Papel[];
 
   readonly filtrados = computed(() => {
@@ -350,13 +354,14 @@ export class ServidoresServicosComponent implements OnInit {
       .subscribe(() => this.carregar(false));
   }
 
-  testarWinRm(s: Servidor) {
-    this.testandoWinRm.set(s.codServidor);
+  /** Testa as fontes do modo de leitura do Windows: WinRM e/ou HB Service (R-54). */
+  testarLeitura(s: Servidor) {
+    this.testandoLeitura.set(s.codServidor);
     this.service
-      .testarWinRm(s.codServidor)
-      .pipe(finalize(() => this.testandoWinRm.set(null)))
+      .testarLeitura(s.codServidor)
+      .pipe(finalize(() => this.testandoLeitura.set(null)))
       .subscribe({
-        next: t => this.testesWinRm.update(r => ({ ...r, [s.codServidor]: t })),
+        next: t => this.testesLeitura.update(r => ({ ...r, [s.codServidor]: t })),
         error: () => {},
       });
   }

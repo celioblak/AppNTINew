@@ -20,6 +20,7 @@ import {
   SistemaDoServico,
   SistemaInfra,
   TipoCredencial,
+  TesteFonte,
   TesteWinRm,
   TipoServico,
 } from './infraestrutura.models';
@@ -102,6 +103,11 @@ export class InfraestruturaService {
 
   testarWinRm(codServidor: number) {
     return this.http.post<TesteWinRm>(`${this.api}/servidores/${codServidor}/winrm/testar`, {});
+  }
+
+  /** Testa as fontes do modo de leitura do Windows (WinRM e/ou HB Service). */
+  testarLeitura(codServidor: number) {
+    return this.http.post<TesteFonte[]>(`${this.api}/servidores/${codServidor}/leitura/testar`, {});
   }
 
   // ---------------------------------------------------------------- cofre
