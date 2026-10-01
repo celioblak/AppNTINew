@@ -146,15 +146,18 @@ export class WinRmDialogComponent {
   }
 }
 
-/** Mensagem do ApplicationException do ntiapi; a resposta de texto chega como string JSON. */
+/**
+ * Mensagem do erro. O errorInterceptor já devolve um Error com a mensagem do ApiErrorResponse
+ * (e o HttpErrorResponse em `original`); sem ele, lê o corpo (texto JSON na chamada de texto).
+ */
 function mensagemErro(e: any, padrao: string): string {
-  let corpo = e?.error;
+  let corpo = e?.original?.error ?? e?.error;
   if (typeof corpo === 'string') {
     try {
       corpo = JSON.parse(corpo);
     } catch {
-      return padrao;
+      corpo = null;
     }
   }
-  return corpo?.message ?? padrao;
+  return corpo?.message ?? e?.message ?? padrao;
 }

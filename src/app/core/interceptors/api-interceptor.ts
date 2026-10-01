@@ -16,7 +16,8 @@ export function apiInterceptor(req: HttpRequest<unknown>, next: HttpHandlerFn) {
         const body: any = event.body;
         // failure: { code: **, msg: 'failure' }
         // success: { code: 0,  msg: 'success', data: {} }
-        if (body && 'code' in body && body.code !== 0) {
+        // Só objeto: em resposta de texto (responseType 'text') o operador "in" lança TypeError.
+        if (body && typeof body === 'object' && 'code' in body && body.code !== 0) {
           if (body.msg) {
             toast.error(body.msg);
           }

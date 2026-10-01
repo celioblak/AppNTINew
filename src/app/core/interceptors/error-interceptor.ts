@@ -48,8 +48,16 @@ export function errorInterceptor(req: HttpRequest<unknown>, next: HttpHandlerFn)
    * Prioriza mensagem descritiva antes do código técnico (errorCode).
    */
   const getMessage = (error: HttpErrorResponse): string => {
-    const body = error.error;
+    let body = error.error;
     if (!body) return `${error.status} ${error.statusText}`;
+    // Chamada com responseType 'text': o ApiErrorResponse chega como texto JSON.
+    if (typeof body === 'string') {
+      try {
+        body = JSON.parse(body);
+      } catch {
+        return body.length < 300 ? body : `${error.status} ${error.statusText}`;
+      }
+    }
     // body.erro: padrão de vários controllers do backend, ex: { "erro": "NF-e já cadastrada..." }.
     // body.error cobre respostas Spring Boot: { "error": "mensagem" }
     return body.message || body.msg || body.erro || body.error || body.errorCode || `${error.status} ${error.statusText}`;
