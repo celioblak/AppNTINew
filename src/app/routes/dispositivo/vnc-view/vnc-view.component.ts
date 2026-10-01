@@ -130,6 +130,20 @@ const XK = {
   slash: 0x002f,
 };
 
+
+/**
+ * Download do HB Service: o próprio ntiapi serve o hbService.exe que vai dentro do WAR (docs/infraestrutura.md, R-58),
+ * em <base>/update/hbService.exe. Em desenvolvimento (localhost) as máquinas não alcançam este endereço: usa o
+ * servidor de download antigo.
+ */
+function urlHbServiceDoNti(): string {
+  const api = new URL(environment.ApiBaseUrl, window.location.href);
+  if (api.hostname === 'localhost' || api.hostname === '127.0.0.1') {
+    return 'http://srv-ntic.hbase.local:8091/update/hbService.exe';
+  }
+  return api.href.replace(/api\/?$/, '') + 'update/hbService.exe';
+}
+
 @Component({
   selector: 'app-vnc-view',
   standalone: true,
@@ -195,7 +209,7 @@ export class VncViewComponent implements OnInit, OnDestroy {
     caminhoExeRede: '\\\\172.17.0.56\\mv2000\\TI\\Celio\\HBService\\hbServiceUpdate.exe',
     destinoLocal:   'C:\\Trabalho\\app_hb\\hbService\\',
     exeDestino:     'C:\\Trabalho\\app_hb\\hbService\\hbServiceUpdate.exe',
-    urlUpdate:      'http://srv-ntic.hbase.local:8091/update/hbService.exe',
+    urlUpdate:      urlHbServiceDoNti(),
     timeoutReinicioSeg: 60,
   };
   private readonly http = inject(HttpClient);
