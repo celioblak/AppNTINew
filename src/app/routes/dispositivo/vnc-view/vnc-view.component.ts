@@ -194,6 +194,17 @@ export class VncViewComponent implements OnInit, OnDestroy {
   atualizandoHb = false;
   /** Etapas da última atualização dos agentes, vindas do ntiapi (R-60). */
   etapasAtualizacao: EtapaAtualizacao[] = [];
+  /** Resultado da última atualização no painel: null = ainda não rodou; true = sucesso (só Fechar); false = erro (Tentar de novo). */
+  atualizacaoOk: boolean | null = null;
+
+  /** Abre o painel de atualização do zero (sem a última atualização). */
+  alternarPainelUpdate() {
+    this.painelUpdateAberto = !this.painelUpdateAberto;
+    if (this.painelUpdateAberto && !this.atualizandoHb) {
+      this.atualizacaoOk = null;
+      this.etapasAtualizacao = [];
+    }
+  }
   private readonly http = inject(HttpClient);
   vncAtivo = false;
   isLoading = false;
@@ -518,6 +529,7 @@ export class VncViewComponent implements OnInit, OnDestroy {
     if (this.atualizandoHb || !this.host?.trim()) return;
 
     this.atualizandoHb = true;
+    this.atualizacaoOk = null;
     this.etapasAtualizacao = [];
     this.cdr.markForCheck();
 
@@ -528,12 +540,14 @@ export class VncViewComponent implements OnInit, OnDestroy {
         this.cdr.markForCheck();
       });
 
+      this.atualizacaoOk = resultado.sucesso;
       if (resultado.sucesso) {
         this.showSuccess(resultado.mensagem);
       } else {
         this.showError(resultado.mensagem + (resultado.orientacao ? ' ' + resultado.orientacao : ''));
       }
     } catch (err: any) {
+      this.atualizacaoOk = false;
       this.showError(`Não foi possível falar com o NTI: ${err?.message ?? err}`);
     } finally {
       this.atualizandoHb = false;

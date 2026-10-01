@@ -64,10 +64,16 @@ export interface AtualizarHbServiceDialogData {
       }
     </mat-dialog-content>
     <mat-dialog-actions align="end">
-      <button mat-button (click)="fechar()" [disabled]="rodando()">Fechar</button>
-      <button mat-flat-button (click)="atualizar()" [disabled]="rodando()">
-        <mat-icon>system_update</mat-icon> {{ resultado() && !resultado()!.sucesso ? 'Tentar de novo' : 'Atualizar' }}
-      </button>
+      <!-- Antes: Fechar + Atualizar. Sucesso: só Fechar. Erro: Fechar + Tentar de novo. -->
+      @let r = resultado();
+      @if (r?.sucesso) {
+        <button mat-flat-button (click)="fechar()">Fechar</button>
+      } @else {
+        <button mat-button (click)="fechar()" [disabled]="rodando()">Fechar</button>
+        <button mat-flat-button (click)="atualizar()" [disabled]="rodando()">
+          <mat-icon>{{ r ? 'replay' : 'system_update' }}</mat-icon> {{ r ? 'Tentar de novo' : 'Atualizar' }}
+        </button>
+      }
     </mat-dialog-actions>
   `,
   styles: `

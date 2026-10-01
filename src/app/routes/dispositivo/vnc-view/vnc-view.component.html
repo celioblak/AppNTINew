@@ -67,7 +67,7 @@
               title="Atualizar HBService na máquina remota"
               [disabled]="vncAtivo || isLoading || atualizandoHb || host.length === 0"
               [color]="atualizandoHb ? 'accent' : ''"
-              (click)="painelUpdateAberto = !painelUpdateAberto">
+              (click)="alternarPainelUpdate()">
         <mat-icon *ngIf="!atualizandoHb">build</mat-icon>
         <mat-spinner *ngIf="atualizandoHb" diameter="20" style="display:inline-block;"></mat-spinner>
       </button>
@@ -159,15 +159,18 @@
           <mat-spinner diameter="14" style="display:inline-block; vertical-align:middle; margin-right:6px;"></mat-spinner>
           Atualizando...
         </div>
+        <!-- Antes: Cancelar + Atualizar. Sucesso: só Fechar. Erro: Fechar + Tentar de novo. -->
         <div style="margin-top:8px; text-align:right;">
-          <button mat-stroked-button (click)="painelUpdateAberto = false" style="margin-right:8px;">
-            Cancelar
+          <button mat-stroked-button
+                  [disabled]="atualizandoHb"
+                  (click)="painelUpdateAberto = false" style="margin-right:8px;">
+            {{ atualizacaoOk === null ? 'Cancelar' : 'Fechar' }}
           </button>
-          <button mat-flat-button color="primary"
+          <button *ngIf="atualizacaoOk !== true" mat-flat-button color="primary"
                   [disabled]="atualizandoHb"
                   (click)="executarAtualizacaoHb()">
-            <mat-icon>system_update</mat-icon>
-            Atualizar
+            <mat-icon>{{ atualizacaoOk === false ? 'replay' : 'system_update' }}</mat-icon>
+            {{ atualizacaoOk === false ? 'Tentar de novo' : 'Atualizar' }}
           </button>
         </div>
       </div>
