@@ -50,6 +50,23 @@ export class AssinaturaComponent implements OnInit, OnDestroy {
     }
   }
 
+  /** Busca a imagem com o token e mostra como blob (a API exige login). */
+  private carregarImagem(): void {
+    this.assinaturaService.imagem(this.idUsuario)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (blob) => {
+          if (this.previewUrl && this.previewUrl.startsWith('blob:')) URL.revokeObjectURL(this.previewUrl);
+          this.previewUrl = URL.createObjectURL(blob);
+          this.cdRef.markForCheck();
+        },
+        error: () => {
+          this.previewUrl = null;
+          this.cdRef.markForCheck();
+        },
+      });
+  }
+
   private toast(msg: string, tipo: 'success' | 'error' = 'success'): void {
     this.snackBar.open(msg, 'Fechar', {
       duration: 4000,
@@ -66,8 +83,7 @@ export class AssinaturaComponent implements OnInit, OnDestroy {
         next: (a) => {
           this.assinatura = { ...a };
           if (a.possuiImagem) {
-            this.previewUrl = this.assinaturaService.getUrlImagem(this.idUsuario)
-              + '&t=' + Date.now();
+            this.carregarImagem();
           }
           this.carregando = false;
           this.cdRef.markForCheck();
@@ -125,8 +141,7 @@ export class AssinaturaComponent implements OnInit, OnDestroy {
         this.imagemSelecionada = null;
         this.salvando = false;
         if (a.possuiImagem) {
-          this.previewUrl = this.assinaturaService.getUrlImagem(this.idUsuario)
-            + '&t=' + Date.now();
+          this.carregarImagem();
         }
         this.toast('Assinatura salva com sucesso!');
         this.cdRef.markForCheck();

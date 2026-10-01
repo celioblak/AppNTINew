@@ -24,8 +24,9 @@ export class AssinaturaService {
       .pipe(catchError(this.handleError));
   }
 
-  getUrlImagem(idUsuario = 1): string {
-    return `${this.apiUrl}/me/imagem?idUsuario=${idUsuario}`;
+  /** Imagem da assinatura com o token (a API exige login: um <img src> direto não manda o token). */
+  imagem(idUsuario = 1): Observable<Blob> {
+    return this.http.get(`${this.apiUrl}/me/imagem?idUsuario=${idUsuario}`, { responseType: 'blob' });
   }
 
   salvar(dados: {
