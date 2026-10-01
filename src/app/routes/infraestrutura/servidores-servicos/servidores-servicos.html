@@ -243,6 +243,12 @@
                     <button mat-stroked-button (click)="testarLeitura(s)" [disabled]="testandoLeitura() === s.codServidor">
                       <mat-icon>network_check</mat-icon> Testar leitura
                     </button>
+                    @if (agenteAntigo(s)) {
+                      <button mat-flat-button (click)="atualizarHbService(s)"
+                              matTooltip="Dispara o hbserviceUpdate no servidor e instala o HB Service atual">
+                        <mat-icon>system_update</mat-icon> Atualizar HB Service
+                      </button>
+                    }
                   </div>
                   @if (testandoLeitura() === s.codServidor) {
                     <mat-progress-bar mode="indeterminate" />

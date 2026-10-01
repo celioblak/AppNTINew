@@ -183,6 +183,8 @@ export interface TesteFonte {
   ok: boolean;
   mensagem: string;
   orientacao: string | null;
+  /** HB Service antigo: a tela oferece "Atualizar HB Service" (R-59). */
+  atualizarAgente: boolean;
 }
 
 /**

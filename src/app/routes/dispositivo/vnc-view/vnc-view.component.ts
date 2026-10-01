@@ -2,7 +2,7 @@ import { Component, ElementRef, HostListener, inject, OnInit, ViewChild, OnDestr
 import { HttpClient } from '@angular/common/http';
 import { lastValueFrom } from 'rxjs';
 import { environment } from '@env/environment';
-import { HbserviceService } from '@core/hbservice/hb.service';
+import { HbserviceService, parametrosAtualizacaoPadrao } from '@core/hbservice/hb.service';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
@@ -131,18 +131,6 @@ const XK = {
 };
 
 
-/**
- * Download do HB Service: o próprio ntiapi serve o hbService.exe que vai dentro do WAR (docs/infraestrutura.md, R-58),
- * em <base>/update/hbService.exe. Em desenvolvimento (localhost) as máquinas não alcançam este endereço: usa o
- * servidor de download antigo.
- */
-function urlHbServiceDoNti(): string {
-  const api = new URL(environment.ApiBaseUrl, window.location.href);
-  if (api.hostname === 'localhost' || api.hostname === '127.0.0.1') {
-    return 'http://srv-ntic.hbase.local:8091/update/hbService.exe';
-  }
-  return api.href.replace(/api\/?$/, '') + 'update/hbService.exe';
-}
 
 @Component({
   selector: 'app-vnc-view',
@@ -205,13 +193,7 @@ export class VncViewComponent implements OnInit, OnDestroy {
   painelUpdateAberto = false;
   atualizandoHb = false;
   progressoAtualizacao = '';
-  updateParams = {
-    caminhoExeRede: '\\\\172.17.0.56\\mv2000\\TI\\Celio\\HBService\\hbServiceUpdate.exe',
-    destinoLocal:   'C:\\Trabalho\\app_hb\\hbService\\',
-    exeDestino:     'C:\\Trabalho\\app_hb\\hbService\\hbServiceUpdate.exe',
-    urlUpdate:      urlHbServiceDoNti(),
-    timeoutReinicioSeg: 60,
-  };
+  updateParams = parametrosAtualizacaoPadrao();
   private readonly http = inject(HttpClient);
   vncAtivo = false;
   isLoading = false;

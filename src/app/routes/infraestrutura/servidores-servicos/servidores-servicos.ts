@@ -45,6 +45,7 @@ import {
 } from './historico-dialog';
 import { ServicoDialogComponent, ServicoDialogData } from './servico-dialog';
 import { ServicoSistemasDialogComponent } from './servico-sistemas-dialog';
+import { AtualizarHbServiceDialogComponent, AtualizarHbServiceDialogData } from './atualizar-hbservice-dialog';
 import { ServidorDialogComponent, ServidorDialogData } from './servidor-dialog';
 import { WinRmDialogComponent, WinRmDialogData } from './winrm-dialog';
 
@@ -363,6 +364,35 @@ export class ServidoresServicosComponent implements OnInit {
       .subscribe({
         next: t => this.testesLeitura.update(r => ({ ...r, [s.codServidor]: t })),
         error: () => {},
+      });
+  }
+
+  /** HB Service antigo (só memória): pela última leitura ou pelo último "Testar leitura" (R-53, R-59). */
+  agenteAntigo(s: Servidor): boolean {
+    return s.fonteLeitura === 'HBSERVICE_INFO' || (this.testesLeitura()[s.codServidor] ?? []).some(t => t.atualizarAgente);
+  }
+
+  /** Dispara o hbserviceUpdate no servidor, como na tela do VNC (R-59). */
+  atualizarHbService(s: Servidor) {
+    if (!s.ip) {
+      this.toast.warning('Cadastre o IP do servidor: o NTI chama o HB Service por ele.');
+      return;
+    }
+    this.dialog
+      .open<AtualizarHbServiceDialogComponent, AtualizarHbServiceDialogData, boolean>(AtualizarHbServiceDialogComponent, {
+        width: '720px',
+        maxWidth: '96vw',
+        maxHeight: '92vh',
+        data: { codServidor: s.codServidor, nome: s.nome, host: s.ip },
+      })
+      .afterClosed()
+      .subscribe(atualizou => {
+        if (!atualizou) return;
+        this.testesLeitura.update(r => {
+          const { [s.codServidor]: _, ...resto } = r;
+          return resto;
+        });
+        this.carregar(false);
       });
   }
 
