@@ -23,6 +23,8 @@ interface PreviaAviso {
   enviadoPor: string | null;
   resultado: string | null;
   imagemBase64: string | null;
+  /** Calendário do mês (e do seguinte, se o aviso pega dias dele), enviado logo depois, sem som. */
+  calendarios: string[];
 }
 
 interface ResultadoAviso {
@@ -63,6 +65,10 @@ interface ResultadoAviso {
           }
           @if (p.imagemBase64) {
             <img class="imagem" [src]="'data:image/png;base64,' + p.imagemBase64" alt="Escala do período" />
+          }
+          @for (c of p.calendarios; track $index) {
+            <p class="dica">Em seguida, sem som: calendário do mês (alta resolução, para dar zoom).</p>
+            <img class="imagem" [src]="'data:image/png;base64,' + c" alt="Calendário da escala" />
           }
           <p class="dica nomes">Equipe: {{ p.nomes.join(', ') }}</p>
         }
