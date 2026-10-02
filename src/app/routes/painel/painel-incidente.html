@@ -99,8 +99,51 @@
         </section>
       }
 
-      @if (servidores().length > 0) {
+      @if (totalLocks() > 0) {
         <section>
+          <header class="secao">
+            <h2 class="secao__titulo">Sessões em lock</h2>
+            @if (locksAntigos()) {
+              <span class="etiqueta etiqueta--lock">MAIS DE 10 MIN</span>
+            }
+          </header>
+
+          <div class="locks">
+            <div class="locks__resumo">
+              <span class="locks__numero">{{ totalLocks() }}</span>
+              <span class="locks__texto">
+                {{ totalLocks() === 1 ? 'sessão travada' : 'sessões travadas' }} ·
+                mais antiga há {{ lockMaisLongo() }} min
+              </span>
+            </div>
+
+            @for (sessao of locksVisiveis(); track $index) {
+              <div class="lock lock--{{ nivelLock(sessao) }}">
+                <span class="lock__usuario">{{ sessao.username }}</span>
+                <span class="lock__detalhe">sid {{ sessao.sid }} · bloqueia {{ sessao.lc_final_user }}</span>
+                <span class="lock__tempo">{{ tempoLock(sessao) }} min</span>
+              </div>
+            }
+
+            @if (locksOcultos() > 0) {
+              <span class="locks__ocultos">+ {{ locksOcultos() }} não listadas</span>
+            }
+
+            <div class="legenda">
+              <span>Tempo em lock:</span>
+              @for (item of legendaLocks; track item.cor) {
+                <span class="legenda__item">
+                  <i class="legenda__cor legenda__cor--{{ item.cor }}"></i>
+                  {{ item.texto }}
+                </span>
+              }
+            </div>
+          </div>
+        </section>
+      }
+
+      @if (servidores().length > 0) {
+        <section class="secao-encolhe">
           <header class="secao">
             <h2 class="secao__titulo">Servidores</h2>
           </header>
@@ -146,49 +189,6 @@
                 }
               </article>
             }
-          </div>
-        </section>
-      }
-
-      @if (totalLocks() > 0) {
-        <section>
-          <header class="secao">
-            <h2 class="secao__titulo">Sessões em lock</h2>
-            @if (locksAntigos()) {
-              <span class="etiqueta etiqueta--lock">MAIS DE 10 MIN</span>
-            }
-          </header>
-
-          <div class="locks">
-            <div class="locks__resumo">
-              <span class="locks__numero">{{ totalLocks() }}</span>
-              <span class="locks__texto">
-                {{ totalLocks() === 1 ? 'sessão travada' : 'sessões travadas' }} ·
-                mais antiga há {{ lockMaisLongo() }} min
-              </span>
-            </div>
-
-            @for (sessao of locksVisiveis(); track $index) {
-              <div class="lock lock--{{ nivelLock(sessao) }}">
-                <span class="lock__usuario">{{ sessao.username }}</span>
-                <span class="lock__detalhe">sid {{ sessao.sid }} · bloqueia {{ sessao.lc_final_user }}</span>
-                <span class="lock__tempo">{{ tempoLock(sessao) }} min</span>
-              </div>
-            }
-
-            @if (locksOcultos() > 0) {
-              <span class="locks__ocultos">+ {{ locksOcultos() }} não listadas</span>
-            }
-
-            <div class="legenda">
-              <span>Tempo em lock:</span>
-              @for (item of legendaLocks; track item.cor) {
-                <span class="legenda__item">
-                  <i class="legenda__cor legenda__cor--{{ item.cor }}"></i>
-                  {{ item.texto }}
-                </span>
-              }
-            </div>
           </div>
         </section>
       }

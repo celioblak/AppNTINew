@@ -28,6 +28,18 @@
 
   &__monitoramento {
     overflow: hidden;
+
+    // Problemas e locks ficam inteiros; a lista de servidores é a que corta quando falta espaço
+    // (antes os locks vinham por último e sumiam com a coluna cheia).
+    > section {
+      flex: 0 0 auto;
+    }
+
+    > section.secao-encolhe {
+      flex: 0 1 auto;
+      min-height: 0;
+      overflow: hidden;
+    }
   }
 
   /*
