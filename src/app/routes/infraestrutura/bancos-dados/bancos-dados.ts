@@ -146,7 +146,7 @@ export class BancosDadosComponent implements OnInit, OnDestroy {
   abrirBanco(banco: Banco | null) {
     this.dialog
       .open<BancoDialogComponent, BancoDialogData, Banco>(BancoDialogComponent, {
-        width: '640px',
+        width: '760px',
         maxWidth: '96vw',
         data: { banco, ambientes: this.ambientes() },
       })
@@ -177,7 +177,7 @@ export class BancosDadosComponent implements OnInit, OnDestroy {
   abrirAcesso(b: Banco, acesso: AcessoBanco | null) {
     this.dialog
       .open<AcessoDialogComponent, AcessoDialogData, Banco>(AcessoDialogComponent, {
-        width: '720px',
+        width: '800px',
         maxWidth: '96vw',
         data: { codBanco: b.codBanco, acesso },
       })

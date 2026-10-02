@@ -35,7 +35,9 @@ import {
 import { InfraestruturaService } from '../infraestrutura.service';
 
 const ESTILOS = `
-  .grade { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
+  .grade { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 16px; align-items: start; }
+  .grade mat-form-field { width: 100%; }
+  @media (max-width: 600px) { .grade { grid-template-columns: 1fr; } }
   .grade .inteira { grid-column: 1 / -1; }
   .dica { margin: 0 0 10px; font-size: .8rem; color: var(--mat-sys-on-surface-variant, rgba(0,0,0,.6)); }
   .linha { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-bottom: 10px; }
@@ -78,15 +80,16 @@ export interface BancoDialogData {
     <h2 mat-dialog-title>{{ data.banco ? 'Editar banco' : 'Novo banco' }}</h2>
     <mat-dialog-content>
       <p class="dica">
-        O modelo (RAC, multitenant, Data Guard, ASM, versão) não se informa: é lido do banco no primeiro Testar.
+        O modelo (RAC, multitenant, Data Guard, ASM, versão) não se informa: é lido do banco no primeiro Testar. A senha do usuário
+        de monitoramento normalmente vem do botão "Script do usuário" (gerada e guardada aqui); só informe abaixo se o DBA escolheu a senha.
       </p>
       <div class="grade">
-        <mat-form-field appearance="outline">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
           <mat-label>Nome</mat-label>
           <input matInput [(ngModel)]="form.nome" maxlength="100" placeholder="hbprod" required />
-          <mat-hint>Como a equipe chama (ex.: o DB_UNIQUE_NAME).</mat-hint>
+          <mat-hint>Ex.: o DB_UNIQUE_NAME</mat-hint>
         </mat-form-field>
-        <mat-form-field appearance="outline">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
           <mat-label>Ambiente</mat-label>
           <mat-select [(ngModel)]="form.ambiente">
             <mat-option [value]="null">Sem ambiente</mat-option>
@@ -95,20 +98,20 @@ export interface BancoDialogData {
             }
           </mat-select>
         </mat-form-field>
-        <mat-form-field appearance="outline" class="inteira">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="inteira">
           <mat-label>Observação</mat-label>
           <textarea matInput [(ngModel)]="form.observacao" rows="2" maxlength="1000" placeholder="DW, réplica de relatórios..."></textarea>
         </mat-form-field>
-        <mat-form-field appearance="outline">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
           <mat-label>Usuário de monitoramento</mat-label>
           <input matInput [(ngModel)]="form.usuarioMonitor" maxlength="128" placeholder="automático" />
-          <mat-hint>Vazio: o Testar descobre (NTI_MONITOR ou C##NTI_MONITOR).</mat-hint>
+          <mat-hint>Vazio = o Testar descobre</mat-hint>
         </mat-form-field>
-        <mat-form-field appearance="outline">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
           <mat-label>{{ data.banco?.temSenha ? 'Trocar a senha' : 'Senha' }}</mat-label>
           <input matInput type="password" [(ngModel)]="form.senhaMonitor" maxlength="100" autocomplete="new-password"
                  [disabled]="form.apagarSenha" placeholder="gerada pelo script" />
-          <mat-hint>Só se o DBA escolheu a senha; o normal é usar o "Script do usuário".</mat-hint>
+          <mat-hint>Vazio = mantém a atual</mat-hint>
         </mat-form-field>
         @if (data.banco?.temSenha) {
           <mat-checkbox class="inteira" [(ngModel)]="form.apagarSenha">Apagar a senha guardada</mat-checkbox>
@@ -180,22 +183,22 @@ export interface AcessoDialogData {
         </mat-button-toggle-group>
       </div>
       <div class="grade">
-        <mat-form-field appearance="outline">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
           <mat-label>Nome</mat-label>
           <input matInput [(ngModel)]="form.nome" maxlength="100" placeholder="SCAN produção" />
         </mat-form-field>
-        <mat-form-field appearance="outline">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
           <mat-label>Finalidade</mat-label>
           <mat-select [(ngModel)]="form.finalidade">
             @for (f of finalidades; track f) {
               <mat-option [value]="f">{{ rotuloFinalidade[f] }}</mat-option>
             }
           </mat-select>
-          <mat-hint>Só os principais contam na situação do banco.</mat-hint>
+          <mat-hint>Só os principais contam na situação</mat-hint>
         </mat-form-field>
 
         @if (form.forma === 'DESCRITOR') {
-          <mat-form-field appearance="outline" class="inteira">
+          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="inteira">
             <mat-label>Trecho do tnsnames.ora ou descritor</mat-label>
             <textarea matInput [(ngModel)]="colado" rows="6" placeholder="HBPROD = (DESCRIPTION = (ADDRESS_LIST = (LOAD_BALANCE = on) ..."></textarea>
             <mat-hint>Cole uma ou várias entradas; comentários (#) são ignorados.</mat-hint>
@@ -216,24 +219,24 @@ export interface AcessoDialogData {
             <pre class="descritor-lido inteira">{{ form.descritor }}</pre>
           }
         } @else {
-          <mat-form-field appearance="outline" class="inteira">
+          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="inteira">
             <mat-label>{{ form.forma === 'SCAN' ? 'Nome SCAN' : 'Host (vários: separe por vírgula)' }}</mat-label>
             <input matInput [(ngModel)]="form.host" maxlength="255"
                    [placeholder]="form.forma === 'SCAN' ? 'rac-scan.hospital.local' : 'rac1-vip, rac2-vip'" />
             @if (form.forma === 'SCAN') {
-              <mat-hint>Guardado pelo nome: o DNS é consultado a cada teste, então IP novo entra sozinho.</mat-hint>
+              <mat-hint>Guardado pelo nome: IP novo no DNS entra sozinho</mat-hint>
             }
           </mat-form-field>
-          <mat-form-field appearance="outline">
+          <mat-form-field appearance="outline" subscriptSizing="dynamic">
             <mat-label>Porta</mat-label>
             <input matInput type="number" [(ngModel)]="form.porta" min="1" max="65535" />
           </mat-form-field>
-          <mat-form-field appearance="outline">
+          <mat-form-field appearance="outline" subscriptSizing="dynamic">
             <mat-label>Serviço (SERVICE_NAME)</mat-label>
             <input matInput [(ngModel)]="form.servico" maxlength="128" placeholder="hbprod" />
           </mat-form-field>
         }
-        <mat-form-field appearance="outline">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
           <mat-label>Alias no tnsnames (referência)</mat-label>
           <input matInput [(ngModel)]="form.alias" maxlength="128" />
         </mat-form-field>
