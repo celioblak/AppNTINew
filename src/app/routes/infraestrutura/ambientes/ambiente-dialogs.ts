@@ -58,6 +58,7 @@ const ESTILOS = `
         </div>
       </div>
       <mat-slide-toggle [(ngModel)]="a.producao">É produção (queda aparece no painel de TV e pesa no mapa)</mat-slide-toggle>
+      <mat-slide-toggle [(ngModel)]="a.alerta">Gera alerta (desligado: problemas deste ambiente não viram mensagem; telas, mapa e disponibilidade continuam)</mat-slide-toggle>
       @if (!novo) {
         <mat-slide-toggle [(ngModel)]="a.ativo">Ativo</mat-slide-toggle>
       }
@@ -81,7 +82,7 @@ export class AmbienteDialogComponent {
   readonly novo = !this.data;
   a: Ambiente = this.data
     ? { ...this.data }
-    : { codigo: '', nome: '', descricao: null, producao: false, cor: '#1565C0', ordem: 100, ativo: true };
+    : { codigo: '', nome: '', descricao: null, producao: false, cor: '#1565C0', ordem: 100, ativo: true, alerta: true };
   readonly salvando = signal(false);
   readonly erro = signal<string | null>(null);
 

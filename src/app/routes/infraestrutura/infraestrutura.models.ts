@@ -24,6 +24,8 @@ export interface Ambiente {
   ordem: number | null;
   ativo: boolean;
   uso?: Uso | null;
+  /** Problemas da infraestrutura deste ambiente geram mensagem de alerta (Telegram, aplicativo, painel de TV). */
+  alerta?: boolean;
 }
 
 export interface Hospedagem {

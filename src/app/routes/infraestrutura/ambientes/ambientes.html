@@ -26,6 +26,9 @@
               @if (a.producao) {
                 <span class="tag tag--producao" matTooltip="Queda aparece no painel de TV">Produção</span>
               }
+              @if (a.alerta === false) {
+                <span class="tag" matTooltip="Problemas deste ambiente não geram mensagem; telas, mapa e disponibilidade continuam">Sem alerta</span>
+              }
               @if (!a.ativo) {
                 <span class="tag">Inativo</span>
               }
