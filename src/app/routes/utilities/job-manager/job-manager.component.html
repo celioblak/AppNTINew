@@ -35,6 +35,20 @@
       </div>
     </div>
 
+    <!-- Aviso do agendador (vigia) -->
+    @if (problemasAgendador > 0) {
+      <button type="button" class="agendador-aviso" [class.agendador-aviso--auto]="problemasSoAutomaticos"
+              (click)="openAdvancedManagement()">
+        <mat-icon>{{ problemasSoAutomaticos ? 'autorenew' : 'error' }}</mat-icon>
+        <span>
+          <strong>Agendador: {{ problemasAgendador }} problema(s).</strong>
+          {{ problemasSoAutomaticos
+            ? 'O vigia está corrigindo sozinho; clique para ver o que é.'
+            : 'Há falha que depende de ação; clique para ver causa e como resolver.' }}
+        </span>
+      </button>
+    }
+
     <!-- Grid de jobs -->
     <div class="jobs-grid-container">
       <mtx-grid id="dtgrid"

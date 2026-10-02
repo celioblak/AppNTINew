@@ -275,7 +275,9 @@ export class ScriptAgendamentoComponent implements OnInit, OnDestroy {
     const dialogRef = this.abrirDialogRastreado(ConfirmDialogComponent, {
       data: {
         title: 'Confirmar Exclusão',
-        message: `Tem certeza que deseja excluir o agendamento "${this.selecionado.nomeAgendamento}"? O job será removido do Quartz e o histórico de execuções será apagado.`,
+        message: `Tem certeza que deseja excluir o agendamento "${this.selecionado.nomeAgendamento}"? ` +
+          'Saem junto o job e os gatilhos do agendador, o cadastro e o último erro do job, o histórico de execuções ' +
+          'e os e-mails aguardando reenvio. Se estiver executando agora, a execução é interrompida e você exclui de novo em seguida.',
         confirmButtonText: 'Excluir'
       },
       width: this.isMobile ? '90%' : '400px'
@@ -289,7 +291,8 @@ export class ScriptAgendamentoComponent implements OnInit, OnDestroy {
             this.search();
           },
           error: (error) => {
-            this.toast.error('Erro ao excluir agendamento!');
+            // O backend explica o motivo (ex.: executando agora, com a interrupção já pedida).
+            this.toast.error(error?.error?.message || 'Erro ao excluir agendamento!');
             console.error(error);
           }
         });

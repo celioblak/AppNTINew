@@ -24,7 +24,7 @@ import { MtxGridColumn, MtxGridModule } from '@ng-matero/extensions/grid';
 import { MtxSelectModule } from '@ng-matero/extensions/select';
 import { FormlyModule } from '@ngx-formly/core';
 import { TranslateModule } from '@ngx-translate/core';
-import { JobManagerService } from './job-manager.service';
+import { EstadoAgendador, JobManagerService } from './job-manager.service';
 import { catchError, finalize } from 'rxjs';
 import { schedulerJobInfoDetail } from '@core';
 import { JobManagerAdvancedDialogComponent } from './job-manager-advanced-dialog';
@@ -90,6 +90,8 @@ export class JobManagerComponent implements OnInit, OnDestroy {
 
   autoAtualizar = true;
   ultimaAtualizacao: Date | null = null;
+  /** Estado do agendador (vigia): alimenta o aviso acima da lista. */
+  agendador: EstadoAgendador | null = null;
   private intervalId: ReturnType<typeof setInterval> | null = null;
   // Mesmo intervalo da tela "Últimas Execuções" — visão agregada, não precisa ser mais frequente.
   private static readonly INTERVALO_MS = 15000;
@@ -352,6 +354,19 @@ export class JobManagerComponent implements OnInit, OnDestroy {
         this.isLoading = false;
       })
     });
+    this.jobService.estadoAgendador().subscribe({
+      next: e => this.aplicarResultado(() => (this.agendador = e)),
+      error: () => this.aplicarResultado(() => (this.agendador = null)),
+    });
+  }
+
+  /** Problemas que pedem atenção (ERRO) e execuções travadas, para o aviso acima da lista. */
+  get problemasAgendador(): number {
+    return (this.agendador?.problemas ?? []).filter(p => p.severidade === 'ERRO').length;
+  }
+
+  get problemasSoAutomaticos(): boolean {
+    return (this.agendador?.problemas ?? []).filter(p => p.severidade === 'ERRO').every(p => p.automatico);
   }
 
   /**
@@ -385,9 +400,9 @@ export class JobManagerComponent implements OnInit, OnDestroy {
 
   openAdvancedManagement() {
     const dialogRef = this.dialog.open(JobManagerAdvancedDialogComponent, {
-      width: '900px',
-      maxWidth: '95vw',
-      maxHeight: '85vh',
+      width: '980px',
+      maxWidth: '96vw',
+      maxHeight: '92vh',
       disableClose: false,
       autoFocus: false
     });

@@ -64,6 +64,36 @@
   }
 }
 
+// Aviso do agendador (vigia): vermelho quando depende de ação, verde quando o vigia já está corrigindo.
+.agendador-aviso {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  margin-bottom: 12px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--mat-sys-error, #c62828) 45%, transparent);
+  background: color-mix(in srgb, var(--mat-sys-error, #c62828) 8%, transparent);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+
+  mat-icon {
+    color: var(--mat-sys-error, #c62828);
+  }
+
+  &--auto {
+    border-color: color-mix(in srgb, #2e7d32 45%, transparent);
+    background: color-mix(in srgb, #2e7d32 8%, transparent);
+
+    mat-icon {
+      color: #2e7d32;
+    }
+  }
+}
+
 .jobs-grid-container {
   flex: 1;
   min-height: 500px;

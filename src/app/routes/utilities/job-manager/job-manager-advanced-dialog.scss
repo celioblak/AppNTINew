@@ -1,855 +1,408 @@
-.advanced-dialog-container {
-  max-width: 900px;
-  width: 90vw;
-  max-height: 85vh;
-  display: flex;
-  flex-direction: column;
-
-  .dialog-title {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin: 0;
-    padding: 16px 24px;
-    border-bottom: 1px solid #e0e0e0;
-    background: #f5f5f5;
-    color: rgba(0, 0, 0, 0.87);
-
-    mat-icon {
-      color: #3f51b5;
-    }
-
-    // Tema escuro
-    :host-context(.dark-theme) &,
-    :host-context(.theme-dark) &,
-    :host-context([data-theme="dark"]) & {
-      background: #2d2d2d !important;
-      border-bottom-color: #424242 !important;
-      color: rgba(255, 255, 255, 0.87) !important;
-    }
-  }
-
-  .dialog-content {
-    flex: 1;
-    overflow-y: auto;
-    padding: 0 !important;
-    background: white;
-
-    // Tema escuro
-    :host-context(.dark-theme) &,
-    :host-context(.theme-dark) &,
-    :host-context([data-theme="dark"]) & {
-      background: #121212 !important;
-    }
-
-    ::ng-deep .mat-mdc-tab-body-wrapper {
-      padding: 24px;
-    }
-  }
-
-  .dialog-actions {
-    padding: 16px 24px;
-    border-top: 1px solid #e0e0e0;
-    background: #f5f5f5;
-
-    // Tema escuro
-    :host-context(.dark-theme) &,
-    :host-context(.theme-dark) &,
-    :host-context([data-theme="dark"]) & {
-      background: #2d2d2d !important;
-      border-top-color: #424242 !important;
-    }
-  }
+:host {
+  --adv-erro: var(--mat-sys-error, #c62828);
+  --adv-ok: #2e7d32;
+  --adv-aviso: #b26a00;
+  --adv-borda: var(--mat-sys-outline-variant, rgba(0, 0, 0, .15));
+  --adv-suave: var(--mat-sys-on-surface-variant, rgba(0, 0, 0, .6));
+  --adv-fundo: var(--mat-sys-surface-container, rgba(0, 0, 0, .03));
 }
 
-// Estilos gerais das abas
-.tab-content {
+.adv {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  max-height: 88vh;
 }
 
-.section-header {
+.adv-titulo {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
+  gap: 10px;
+
+  .adv-titulo-espaco {
+    flex: 1;
+  }
+}
+
+.adv-conteudo {
+  padding-top: 4px !important;
+}
+
+// ---------------------------------------------------------------- faixas e resumo
+
+.faixa {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  border: 1px solid var(--adv-borda);
+
+  ul {
+    margin: 0;
+    padding-left: 18px;
+    flex: 1;
+  }
+
+  &--erro {
+    color: var(--adv-erro);
+    border-color: color-mix(in srgb, var(--adv-erro) 40%, transparent);
+    background: color-mix(in srgb, var(--adv-erro) 8%, transparent);
+  }
+
+  &--ok {
+    border-color: color-mix(in srgb, var(--adv-ok) 40%, transparent);
+    background: color-mix(in srgb, var(--adv-ok) 8%, transparent);
+
+    > mat-icon {
+      color: var(--adv-ok);
+    }
+  }
+
+  &--aviso {
+    border-color: color-mix(in srgb, var(--adv-aviso) 40%, transparent);
+    background: color-mix(in srgb, var(--adv-aviso) 8%, transparent);
+
+    > mat-icon {
+      color: var(--adv-aviso);
+    }
+  }
+}
+
+.resumo {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.resumo-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--adv-borda);
+  border-radius: 8px;
+  background: var(--adv-fundo);
+
+  > div {
+    display: flex;
+    flex-direction: column;
+  }
+
+  small {
+    color: var(--adv-suave);
+  }
+
+  &--ok > mat-icon {
+    color: var(--adv-ok);
+  }
+
+  &--erro > mat-icon,
+  &--erro strong {
+    color: var(--adv-erro);
+  }
+}
+
+.contador {
+  margin-left: 6px;
+  min-width: 18px;
+  padding: 0 6px;
+  border-radius: 9px;
+  font-size: 11px;
+  line-height: 18px;
+  text-align: center;
+
+  &--erro {
+    background: var(--adv-erro);
+    color: #fff;
+  }
+}
+
+// ---------------------------------------------------------------- blocos
+
+.bloco {
+  padding: 14px 2px 4px;
 
   h3 {
     display: flex;
     align-items: center;
     gap: 8px;
-    margin: 0;
-    color: #3f51b5;
+    margin: 0 0 10px;
+    font-size: 15px;
+    font-weight: 500;
 
     mat-icon {
-      font-size: 24px;
-      width: 24px;
-      height: 24px;
-    }
-
-    // Tema escuro
-    :host-context(.dark-theme) &,
-    :host-context(.theme-dark) &,
-    :host-context([data-theme="dark"]) & {
-      color: #90caf9 !important;
-    }
-  }
-
-  .section-subtitle {
-    margin: 4px 0 0 0;
-    color: #666;
-    font-size: 14px;
-
-    // Tema escuro
-    :host-context(.dark-theme) &,
-    :host-context(.theme-dark) &,
-    :host-context([data-theme="dark"]) & {
-      color: rgba(255, 255, 255, 0.6) !important;
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+      color: var(--adv-suave);
     }
   }
 }
 
-// Estilos para a aba de Saúde
-.health-cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 16px;
-
-  .health-card {
-    background: white;
-    color: rgba(0, 0, 0, 0.87);
-    border: 1px solid #e0e0e0;
-
-    // Tema escuro
-    :host-context(.dark-theme) &,
-    :host-context(.theme-dark) &,
-    :host-context([data-theme="dark"]) & {
-      background: #2d2d2d !important;
-      color: rgba(255, 255, 255, 0.87) !important;
-      border-color: #424242 !important;
-    }
-
-    .mat-mdc-card-header {
-      .mat-mdc-card-title {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-
-        mat-icon {
-          color: #3f51b5;
-
-          // Tema escuro
-          :host-context(.dark-theme) &,
-          :host-context(.theme-dark) &,
-          :host-context([data-theme="dark"]) & {
-            color: #90caf9 !important;
-          }
-        }
-      }
-    }
-
-    .status-info, .metadata-info {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-
-      .status-item, .metadata-item {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 8px 0;
-        border-bottom: 1px solid #e0e0e0;
-
-        &:last-child {
-          border-bottom: none;
-        }
-
-        .label {
-          font-weight: 500;
-          color: rgba(0, 0, 0, 0.87);
-
-          // Tema escuro
-          :host-context(.dark-theme) &,
-          :host-context(.theme-dark) &,
-          :host-context([data-theme="dark"]) & {
-            color: rgba(255, 255, 255, 0.87) !important;
-          }
-        }
-
-        .value {
-          padding: 4px 12px;
-          border-radius: 16px;
-          font-size: 12px;
-          font-weight: 500;
-
-          &.scheduler-running {
-            background-color: #4caf50;
-            color: white;
-          }
-
-          &.scheduler-stopped {
-            background-color: #f44336;
-            color: white;
-          }
-
-          &.scheduler-standby {
-            background-color: #ff9800;
-            color: white;
-          }
-
-          &.scheduler-unknown {
-            background-color: #9e9e9e;
-            color: white;
-          }
-        }
-      }
-    }
-
-    .status-details {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      margin-top: 12px;
-
-      .detail-item {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        color: #666;
-
-        // Tema escuro
-        :host-context(.dark-theme) &,
-        :host-context(.theme-dark) &,
-        :host-context([data-theme="dark"]) & {
-          color: rgba(255, 255, 255, 0.6) !important;
-        }
-
-        mat-icon {
-          font-size: 16px;
-          width: 16px;
-          height: 16px;
-
-          &.check_circle {
-            color: #4caf50;
-          }
-
-          &.cancel {
-            color: #f44336;
-          }
-        }
-      }
-    }
-  }
-}
-
-// Estilos para a aba de Diagnóstico
-.diagnostic-results {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-
-  .diagnostic-card {
-    background: white;
-    color: rgba(0, 0, 0, 0.87);
-    border: 1px solid #e0e0e0;
-
-    // Tema escuro
-    :host-context(.dark-theme) &,
-    :host-context(.theme-dark) &,
-    :host-context([data-theme="dark"]) & {
-      background: #2d2d2d !important;
-      color: rgba(255, 255, 255, 0.87) !important;
-      border-color: #424242 !important;
-    }
-
-    &.warning {
-      border-left: 4px solid #ff9800;
-
-      .mat-mdc-card-header {
-        .mat-mdc-card-title {
-          color: #ff9800;
-
-          mat-icon {
-            color: #ff9800;
-          }
-        }
-      }
-    }
-
-    .mat-mdc-card-header {
-      .mat-mdc-card-title {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-
-        mat-icon {
-          color: #3f51b5;
-
-          // Tema escuro
-          :host-context(.dark-theme) &,
-          :host-context(.theme-dark) &,
-          :host-context([data-theme="dark"]) & {
-            color: #90caf9 !important;
-          }
-        }
-      }
-    }
-
-    .diagnostic-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 10px 0;
-      border-bottom: 1px solid #e0e0e0;
-
-      &:last-child {
-        border-bottom: none;
-      }
-
-      .diagnostic-label {
-        font-weight: 500;
-        color: rgba(0, 0, 0, 0.87);
-
-        // Tema escuro
-        :host-context(.dark-theme) &,
-        :host-context(.theme-dark) &,
-        :host-context([data-theme="dark"]) & {
-          color: rgba(255, 255, 255, 0.87) !important;
-        }
-      }
-
-      .diagnostic-value {
-        font-weight: 500;
-
-        &.status-success {
-          color: #4caf50;
-        }
-
-        &.status-error {
-          color: #f44336;
-        }
-      }
-    }
-
-    .warning-list {
-      background: #fff3cd;
-      border: 1px solid #ffeaa7;
-
-      // Tema escuro
-      :host-context(.dark-theme) &,
-      :host-context(.theme-dark) &,
-      :host-context([data-theme="dark"]) & {
-        background: #332c00 !important;
-        border-color: #665800 !important;
-      }
-
-      .warning-item {
-        display: flex;
-        align-items: flex-start;
-        gap: 12px;
-        padding: 12px 0;
-        border-bottom: 1px solid #ffeaa7;
-
-        &:last-child {
-          border-bottom: none;
-        }
-
-        // Tema escuro
-        :host-context(.dark-theme) &,
-        :host-context(.theme-dark) &,
-        :host-context([data-theme="dark"]) & {
-          border-bottom-color: #665800 !important;
-        }
-
-        .warning-icon {
-          color: #ff9800;
-          flex-shrink: 0;
-        }
-
-        .warning-details {
-          flex: 1;
-
-          .job-name {
-            font-weight: 500;
-            color: rgba(0, 0, 0, 0.87);
-
-            // Tema escuro
-            :host-context(.dark-theme) &,
-            :host-context(.theme-dark) &,
-            :host-context([data-theme="dark"]) & {
-              color: rgba(255, 255, 255, 0.87) !important;
-            }
-
-            .job-group {
-              color: #666;
-              font-weight: normal;
-              font-size: 0.9em;
-
-              // Tema escuro
-              :host-context(.dark-theme) &,
-              :host-context(.theme-dark) &,
-              :host-context([data-theme="dark"]) & {
-                color: rgba(255, 255, 255, 0.6) !important;
-              }
-            }
-          }
-
-          .job-issue {
-            font-size: 12px;
-            color: #666;
-            margin-top: 4px;
-
-            // Tema escuro
-            :host-context(.dark-theme) &,
-            :host-context(.theme-dark) &,
-            :host-context([data-theme="dark"]) & {
-              color: rgba(255, 255, 255, 0.6) !important;
-            }
-          }
-        }
-      }
-    }
-  }
-
-  .diagnostic-summary {
-    display: flex;
-    gap: 24px;
-    padding: 20px;
-    background: rgba(0, 0, 0, 0.02);
-    border-radius: 8px;
-
-    // Tema escuro
-    :host-context(.dark-theme) &,
-    :host-context(.theme-dark) &,
-    :host-context([data-theme="dark"]) & {
-      background: rgba(255, 255, 255, 0.05) !important;
-    }
-
-    .summary-item {
-      text-align: center;
-
-      .summary-label {
-        font-size: 12px;
-        color: #666;
-        margin-bottom: 4px;
-
-        // Tema escuro
-        :host-context(.dark-theme) &,
-        :host-context(.theme-dark) &,
-        :host-context([data-theme="dark"]) & {
-          color: rgba(255, 255, 255, 0.6) !important;
-        }
-      }
-
-      .summary-value {
-        font-size: 24px;
-        font-weight: bold;
-        color: #3f51b5;
-
-        // Tema escuro
-        :host-context(.dark-theme) &,
-        :host-context(.theme-dark) &,
-        :host-context([data-theme="dark"]) & {
-          color: #90caf9 !important;
-        }
-      }
-    }
-  }
-}
-
-// Estilos para a aba de Ações Avançadas
-.actions-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 20px;
-
-  .action-card {
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    background: white;
-    color: rgba(0, 0, 0, 0.87);
-    border: 1px solid #e0e0e0;
-
-    // Tema escuro
-    :host-context(.dark-theme) &,
-    :host-context(.theme-dark) &,
-    :host-context([data-theme="dark"]) & {
-      background: #2d2d2d !important;
-      color: rgba(255, 255, 255, 0.87) !important;
-      border-color: #424242 !important;
-    }
-
-    .mat-mdc-card-header {
-      flex-shrink: 0;
-
-      .mat-mdc-card-title {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-
-        mat-icon {
-          color: #3f51b5;
-
-          // Tema escuro
-          :host-context(.dark-theme) &,
-          :host-context(.theme-dark) &,
-          :host-context([data-theme="dark"]) & {
-            color: #90caf9 !important;
-          }
-        }
-      }
-
-      .mat-mdc-card-subtitle {
-        color: #666;
-
-        // Tema escuro
-        :host-context(.dark-theme) &,
-        :host-context(.theme-dark) &,
-        :host-context([data-theme="dark"]) & {
-          color: rgba(255, 255, 255, 0.6) !important;
-        }
-      }
-    }
-
-    .mat-mdc-card-content {
-      flex: 1;
-
-      .action-description {
-        margin: 0;
-        color: #666;
-        font-size: 14px;
-        line-height: 1.5;
-
-        // Tema escuro
-        :host-context(.dark-theme) &,
-        :host-context(.theme-dark) &,
-        :host-context([data-theme="dark"]) & {
-          color: rgba(255, 255, 255, 0.6) !important;
-        }
-      }
-    }
-
-    .mat-mdc-card-actions {
-      flex-shrink: 0;
-      padding: 16px;
-      margin: 0;
-
-      button {
-        width: 100%;
-        justify-content: center;
-
-        mat-icon {
-          margin-right: 8px;
-        }
-      }
-    }
-  }
-}
-
-.actions-warning {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 16px;
-  background: rgba(255, 152, 0, 0.1);
-  border: 1px solid rgba(255, 152, 0, 0.3);
-  border-radius: 8px;
-  margin-top: 16px;
-  color: rgba(0, 0, 0, 0.87);
-
-  // Tema escuro
-  :host-context(.dark-theme) &,
-  :host-context(.theme-dark) &,
-  :host-context([data-theme="dark"]) & {
-    background: rgba(255, 152, 0, 0.2) !important;
-    border-color: rgba(255, 152, 0, 0.4) !important;
-    color: rgba(255, 255, 255, 0.87) !important;
-  }
-
-  mat-icon {
-    color: #ff9800;
-    flex-shrink: 0;
-    margin-top: 2px;
-  }
-
-  p {
-    margin: 0;
-    font-size: 14px;
-    line-height: 1.5;
-  }
-}
-
-// Estados vazios
-.empty-state {
-  text-align: center;
-  padding: 60px 20px;
-  color: #666;
-
-  // Tema escuro
-  :host-context(.dark-theme) &,
-  :host-context(.theme-dark) &,
-  :host-context([data-theme="dark"]) & {
-    color: rgba(255, 255, 255, 0.6) !important;
-  }
-
-  mat-icon {
-    font-size: 48px;
-    width: 48px;
-    height: 48px;
-    margin-bottom: 16px;
-    opacity: 0.5;
-  }
-
-  p {
-    margin: 0;
-    font-size: 16px;
-  }
-}
-
-// Loading overlay
-.loading-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.7);
+.vazio {
   display: flex;
   align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  backdrop-filter: blur(4px);
-
-  .loading-text {
-    margin-left: 16px;
-    font-weight: 500;
-    color: white;
-    font-size: 16px;
-  }
-
-  mat-progress-spinner {
-    color: white;
-  }
-}
-
-// Tabs - estilo para tema escuro
-::ng-deep {
-  .mat-mdc-tab-header {
-    // Tema escuro
-    :host-context(.dark-theme) &,
-    :host-context(.theme-dark) &,
-    :host-context([data-theme="dark"]) & {
-      background: #2d2d2d !important;
-      border-bottom: 1px solid #424242 !important;
-
-      .mat-mdc-tab-label {
-        color: rgba(255, 255, 255, 0.6) !important;
-
-        &.mdc-tab--active {
-          color: rgba(255, 255, 255, 0.87) !important;
-        }
-      }
-    }
-  }
-
-  .mat-mdc-tab-body-wrapper {
-    // Tema escuro
-    :host-context(.dark-theme) &,
-    :host-context(.theme-dark) &,
-    :host-context([data-theme="dark"]) & {
-      background: #121212 !important;
-    }
-  }
-}
-
-// Responsividade
-@media (max-width: 768px) {
-  .advanced-dialog-container {
-    width: 95vw;
-    max-height: 90vh;
-  }
-
-  .health-cards,
-  .actions-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .section-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
-
-    button {
-      width: 100%;
-    }
-  }
-
-  .diagnostic-summary {
-    flex-direction: column;
-    gap: 16px;
-  }
-}
-
-// Estilos adicionais para o template corrigido
-
-// Loading state
-.loading-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 60px 20px;
-  text-align: center;
-
-  mat-spinner {
-    margin-bottom: 16px;
-  }
-
-  p {
-    margin: 0;
-    color: #666;
-    font-size: 16px;
-
-    // Tema escuro
-    :host-context(.dark-theme) &,
-    :host-context(.theme-dark) &,
-    :host-context([data-theme="dark"]) & {
-      color: rgba(255, 255, 255, 0.6);
-    }
-  }
-}
-
-// Spinner em botões
-.spinner {
-  display: inline-block;
-  margin-right: 8px;
-}
-
-// Classes de status
-.scheduler-running {
-  background-color: #4caf50 !important;
-  color: white !important;
-}
-
-.scheduler-stopped {
-  background-color: #f44336 !important;
-  color: white !important;
-}
-
-.scheduler-standby {
-  background-color: #ff9800 !important;
-  color: white !important;
-}
-
-.scheduler-unknown {
-  background-color: #9e9e9e !important;
-  color: white !important;
-}
-
-// Card de sucesso
-.diagnostic-card.success {
-  border-left: 4px solid #4caf50;
-
-  .mat-mdc-card-header {
-    .success-title {
-      color: #4caf50;
-
-      mat-icon {
-        color: #4caf50;
-      }
-    }
-  }
-
-  .success-message {
-    padding: 12px;
-    background: #e8f5e9;
-    border-radius: 4px;
-
-    p {
-      margin: 0;
-      color: #2e7d32;
-    }
-
-    // Tema escuro
-    :host-context(.dark-theme) &,
-    :host-context(.theme-dark) &,
-    :host-context([data-theme="dark"]) & {
-      background: #1b5e20 !important;
-
-      p {
-        color: #a5d6a7 !important;
-      }
-    }
-  }
-}
-
-// Resumo com erro
-.summary-error {
-  color: #f44336 !important;
-}
-
-// Detalhes de ação
-.action-details {
-  display: flex;
-  align-items: flex-start;
   gap: 8px;
-  margin-top: 12px;
-  padding: 8px;
-  background: rgba(0, 0, 0, 0.02);
-  border-radius: 4px;
-  font-size: 12px;
-  color: #666;
+  padding: 12px;
+  color: var(--adv-suave);
 
   mat-icon {
-    font-size: 16px;
-    width: 16px;
-    height: 16px;
-    color: #ff9800;
-    flex-shrink: 0;
-    margin-top: 2px;
-  }
-
-  // Tema escuro
-  :host-context(.dark-theme) &,
-  :host-context(.theme-dark) &,
-  :host-context([data-theme="dark"]) & {
-    background: rgba(255, 255, 255, 0.05) !important;
-    color: rgba(255, 255, 255, 0.6) !important;
+    color: var(--adv-ok);
   }
 }
 
-// Texto de erro
-.error {
-  color: #f44336 !important;
+.suave {
+  color: var(--adv-suave);
+}
+
+.nota {
   font-size: 12px;
-  word-break: break-word;
+  margin: 8px 0 0;
 }
 
-// Responsividade adicional
-@media (max-width: 768px) {
-  .health-cards,
-  .actions-grid {
-    grid-template-columns: 1fr;
+.texto-erro {
+  color: var(--adv-erro);
+}
+
+code {
+  font-family: Consolas, 'Courier New', monospace;
+  font-size: 12px;
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--mat-sys-on-surface, #000) 7%, transparent);
+}
+
+.selo {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: 6px;
+  padding: 0 6px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 18px;
+  border: 1px solid var(--adv-borda);
+  color: var(--adv-suave);
+  vertical-align: middle;
+
+  mat-icon {
+    font-size: 13px;
+    width: 13px;
+    height: 13px;
   }
 
-  .diagnostic-summary {
-    flex-wrap: wrap;
+  &--auto {
+    color: var(--adv-ok);
+    border-color: color-mix(in srgb, var(--adv-ok) 45%, transparent);
+  }
 
-    .summary-item {
-      flex: 1 0 50%;
-      margin-bottom: 16px;
+  &--manual {
+    color: var(--adv-aviso);
+    border-color: color-mix(in srgb, var(--adv-aviso) 45%, transparent);
+  }
+}
+
+.situacao {
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 12px;
+  white-space: nowrap;
+  border: 1px solid var(--adv-borda);
+
+  &--ok {
+    color: var(--adv-ok);
+    border-color: color-mix(in srgb, var(--adv-ok) 45%, transparent);
+  }
+
+  &--erro {
+    color: var(--adv-erro);
+    border-color: color-mix(in srgb, var(--adv-erro) 45%, transparent);
+  }
+}
+
+// ---------------------------------------------------------------- problemas e execuções
+
+.problema,
+.execucao {
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  border: 1px solid var(--adv-borda);
+  border-left-width: 4px;
+  border-radius: 8px;
+}
+
+.problema {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  border-left-color: var(--adv-aviso);
+
+  .problema-icone {
+    color: var(--adv-aviso);
+  }
+
+  .problema-texto {
+    flex: 1;
+    min-width: 0;
+  }
+
+  &--erro {
+    border-left-color: var(--adv-erro);
+
+    .problema-icone {
+      color: var(--adv-erro);
     }
   }
+
+  button {
+    flex-shrink: 0;
+  }
 }
 
-@media (max-width: 480px) {
-  .diagnostic-summary {
+.problema-titulo {
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.problema-linha {
+  font-size: 13px;
+  margin-top: 3px;
+  overflow-wrap: anywhere;
+}
+
+.execucao {
+  border-left-color: var(--adv-ok);
+
+  &--travada {
+    border-left-color: var(--adv-erro);
+  }
+}
+
+.execucao-cabeca {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+
+  .espaco {
+    flex: 1;
+  }
+}
+
+.botao-pilha {
+  margin-top: 4px;
+}
+
+.pilha {
+  max-height: 260px;
+  overflow: auto;
+  margin: 6px 0 0;
+  padding: 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  line-height: 1.4;
+  white-space: pre;
+  background: color-mix(in srgb, var(--mat-sys-on-surface, #000) 6%, transparent);
+}
+
+// ---------------------------------------------------------------- tabelas e medidores
+
+.tabela {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+
+  th,
+  td {
+    text-align: left;
+    padding: 6px 8px;
+    border-bottom: 1px solid var(--adv-borda);
+  }
+
+  th {
+    font-weight: 500;
+    color: var(--adv-suave);
+  }
+
+  &--chave th {
+    width: 180px;
+  }
+}
+
+.medidores {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.medidor {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid var(--adv-borda);
+  border-radius: 8px;
+
+  span {
+    color: var(--adv-suave);
+    font-size: 12px;
+  }
+}
+
+.barra {
+  height: 6px;
+  border-radius: 3px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--mat-sys-on-surface, #000) 10%, transparent);
+
+  > div {
+    height: 100%;
+    background: var(--mat-sys-primary, #3f51b5);
+  }
+}
+
+// ---------------------------------------------------------------- ações
+
+.acoes {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.acao {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--adv-borda);
+  border-radius: 8px;
+
+  > mat-icon {
+    color: var(--adv-suave);
+  }
+
+  > div {
+    flex: 1;
+  }
+
+  p {
+    margin: 4px 0 0;
+    font-size: 13px;
+    color: var(--adv-suave);
+  }
+
+  button {
+    flex-shrink: 0;
+  }
+}
+
+@media (max-width: 600px) {
+  .problema,
+  .acao {
     flex-direction: column;
-
-    .summary-item {
-      flex: 1 0 100%;
-    }
+    align-items: stretch;
   }
 }

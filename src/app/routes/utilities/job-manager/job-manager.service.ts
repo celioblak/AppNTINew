@@ -30,6 +30,97 @@ export interface JobEdicao {
   iniciarPausado: boolean;
 }
 
+/** Nó do cluster pelo sinal de vida do Quartz. */
+export interface NoAgendador {
+  instancia: string;
+  ultimoSinal: string;
+  intervaloMs: number;
+  segundosSemSinal: number;
+  ativo: boolean;
+  esteNo: boolean;
+}
+
+/** Execução em andamento em algum nó (QRTZ_FIRED_TRIGGERS + registro do vigia). */
+export interface ExecucaoAgendador {
+  entryId: string;
+  jobName: string;
+  jobGroup: string;
+  descricao: string | null;
+  instancia: string;
+  inicio: string;
+  segundos: number;
+  limiteMinutos: number;
+  travada: boolean;
+  estadoQuartz: string;
+  estadoThread: string | null;
+  local: string | null;
+  causa: string | null;
+  pilha: string | null;
+  interrupcaoPedida: boolean;
+  interromperPor: string | null;
+  interrompidoEm: string | null;
+  resultado: string | null;
+}
+
+/** Problema com causa e correção; automatico = o vigia corrige sozinho. */
+export interface ProblemaAgendador {
+  codigo: string;
+  severidade: 'ERRO' | 'AVISO';
+  titulo: string;
+  causa: string;
+  correcao: string;
+  automatico: boolean;
+  acao: 'REPARAR' | 'RETIRAR_PAUSA_GERAL' | 'LIMPAR_ORFAOS' | null;
+}
+
+export interface TravamentoAgendador {
+  entryId: string;
+  jobName: string;
+  jobGroup: string;
+  instancia: string;
+  inicio: string;
+  deteccao: string;
+  fim: string;
+  limiteMinutos: number | null;
+  local: string | null;
+  causa: string | null;
+  pilha: string | null;
+  interromperPor: string | null;
+  resultado: string | null;
+}
+
+export interface PoolAgendador {
+  ativas: number;
+  ociosas: number;
+  aguardando: number;
+  maximo: number;
+}
+
+/** Capacidade do nó que respondeu (threads do Quartz e pools de conexão). */
+export interface CapacidadeAgendador {
+  no: string;
+  threadsEmUso: number;
+  threadsAbandonadas: number;
+  threadsTotal: number;
+  poolAplicacao: PoolAgendador | null;
+  poolAgendador: PoolAgendador | null;
+}
+
+export interface EstadoAgendador {
+  noAtual: string;
+  agora: string;
+  vigiaInstalado: boolean;
+  nos: NoAgendador[];
+  execucoes: ExecucaoAgendador[];
+  problemas: ProblemaAgendador[];
+  historico: TravamentoAgendador[];
+  capacidade: CapacidadeAgendador;
+}
+
+export interface ResultadoAgendador {
+  feito: string[];
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -91,17 +182,6 @@ export class JobManagerService {
     );
   }
 
-  // ATENÇÃO: Este método NÃO EXISTE no controller atualizado
-  // Vamos comentá-lo ou remover, pois não há endpoint /restart individual
-  /*
-  restartJob(job: schedulerJobInfo): Observable<any> {
-    const url = `${this.apiUrl}/restart`;
-    return this.http.post<any>(url, job).pipe(
-      catchError(this.handleError('restartJob', null))
-    );
-  }
-  */
-
   removeJob(job: schedulerJobInfo): Observable<any> {
     const url = `${this.apiUrl}/remove`;
     return this.http.post<any>(url, job).pipe(
@@ -131,72 +211,49 @@ export class JobManagerService {
     );
   }
 
-  // Métodos de gerenciamento avançado
+  // ---------------------------------------------------------------- gerenciamento avançado
+
   getSchedulerMetaData(): Observable<any> {
-    const url = `${this.apiUrl}/metaData`;
-    return this.http.get<any>(url).pipe(
+    return this.http.get<any>(`${this.apiUrl}/metaData`).pipe(
       catchError(this.handleError('getSchedulerMetaData', null))
     );
   }
 
-  getAllJobs(): Observable<any> {
-    const url = `${this.apiUrl}/getAllJobs`;
-    return this.http.get<any>(url).pipe(
-      catchError(this.handleError('getAllJobs', []))
-    );
-  }
-
-  // MÉTODO ATUALIZADO: Agora é POST para /cancel-all
-  cancelAllJobs(): Observable<any> {
-    const url = `${this.apiUrl}/cancel-all`;
-    return this.http.post<any>(url, {}).pipe(
-      catchError(this.handleError('cancelAllJobs', null))
-    );
-  }
-
-  // MÉTODO ATUALIZADO: Agora é POST para /recreate-all
-  recreateAllJobs(): Observable<any> {
-    const url = `${this.apiUrl}/recreate-all`;
-    return this.http.post<any>(url, {}).pipe(
-      catchError(this.handleError('recreateAllJobs', null))
-    );
-  }
-
-  // MÉTODO OBSOLETO: Remover ou manter compatibilidade
-  // ATENÇÃO: Este método usa GET para /recreate (obsoleto)
-  schedulerRecreate(): Observable<any> {
-    const url = `${this.apiUrl}/recreate`;
-    return this.http.get<any>(url).pipe(
-      catchError(this.handleError('schedulerRecreate', null))
-    );
-  }
-
   getSchedulerHealth(): Observable<any> {
-    const url = `${this.apiUrl}/health`;
-    return this.http.get<any>(url).pipe(
+    return this.http.get<any>(`${this.apiUrl}/health`).pipe(
       catchError(this.handleError('getSchedulerHealth', null))
     );
   }
 
-  getDiagnostic(): Observable<any> {
-    const url = `${this.apiUrl}/diagnostic`;
-    return this.http.get<any>(url).pipe(
-      catchError(this.handleError('getDiagnostic', null))
+  /** Pausa job a job (sem a "pausa geral" do Quartz, que fazia jobs novos nascerem pausados). */
+  cancelAllJobs(): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/cancel-all`, {}).pipe(
+      catchError(this.handleError('cancelAllJobs', null))
     );
   }
 
-  restartScheduler(): Observable<any> {
-    const url = `${this.apiUrl}/restart-scheduler`;
-    return this.http.post<any>(url, {}).pipe(
-      catchError(this.handleError('restartScheduler', null))
-    );
+  // ---------------------------------------------------------------- agendador no cluster (vigia)
+
+  /** Nós, execuções em andamento, problemas (o que o vigia corrige sozinho) e histórico de travamentos. */
+  estadoAgendador() {
+    return this.http.get<EstadoAgendador>(`${this.apiUrl}/cluster/estado`);
   }
 
-  cleanupJobs(): Observable<any> {
-    const url = `${this.apiUrl}/cleanup`;
-    return this.http.post<any>(url, {}).pipe(
-      catchError(this.handleError('cleanupJobs', null))
-    );
+  /** Faz agora o que o vigia faria na próxima verificação. */
+  corrigirAgora() {
+    return this.http.post<ResultadoAgendador>(`${this.apiUrl}/cluster/reparar`, {});
+  }
+
+  retirarPausaGeral() {
+    return this.http.post<ResultadoAgendador>(`${this.apiUrl}/cluster/retirar-pausa-geral`, {});
+  }
+
+  limparOrfaos() {
+    return this.http.post<ResultadoAgendador>(`${this.apiUrl}/cluster/limpar-orfaos`, {});
+  }
+
+  interromperExecucao(entryId: string) {
+    return this.http.post<ResultadoAgendador>(`${this.apiUrl}/cluster/execucoes/${encodeURIComponent(entryId)}/interromper`, {});
   }
 
   private handleError<T>(operation = 'operation', result?: T) {
@@ -204,48 +261,5 @@ export class JobManagerService {
       console.error(`${operation} falhou:`, error);
       return throwError(() => new Error(`${operation} falhou: ${error.message || error}`));
     };
-  }
-
-    // MÉTODOS DE CLUSTER - Afetam TODAS as instâncias
-  restartAllInstances(): Observable<any> {
-    const url = `${this.apiUrl}/cluster/restart-all`;
-    return this.http.post<any>(url, {}).pipe(
-      catchError(this.handleError('restartAllInstances', null))
-    );
-  }
-
-  recreateAllJobsClusterWide(): Observable<any> {
-    const url = `${this.apiUrl}/cluster/recreate-all`;
-    return this.http.post<any>(url, {}).pipe(
-      catchError(this.handleError('recreateAllJobsClusterWide', null))
-    );
-  }
-
-  cleanupAllInstances(): Observable<any> {
-    const url = `${this.apiUrl}/cluster/cleanup-all`;
-    return this.http.post<any>(url, {}).pipe(
-      catchError(this.handleError('cleanupAllInstances', null))
-    );
-  }
-
-  cancelAllJobsClusterWide(): Observable<any> {
-    const url = `${this.apiUrl}/cluster/cancel-all`;
-    return this.http.post<any>(url, {}).pipe(
-      catchError(this.handleError('cancelAllJobsClusterWide', null))
-    );
-  }
-
-  getClusterInstances(): Observable<any> {
-    const url = `${this.apiUrl}/cluster/instances`;
-    return this.http.get<any>(url).pipe(
-      catchError(this.handleError('getClusterInstances', null))
-    );
-  }
-
-  syncAllInstances(): Observable<any> {
-    const url = `${this.apiUrl}/cluster/sync-all`;
-    return this.http.post<any>(url, {}).pipe(
-      catchError(this.handleError('syncAllInstances', null))
-    );
   }
 }
