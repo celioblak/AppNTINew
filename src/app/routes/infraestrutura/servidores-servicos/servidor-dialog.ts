@@ -68,7 +68,8 @@ export interface ServidorDialogData {
               </mat-form-field>
               <mat-form-field appearance="outline" subscriptSizing="dynamic">
                 <mat-label>Nome da máquina</mat-label>
-                <input matInput [(ngModel)]="s.maquina" maxlength="200" />
+                <input matInput [(ngModel)]="s.maquina" maxlength="200" [placeholder]="s.nome || 'hostname'" />
+                <mat-hint>Hostname (ex.: o HOST_NAME dos nós do banco). Vazio = o nome do servidor</mat-hint>
               </mat-form-field>
             </div>
             <div class="linha">
