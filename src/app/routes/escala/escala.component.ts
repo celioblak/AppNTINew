@@ -21,6 +21,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { TipoAusenciaService } from './tipo-ausencia/tipo-ausencia.service';
 import { SeletorAusenciaDialog } from './tipo-ausencia/seletor-tipo-ausencia/seletor-tipo-ausencia-dialog';
 import html2canvas from 'html2canvas';
+import { AvisoEscalaDialogComponent } from './aviso-escala-dialog';
 
 @Component({
   selector: 'app-escala',
@@ -847,6 +848,11 @@ export class EscalaComponent implements OnInit, OnDestroy {
   }
 
   podeCriar(): boolean { return this.permissoesUsuario.podeCriar || false; }
+
+  /** Prévia e envio do aviso da escala antes de fim de semana e feriado (imagem no Telegram). */
+  abrirAvisoFimDeSemana(): void {
+    this.dialog.open(AvisoEscalaDialogComponent, { width: '720px', maxWidth: '96vw', maxHeight: '92vh' });
+  }
   podeEditar(): boolean { return this.permissoesUsuario.podeEditar || false; }
   podeExcluir(): boolean {
     if (this.isEscalaPublicada()) return this.podeCriar();

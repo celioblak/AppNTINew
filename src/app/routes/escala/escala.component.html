@@ -67,6 +67,11 @@
       <span *ngIf="!escalaNaoExiste && isEscalaPublicada()" class="status-publicada">
         ✅ Publicada
       </span>
+
+      <!-- Aviso da escala antes de fim de semana/feriado (Telegram com a imagem): prévia e envio -->
+      <button *ngIf="podeCriar()" (click)="abrirAvisoFimDeSemana()" class="btn-log" title="Prévia da escala que a equipe de plantão recebe antes de fim de semana e feriado">
+        📣 Aviso do fim de semana
+      </button>
     </div>
   </div>
 
