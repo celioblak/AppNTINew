@@ -1,0 +1,249 @@
+<div class="pagina">
+  @if (carregando()) {
+    <mat-progress-bar mode="indeterminate" />
+  }
+
+  @let r = resumo();
+  <div class="resumo">
+    <span><b>{{ r.bancos }}</b> bancos ativos</span>
+    <span [class.alerta]="r.fora > 0"><b>{{ r.fora }}</b> fora do ar</span>
+    <span [class.aviso]="r.parciais > 0"><b>{{ r.parciais }}</b> parciais</span>
+    <span [class.alerta]="r.semAcesso > 0"><b>{{ r.semAcesso }}</b> sem acesso</span>
+    <span [class.aviso]="r.pendencias > 0"><b>{{ r.pendencias }}</b> pendências</span>
+    <span class="espaco"></span>
+    <button mat-icon-button matTooltip="Atualizar" (click)="carregar()"><mat-icon>refresh</mat-icon></button>
+    <button mat-flat-button (click)="novoBanco()"><mat-icon>add</mat-icon> Novo banco</button>
+  </div>
+
+  <div class="corpo">
+    <!-- ───── Lista ───── -->
+    <aside class="lista">
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-icon matPrefix>search</mat-icon>
+        <mat-label>Pesquisar</mat-label>
+        <input matInput [ngModel]="filtro()" (ngModelChange)="filtro.set($event)" placeholder="Banco, SCAN, serviço, nó..." />
+      </mat-form-field>
+      <div class="chaves">
+        <mat-slide-toggle [checked]="mostrarInativos()" (change)="mostrarInativos.set($event.checked)">Inativos</mat-slide-toggle>
+      </div>
+
+      <div class="itens">
+        @for (b of filtrados(); track b.codBanco) {
+          <button class="item {{ classe(b.situacao) }}" [class.item--ativo]="b.codBanco === selecionado()" [class.item--inativo]="!b.ativo"
+                  (click)="selecionar(b.codBanco)">
+            <i class="ponto"></i>
+            <b class="item__nome">{{ b.nome }}</b>
+            <span class="item__fim">
+              <small [class]="classeDisponibilidade(b.disponibilidade)" [matTooltip]="tooltipDisponibilidade(b.disponibilidade)">
+                {{ percentual(b.disponibilidade) }}
+              </small>
+            </span>
+            <small class="item__info">{{ rotulo(b) }}{{ b.nomeAmbiente ? ' · ' + b.nomeAmbiente : '' }}</small>
+            <small class="item__info">{{ b.dataModelo ? b.modelo : 'Modelo ainda não lido' }}</small>
+          </button>
+        } @empty {
+          <p class="vazio">
+            @if (bancos().length) {
+              Nenhum banco atende aos filtros.
+            } @else {
+              Nenhum banco cadastrado. Use "Novo banco": depois o ponto de acesso (SCAN, endereço ou tnsnames) e o script do usuário.
+            }
+          </p>
+        }
+      </div>
+    </aside>
+
+    <!-- ───── Detalhe ───── -->
+    <section class="detalhe">
+      @if (atual(); as b) {
+        <header class="cabecalho {{ classe(b.situacao) }}">
+          <mat-icon class="cabecalho__icone">storage</mat-icon>
+          <div class="cabecalho__titulo">
+            <h2>{{ b.nome }} @if (!b.ativo) { <span class="tag">Inativo</span> } <span class="selo">{{ rotulo(b) }}</span></h2>
+            <span>{{ b.modelo }}{{ b.nomeAmbiente ? ' · ' + b.nomeAmbiente : '' }}</span>
+          </div>
+          <button mat-flat-button (click)="testar(b)"><mat-icon>play_arrow</mat-icon> Testar</button>
+          <button mat-stroked-button (click)="abrirBanco(b)"><mat-icon>edit</mat-icon> Editar</button>
+          <button mat-icon-button matTooltip="Excluir banco (só sem uso)" (click)="excluirBanco(b)"><mat-icon>delete</mat-icon></button>
+        </header>
+
+        @if (b.situacao) {
+          <div class="caixa {{ classe(b.situacao) }}">
+            <b>{{ rotuloSituacao[b.situacao] }}</b> — {{ b.detalhe }}
+            @if (b.orientacao && b.situacao !== 'OK') {
+              <div class="orientacao">{{ b.orientacao }}</div>
+            }
+            <div class="nota">
+              @if (b.conexao) { Conectou na {{ b.conexao }}@if (b.tempoConexaoMs !== null) { em {{ b.tempoConexaoMs }} ms}. }
+              @if (b.dataLeitura) { Lido em {{ b.dataLeitura | date: 'dd/MM/yyyy HH:mm:ss' }}. }
+              @if (b.observacao) { {{ b.observacao }} }
+            </div>
+          </div>
+        }
+
+        @if (b.atencoes.length) {
+          <div class="pendencias">
+            @for (a of b.atencoes; track $index) {
+              <div class="pendencia pendencia--media"><mat-icon>warning</mat-icon><div>{{ a }}</div></div>
+            }
+          </div>
+        }
+
+        @if (b.pendencias.length) {
+          <div class="pendencias">
+            @for (p of b.pendencias; track $index) {
+              <div class="pendencia pendencia--{{ p.gravidade.toLowerCase() }}">
+                <mat-icon>{{ iconePendencia(p) }}</mat-icon>
+                <div><b>{{ p.mensagem }}</b>@if (p.orientacao) { <span> — {{ p.orientacao }}</span> }</div>
+              </div>
+            }
+          </div>
+        }
+
+        <div class="blocos">
+          <article class="bloco">
+            <h3><mat-icon>vpn_key</mat-icon> Usuário de monitoramento</h3>
+            <div class="credencial">
+              <span class="credencial__rotulo">Usuário</span>
+              <span class="credencial__usuario">{{ b.usuarioMonitor ?? (b.temSenha ? 'automático (NTI_MONITOR ou C##NTI_MONITOR)' : '—') }}</span>
+            </div>
+            <div class="credencial">
+              <span class="credencial__rotulo">Senha</span>
+              @if (senha(); as s) {
+                <span class="credencial__senha">{{ s.senha ?? '—' }}</span>
+                <button mat-icon-button matTooltip="Esconder" (click)="esconderSenha()"><mat-icon>visibility_off</mat-icon></button>
+              } @else {
+                <span class="credencial__senha">{{ b.temSenha ? '••••••••' : 'não cadastrada' }}</span>
+                @if (b.temSenha) {
+                  <button mat-icon-button matTooltip="Exibir (fica registrado)" (click)="revelarSenha(b)"><mat-icon>visibility</mat-icon></button>
+                }
+              }
+              @if (b.temSenha) {
+                <button mat-icon-button matTooltip="Copiar (fica registrado)" (click)="revelarSenha(b, true)"><mat-icon>content_copy</mat-icon></button>
+              }
+            </div>
+            <div class="acoes">
+              <button mat-stroked-button (click)="script(b)"><mat-icon>code</mat-icon> Script do usuário</button>
+            </div>
+          </article>
+          <article class="bloco">
+            <h3><mat-icon>timeline</mat-icon> Disponibilidade</h3>
+            <button class="disp-grande" [class]="classeDisponibilidade(b.disponibilidade)" (click)="historico(b)"
+                    [matTooltip]="tooltipDisponibilidade(b.disponibilidade)">
+              <b>{{ percentual(b.disponibilidade) }}</b> disponível em 30 dias <mat-icon inline>chevron_right</mat-icon>
+            </button>
+            <p class="nota">Sem acesso (usuário, senha ou grant) não conta como parada: fica "sem dados".</p>
+          </article>
+        </div>
+
+        <!-- Pontos de acesso -->
+        <div class="servicos__topo">
+          <h3>Pontos de acesso ({{ b.acessos.length }})</h3>
+          <span class="espaco"></span>
+          <button mat-stroked-button (click)="abrirAcesso(b, null)"><mat-icon>add</mat-icon> Ponto de acesso</button>
+        </div>
+        <div class="servicos">
+          @for (a of b.acessos; track a.codAcesso) {
+            <article class="servico {{ classeAcesso(a) }}" [class.servico--off]="!a.monitorado">
+              <div class="servico__linha">
+                <i class="ponto"></i>
+                <div class="servico__nome">
+                  <b>{{ a.nome }}</b>
+                  <span class="marca-acesso">{{ rotuloForma[a.forma] }}</span>
+                  <span class="marca-acesso" [class.marca-acesso--fraca]="a.finalidade !== 'PRINCIPAL'">{{ rotuloFinalidade[a.finalidade] }}</span>
+                  @if (a.balanceia) { <span class="marca-acesso marca-acesso--fraca">balanceia</span> }
+                  <small>{{ enderecoResumo(a) }}{{ a.alias ? ' · tnsnames ' + a.alias : '' }}{{ a.ipsScan ? ' · ' + a.ipsScan + ' IP(s) no DNS' : '' }}</small>
+                </div>
+                <span class="espaco"></span>
+                <button mat-icon-button matTooltip="Editar" (click)="abrirAcesso(b, a)"><mat-icon>edit</mat-icon></button>
+                <button mat-icon-button matTooltip="Excluir" (click)="excluirAcesso(b, a)"><mat-icon>delete</mat-icon></button>
+              </div>
+              @if (a.mensagem) {
+                <div class="acesso__resultado">
+                  {{ a.mensagem }}
+                  @if (a.orientacao && a.resultado !== 'OK') { <div class="nota">{{ a.orientacao }}</div> }
+                  @if (a.dataTeste) { <small class="nota"> · {{ a.dataTeste | date: 'dd/MM HH:mm:ss' }}</small> }
+                </div>
+              }
+              @if (a.rede.length) {
+                <ul class="acesso__rede">
+                  @for (l of a.rede; track $index) {
+                    <li>{{ l }}</li>
+                  }
+                </ul>
+              }
+            </article>
+          } @empty {
+            <p class="nota">Nenhum ponto de acesso. Cadastre como os sistemas chegam ao banco: SCAN, endereço ou o descritor do tnsnames.ora.</p>
+          }
+        </div>
+
+        <!-- Instâncias -->
+        <div class="servicos__topo">
+          <h3>Instâncias ({{ b.instancias.length }})</h3>
+          <span class="espaco"></span>
+          <button mat-stroked-button (click)="importar(b)" [disabled]="!b.instancias.length"><mat-icon>get_app</mat-icon> Importar instâncias</button>
+        </div>
+        @if (b.instancias.length) {
+          <table class="tabela-instancias">
+            <tr>
+              <th></th>
+              <th>Instância</th>
+              <th>Nó</th>
+              <th>Situação</th>
+              <th>Serviço no servidor</th>
+              <th>Desde</th>
+              <th></th>
+            </tr>
+            @for (i of b.instancias; track i.codInstancia) {
+              <tr class="{{ classeInstancia(i) }}">
+                <td><i class="ponto"></i></td>
+                <td><b>{{ i.nome }}</b>@if (i.numero) { <small> #{{ i.numero }}</small> }</td>
+                <td>{{ i.host }}</td>
+                <td>{{ i.noAr ? i.situacao : 'Fora (sumiu do GV$INSTANCE)' }}</td>
+                <td>
+                  @if (i.servico) {
+                    {{ i.servico }}
+                  } @else if (i.servidor) {
+                    <small class="nota">{{ i.servidor }} — não importada</small>
+                  } @else {
+                    <small class="texto-alerta">nó sem servidor cadastrado</small>
+                  }
+                </td>
+                <td>{{ i.inicio | date: 'dd/MM/yyyy HH:mm' }}</td>
+                <td><button mat-icon-button matTooltip="Esquecer (nó desativado)" (click)="esquecer(b, i)"><mat-icon>link_off</mat-icon></button></td>
+              </tr>
+            }
+          </table>
+        } @else {
+          <p class="nota">As instâncias aparecem depois do primeiro Testar com o usuário de monitoramento (lidas do GV$INSTANCE).</p>
+        }
+
+        @if (b.servicos.length) {
+          <h3>Serviços de banco</h3>
+          <div class="servicos-banco">
+            @for (s of b.servicos; track s.nome) {
+              <span class="marca-acesso" [matTooltip]="'Rodando em: ' + s.instancias.join(', ')">{{ s.nome }} <small>({{ s.instancias.join(', ') }})</small></span>
+            }
+          </div>
+        }
+
+        <h3>Sistemas que usam</h3>
+        @if (b.sistemas.length) {
+          <div class="servicos-banco">
+            @for (s of b.sistemas; track s.codSistema + s.ambiente) {
+              <span class="marca-acesso">{{ s.sistema }} · {{ s.ambiente }}{{ s.base ? ' · ' + s.base : '' }}{{ s.acesso ? ' · ' + s.acesso : '' }}</span>
+            }
+          </div>
+        } @else {
+          <p class="nota">Nenhum sistema ligado ainda. A ligação é feita em Sistemas e Serviços (botão Banco em cada ambiente).</p>
+        }
+      } @else {
+        <div class="vazio vazio--grande">
+          <mat-icon>storage</mat-icon>
+          <p>Escolha um banco na lista, ou cadastre um novo.</p>
+        </div>
+      }
+    </section>
+  </div>
+</div>

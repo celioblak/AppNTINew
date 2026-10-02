@@ -4,7 +4,16 @@ import { environment } from '@env/environment';
 
 import { SistemaResumo } from '../atualizacao/atualizacao.models';
 import {
+  AcessoEdicao,
   Ambiente,
+  Banco,
+  BancoEdicao,
+  BancoOpcao,
+  EntradaTns,
+  ImportacaoInstancia,
+  ScriptBanco,
+  TesteBanco,
+  TesteNo,
   Camada,
   ConsultaCredencial,
   DiscoEdicao,
@@ -129,9 +138,14 @@ export class InfraestruturaService {
 
   // ---------------------------------------------------------------- disponibilidade
 
-  periodos(tipo: 'SERVIDOR' | 'SERVICO' | 'SISTEMA', codItem: number, dias = 30) {
-    // Sistema: código do sistema no ambiente; rota própria para quem tem só a tela Sistemas e Serviços.
-    const url = tipo === 'SISTEMA' ? `${this.api}/sistemas/ambientes/${codItem}/periodos` : `${this.api}/disponibilidade/${tipo}/${codItem}`;
+  periodos(tipo: 'SERVIDOR' | 'SERVICO' | 'SISTEMA' | 'BANCO', codItem: number, dias = 30) {
+    // Sistema e banco: rota própria, para quem tem só a tela deles.
+    const url =
+      tipo === 'SISTEMA'
+        ? `${this.api}/sistemas/ambientes/${codItem}/periodos`
+        : tipo === 'BANCO'
+          ? `${this.api}/bancos/${codItem}/periodos`
+          : `${this.api}/disponibilidade/${tipo}/${codItem}`;
     return this.http.get<Periodo[]>(url, { params: { dias } });
   }
 
@@ -184,5 +198,87 @@ export class InfraestruturaService {
 
   salvarSistemasDoServico(codProcesso: number, sistemas: SistemaDoServico[]) {
     return this.http.put<ServicoSistemas>(`${this.api}/servicos/${codProcesso}/sistemas`, { sistemas });
+  }
+
+  // ---------------------------------------------------------------- Bancos de Dados (F-3)
+
+  bancos() {
+    return this.http.get<Banco[]>(`${this.api}/bancos`);
+  }
+
+  banco(codBanco: number) {
+    return this.http.get<Banco>(`${this.api}/bancos/${codBanco}`);
+  }
+
+  salvarBanco(codBanco: number | null, dados: BancoEdicao) {
+    return codBanco
+      ? this.http.put<Banco>(`${this.api}/bancos/${codBanco}`, dados)
+      : this.http.post<Banco>(`${this.api}/bancos`, dados);
+  }
+
+  excluirBanco(codBanco: number) {
+    return this.http.delete<void>(`${this.api}/bancos/${codBanco}`);
+  }
+
+  salvarAcesso(codBanco: number, codAcesso: number | null, dados: AcessoEdicao) {
+    return codAcesso
+      ? this.http.put<Banco>(`${this.api}/bancos/${codBanco}/acessos/${codAcesso}`, dados)
+      : this.http.post<Banco>(`${this.api}/bancos/${codBanco}/acessos`, dados);
+  }
+
+  excluirAcesso(codBanco: number, codAcesso: number) {
+    return this.http.delete<Banco>(`${this.api}/bancos/${codBanco}/acessos/${codAcesso}`);
+  }
+
+  /** Separa o trecho colado do tnsnames.ora em alias e descritor (não grava). */
+  lerTnsnames(texto: string) {
+    return this.http.post<EntradaTns[]>(`${this.api}/bancos/tnsnames`, { texto });
+  }
+
+  /** Só a rede, sem usuário: DNS e porta de cada endereço. */
+  testarRedeBanco(dados: AcessoEdicao) {
+    return this.http.post<string[]>(`${this.api}/bancos/rede`, dados);
+  }
+
+  /** Script do usuário de monitoramento; a senha vai nele, então conta como exibição no cofre. */
+  scriptBanco(codBanco: number, senhaNova: boolean) {
+    return this.http.post<ScriptBanco>(`${this.api}/bancos/${codBanco}/script`, {}, { params: { senhaNova } });
+  }
+
+  revelarCredencialBanco(codBanco: number) {
+    return this.http.post<Credencial>(`${this.api}/bancos/${codBanco}/credencial`, {});
+  }
+
+  consultasCredencialBanco(codBanco: number) {
+    return this.http.get<ConsultaCredencial[]>(`${this.api}/bancos/${codBanco}/credencial/consultas`);
+  }
+
+  testarBanco(codBanco: number) {
+    return this.http.post<TesteBanco>(`${this.api}/bancos/${codBanco}/testar`, {});
+  }
+
+  testarNos(codBanco: number) {
+    return this.http.post<TesteNo[]>(`${this.api}/bancos/${codBanco}/testar-nos`, {});
+  }
+
+  previaImportacao(codBanco: number) {
+    return this.http.get<ImportacaoInstancia[]>(`${this.api}/bancos/${codBanco}/instancias/importar`);
+  }
+
+  importarInstancias(codBanco: number) {
+    return this.http.post<Banco>(`${this.api}/bancos/${codBanco}/instancias/importar`, {});
+  }
+
+  esquecerInstancia(codBanco: number, codInstancia: number) {
+    return this.http.delete<Banco>(`${this.api}/bancos/${codBanco}/instancias/${codInstancia}`);
+  }
+
+  /** Bancos para escolher no sistema (conciliação). */
+  bancosParaSistema() {
+    return this.http.get<BancoOpcao[]>(`${this.api}/sistemas/bancos`);
+  }
+
+  salvarBancoDoSistema(codSistema: number, ambiente: string, dados: { codBanco: number | null; base: string | null; codAcesso: number | null }) {
+    return this.http.put<SistemaInfra>(`${this.api}/sistemas/${codSistema}/ambientes/${ambiente}/banco`, dados);
   }
 }

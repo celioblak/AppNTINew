@@ -26,15 +26,18 @@ import {
   Pendencia,
   ROTULO_CAMADA,
   ROTULO_SITUACAO,
+  ROTULO_SITUACAO_BANCO,
   ROTULO_SITUACAO_SISTEMA,
   Servidor,
   ServicoSistema,
   SistemaInfra,
+  SituacaoBanco,
   SituacaoSistema,
   duracao,
 } from '../infraestrutura.models';
 import { InfraestruturaService } from '../infraestrutura.service';
 import { HistoricoDialogComponent, HistoricoDialogData } from '../servidores-servicos/historico-dialog';
+import { BancoSistemaDialogComponent, BancoSistemaDialogData } from './banco-sistema-dialog';
 import { VinculoDialogComponent, VinculoDialogData } from './vinculo-dialog';
 
 /** Ambientes que recebem sistemas (os de Atualizações). */
@@ -73,6 +76,7 @@ export class SistemasServicosComponent implements OnInit {
   readonly rotuloCamada = ROTULO_CAMADA;
   readonly rotuloSituacao = ROTULO_SITUACAO;
   readonly rotuloSituacaoSistema = ROTULO_SITUACAO_SISTEMA;
+  readonly rotuloSituacaoBanco = ROTULO_SITUACAO_BANCO;
 
   readonly carregando = signal(false);
   readonly sistemas = signal<SistemaInfra[]>([]);
@@ -272,6 +276,31 @@ export class SistemasServicosComponent implements OnInit {
         error: () => {},
       })
     );
+  }
+
+  // ---------------------------------------------------------------- banco (R-83, D-48)
+
+  abrirBanco(s: SistemaInfra, a: AmbienteSistema) {
+    this.dialog
+      .open<BancoSistemaDialogComponent, BancoSistemaDialogData, SistemaInfra>(BancoSistemaDialogComponent, {
+        width: '560px',
+        maxWidth: '96vw',
+        data: { sistema: s, ambiente: a },
+      })
+      .afterClosed()
+      .subscribe(atualizado => {
+        if (atualizado) {
+          this.aplicar(atualizado);
+          this.toast.success('Banco do sistema salvo.');
+        }
+      });
+  }
+
+  classeBanco(situacao: SituacaoBanco | null) {
+    if (situacao === 'OK') return 'sit--ok';
+    if (situacao === 'PARCIAL') return 'sit--alerta';
+    if (situacao === 'FORA' || situacao === 'SEM_ACESSO') return 'sit--fora';
+    return 'sit--desconhecido';
   }
 
   // ---------------------------------------------------------------- apresentação

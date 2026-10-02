@@ -15,7 +15,7 @@ import { ConsultaCredencial, Disponibilidade, Periodo, ROTULO_PERIODO, duracao }
 import { InfraestruturaService } from '../infraestrutura.service';
 
 export interface HistoricoDialogData {
-  tipo: 'SERVIDOR' | 'SERVICO' | 'SISTEMA';
+  tipo: 'SERVIDOR' | 'SERVICO' | 'SISTEMA' | 'BANCO';
   codItem: number;
   nome: string;
   disponibilidade: Disponibilidade | null;

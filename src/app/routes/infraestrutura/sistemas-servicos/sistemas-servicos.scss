@@ -72,3 +72,16 @@
   display: flex;
   justify-content: flex-end;
 }
+
+.banco-sistema {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+
+  small {
+    width: 100%;
+    color: var(--i-fraco);
+  }
+}

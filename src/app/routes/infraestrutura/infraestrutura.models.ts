@@ -422,6 +422,8 @@ export interface AmbienteSistema {
   disponibilidade: Disponibilidade | null;
   servicos: ServicoSistema[];
   pendencias: Pendencia[];
+  /** Banco cadastrado (ou texto antigo a conciliar); nulo se o sistema não tem banco. */
+  banco: BancoSistema | null;
 }
 
 export interface SistemaInfra {
@@ -450,4 +452,225 @@ export interface ServicoSistemas {
   nomeAmbiente: string | null;
   camadaPadrao: Camada;
   sistemas: SistemaDoServico[];
+}
+
+// ---------------------------------------------------------------- Bancos de Dados (F-3, docs/infraestrutura.md seção 13)
+
+export type SituacaoBanco = 'OK' | 'PARCIAL' | 'FORA' | 'SEM_ACESSO' | 'DESCONHECIDO';
+export type FormaAcesso = 'SIMPLES' | 'SCAN' | 'DESCRITOR';
+export type FinalidadeAcesso = 'PRINCIPAL' | 'LEITURA' | 'ADMINISTRACAO';
+export type ResultadoAcesso = 'OK' | 'FALHA' | 'SEM_ACESSO';
+
+export const ROTULO_SITUACAO_BANCO: Record<SituacaoBanco, string> = {
+  OK: 'No ar',
+  PARCIAL: 'Parcial',
+  FORA: 'Fora do ar',
+  SEM_ACESSO: 'Sem acesso',
+  DESCONHECIDO: 'Sem leitura',
+};
+
+export const ROTULO_FORMA_ACESSO: Record<FormaAcesso, string> = {
+  SIMPLES: 'Endereço',
+  SCAN: 'SCAN',
+  DESCRITOR: 'Descritor (tnsnames)',
+};
+
+export const ROTULO_FINALIDADE: Record<FinalidadeAcesso, string> = {
+  PRINCIPAL: 'Principal',
+  LEITURA: 'Só leitura',
+  ADMINISTRACAO: 'Administração',
+};
+
+export interface AcessoBanco {
+  codAcesso: number;
+  nome: string;
+  forma: FormaAcesso;
+  host: string | null;
+  porta: number | null;
+  servico: string | null;
+  descritor: string | null;
+  alias: string | null;
+  finalidade: FinalidadeAcesso;
+  monitorado: boolean;
+  enderecos: string[];
+  balanceia: boolean;
+  failover: boolean;
+  resultado: ResultadoAcesso | null;
+  mensagem: string | null;
+  orientacao: string | null;
+  conexao: string | null;
+  tempoMs: number | null;
+  rede: string[];
+  ipsScan: number | null;
+  dataTeste: string | null;
+}
+
+export interface AcessoEdicao {
+  nome: string;
+  forma: FormaAcesso;
+  host: string | null;
+  porta: number | null;
+  servico: string | null;
+  descritor: string | null;
+  alias: string | null;
+  finalidade: FinalidadeAcesso;
+  monitorado: boolean;
+}
+
+export interface InstanciaBanco {
+  codInstancia: number;
+  nome: string;
+  numero: number | null;
+  host: string | null;
+  situacao: string | null;
+  versao: string | null;
+  inicio: string | null;
+  noAr: boolean;
+  dataLeitura: string | null;
+  codProcesso: number | null;
+  servico: string | null;
+  codServidor: number | null;
+  servidor: string | null;
+}
+
+export interface ServicoBanco {
+  nome: string;
+  instancias: string[];
+}
+
+export interface SistemaUsoBanco {
+  codSistema: number;
+  sistema: string;
+  ambiente: string;
+  base: string | null;
+  acesso: string | null;
+}
+
+export interface Banco {
+  codBanco: number;
+  nome: string;
+  sgbd: string;
+  ambiente: string | null;
+  nomeAmbiente: string | null;
+  cor: string | null;
+  observacao: string | null;
+  usuarioMonitor: string | null;
+  temSenha: boolean;
+  ativo: boolean;
+  monitorado: boolean;
+  modelo: string;
+  versao: string | null;
+  dbUnique: string | null;
+  cdb: boolean | null;
+  rac: boolean | null;
+  asm: boolean | null;
+  papelDataGuard: string | null;
+  modoAbertura: string | null;
+  dataModelo: string | null;
+  situacao: SituacaoBanco | null;
+  detalhe: string | null;
+  orientacao: string | null;
+  atencoes: string[];
+  conexao: string | null;
+  tempoConexaoMs: number | null;
+  dataLeitura: string | null;
+  leituraVelha: boolean;
+  acessos: AcessoBanco[];
+  instancias: InstanciaBanco[];
+  servicos: ServicoBanco[];
+  grantsFaltando: string[];
+  sistemas: SistemaUsoBanco[];
+  pendencias: Pendencia[];
+  disponibilidade: Disponibilidade | null;
+}
+
+export interface BancoEdicao {
+  nome: string;
+  ambiente: string | null;
+  observacao: string | null;
+  usuarioMonitor: string | null;
+  senhaMonitor: string | null;
+  apagarSenha: boolean;
+  ativo: boolean;
+  monitorado: boolean;
+}
+
+export interface EntradaTns {
+  alias: string | null;
+  descritor: string;
+  enderecos: string[];
+  servico: string | null;
+  sid: string | null;
+  balanceia: boolean;
+  failover: boolean;
+}
+
+export interface ScriptBanco {
+  usuarioPrevisto: string;
+  script: string;
+  senhaNova: boolean;
+  aviso: string | null;
+}
+
+export interface AcessoVerificado {
+  codAcesso: number;
+  nome: string;
+  finalidade: FinalidadeAcesso;
+  resultado: ResultadoAcesso;
+  mensagem: string | null;
+  orientacao: string | null;
+  conexao: string | null;
+  tempoMs: number | null;
+  rede: string[];
+  atencoes: string[];
+}
+
+export interface TesteBanco {
+  banco: Banco;
+  acessos: AcessoVerificado[];
+  grantsFaltando: string[];
+}
+
+export interface TesteNo {
+  instancia: string;
+  host: string;
+  porta: number;
+  resultado: ResultadoAcesso;
+  mensagem: string | null;
+  orientacao: string | null;
+  tempoMs: number | null;
+}
+
+export interface ImportacaoInstancia {
+  codInstancia: number;
+  instancia: string;
+  host: string | null;
+  codServidor: number | null;
+  servidor: string | null;
+  codProcesso: number | null;
+  acao: 'CRIAR' | 'LIGAR' | 'JA_IMPORTADA' | 'SEM_SERVIDOR';
+  motivo: string;
+}
+
+export interface BancoOpcao {
+  codBanco: number;
+  nome: string;
+  ambiente: string | null;
+  situacao: SituacaoBanco | null;
+  acessos: { codAcesso: number; nome: string; finalidade: FinalidadeAcesso }[];
+}
+
+/** Banco do sistema no ambiente (R-83): ligado, ou só o texto antigo de Atualizações com a sugestão. */
+export interface BancoSistema {
+  codBanco: number | null;
+  nome: string | null;
+  base: string | null;
+  codAcesso: number | null;
+  acesso: string | null;
+  situacao: SituacaoBanco | null;
+  detalhe: string | null;
+  textoAntigo: string | null;
+  sugestaoCodBanco: number | null;
+  sugestaoNome: string | null;
+  sugestaoBase: string | null;
 }

@@ -1,0 +1,73 @@
+// Complementa servidores-servicos.scss (mesma base visual).
+
+.marca-acesso {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 8px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--mat-sys-primary) 14%, transparent);
+  color: var(--mat-sys-primary);
+  font-size: 0.72rem;
+  font-weight: 600;
+  white-space: nowrap;
+
+  &--fraca {
+    background: var(--i-sup-alta);
+    color: var(--i-fraco);
+  }
+
+  small {
+    font-weight: 400;
+  }
+}
+
+.servico__nome small {
+  display: block;
+  color: var(--i-fraco);
+  font-size: 0.78rem;
+}
+
+.acesso__resultado {
+  margin: 4px 0 0 18px;
+  font-size: 0.82rem;
+}
+
+.acesso__rede {
+  margin: 4px 0 0 18px;
+  padding-left: 16px;
+  font-family: monospace;
+  font-size: 0.75rem;
+  color: var(--i-fraco);
+}
+
+.tabela-instancias {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.84rem;
+
+  th,
+  td {
+    padding: 4px 6px;
+    border-bottom: 1px solid var(--i-borda);
+    text-align: left;
+  }
+
+  th {
+    color: var(--i-fraco);
+    font-weight: 500;
+  }
+}
+
+.servicos-banco {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+
+  .marca-acesso {
+    margin-left: 0;
+  }
+}
+
+.vazio {
+  color: var(--i-fraco);
+}

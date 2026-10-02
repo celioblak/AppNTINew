@@ -120,6 +120,28 @@
                         <b>{{ percentual(a.disponibilidade) }}</b> disponível em 30 dias <mat-icon inline>chevron_right</mat-icon>
                       </button>
                     </article>
+                    <article class="bloco">
+                      <h3><mat-icon>storage</mat-icon> Banco de dados</h3>
+                      @if (a.banco?.codBanco) {
+                        <div class="banco-sistema {{ classeBanco(a.banco!.situacao) }}">
+                          <i class="ponto"></i>
+                          <b>{{ a.banco!.nome }}</b>{{ a.banco!.base ? ' / ' + a.banco!.base : '' }}
+                          <small>{{ a.banco!.situacao ? rotuloSituacaoBanco[a.banco!.situacao] : 'sem leitura' }}{{ a.banco!.acesso ? ' · ' + a.banco!.acesso : '' }}</small>
+                        </div>
+                        @if (a.banco!.detalhe && a.banco!.situacao !== 'OK') {
+                          <p class="nota">{{ a.banco!.detalhe }}</p>
+                        }
+                      } @else if (a.banco?.textoAntigo) {
+                        <p class="nota">Só em texto (Atualizações): <b>{{ a.banco!.textoAntigo }}</b>.
+                          @if (a.banco!.sugestaoNome) { Sugestão: {{ a.banco!.sugestaoNome }}{{ a.banco!.sugestaoBase ? ' / ' + a.banco!.sugestaoBase : '' }}. }
+                        </p>
+                      } @else {
+                        <p class="nota">Nenhum banco ligado.</p>
+                      }
+                      <button mat-stroked-button (click)="abrirBanco(s, a)">
+                        <mat-icon>link</mat-icon> {{ a.banco?.codBanco ? 'Trocar' : a.banco?.textoAntigo ? 'Conciliar' : 'Ligar banco' }}
+                      </button>
+                    </article>
                   </div>
 
                   @if (a.pendencias.length) {
