@@ -324,6 +324,10 @@ export interface ServidorDto{
   /** Load de 5 min dividido pelos núcleos: 1 = capacidade cheia, 2 = fila dobrada. */
   loadporcpu?:number;
   usodisco:string;
+  /** Partição mais grave do servidor. */
+  discolocal?:string;
+  /** Nível dela pela regra do alerta: OK, ATENCAO, CRITICO, EXTREMO (nulo = ainda não avaliado). */
+  niveldisco?:string;
 }
 
 // ============ ESCALA INTERFACES ATUALIZADAS ============

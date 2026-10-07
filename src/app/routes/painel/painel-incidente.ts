@@ -280,11 +280,15 @@ export class PainelIncidente implements OnInit, OnDestroy {
       const dados = await firstValueFrom(this.painelService.servidores());
       const lista = Array.isArray(dados) ? dados : [];
 
-      // A consulta já vem ordenada pelos piores.
+      // Crítico primeiro (mais relevante), depois atenção; dentro do nível, a ordem da consulta (load, disco).
+      const peso = (s: ServidorDto) => (this.nivelServidor(s) === 'critico' ? 0 : this.nivelServidor(s) === 'alerta' ? 1 : 2);
       this.servidores.set(
         lista
           .filter(s => !!s)
           .filter(s => this.emAtencao(s))
+          .map((s, i) => ({ s, i }))
+          .sort((x, y) => peso(x.s) - peso(y.s) || x.i - y.i)
+          .map(x => x.s)
           .slice(0, MAX_SERVIDORES)
       );
 
@@ -338,6 +342,18 @@ export class PainelIncidente implements OnInit, OnDestroy {
     return 'ok';
   }
 
+  /**
+   * Situação do disco: o nível que o backend já calculou pela regra do alerta (% e GB juntos, boot fora); sem
+   * ele (registro antigo), os cortes por porcentagem.
+   */
+  nivelDiscoServidor(servidor: ServidorDto | undefined): NivelIndicador {
+    const nivel = servidor?.niveldisco;
+    if (nivel === 'CRITICO' || nivel === 'EXTREMO') return 'critico';
+    if (nivel === 'ATENCAO') return 'alerta';
+    if (nivel === 'OK') return 'ok';
+    return this.nivelDisco(servidor?.usodisco);
+  }
+
   /** Situação do disco, nos mesmos cortes do alerta do backend (20% e 10% livres). */
   nivelDisco(usoTexto: string | undefined): NivelIndicador {
     const uso = this.usoDisco(usoTexto);
@@ -353,12 +369,12 @@ export class PainelIncidente implements OnInit, OnDestroy {
    * do verde em 80%, então apareciam servidores "em atenção" com tudo bom.
    */
   emAtencao(servidor: ServidorDto | undefined): boolean {
-    return this.nivelLoad(servidor) !== 'ok' || this.nivelDisco(servidor?.usodisco) !== 'ok';
+    return this.nivelLoad(servidor) !== 'ok' || this.nivelDiscoServidor(servidor) !== 'ok';
   }
 
   /** Pior dos dois indicadores: define a cor da borda e o rótulo do card. */
   nivelServidor(servidor: ServidorDto | undefined): NivelIndicador {
-    const niveis = [this.nivelLoad(servidor), this.nivelDisco(servidor?.usodisco)];
+    const niveis = [this.nivelLoad(servidor), this.nivelDiscoServidor(servidor)];
     if (niveis.includes('critico')) return 'critico';
     if (niveis.includes('alerta')) return 'alerta';
     return 'ok';
