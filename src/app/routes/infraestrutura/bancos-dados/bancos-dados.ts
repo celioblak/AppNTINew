@@ -22,7 +22,10 @@ import {
   Credencial,
   Disponibilidade,
   InstanciaBanco,
+  MetricaBanco,
+  NivelMetrica,
   Pendencia,
+  ROTULO_NIVEL_METRICA,
   ROTULO_FINALIDADE,
   ROTULO_FORMA_ACESSO,
   ROTULO_SITUACAO_BANCO,
@@ -38,6 +41,8 @@ import {
   BancoDialogData,
   ImportarDialogData,
   ImportarInstanciasDialogComponent,
+  MetricaBancoDialogComponent,
+  MetricaDialogData,
   ScriptBancoDialogComponent,
   ScriptDialogData,
   TesteBancoDialogComponent,
@@ -68,6 +73,7 @@ export class BancosDadosComponent implements OnInit, OnDestroy {
   readonly rotuloSituacao = ROTULO_SITUACAO_BANCO;
   readonly rotuloForma = ROTULO_FORMA_ACESSO;
   readonly rotuloFinalidade = ROTULO_FINALIDADE;
+  readonly rotuloNivel = ROTULO_NIVEL_METRICA;
 
   readonly carregando = signal(false);
   readonly bancos = signal<Banco[]>([]);
@@ -76,6 +82,11 @@ export class BancosDadosComponent implements OnInit, OnDestroy {
   readonly filtro = signal('');
   readonly mostrarInativos = signal(false);
   readonly senha = signal<Credencial | null>(null);
+  readonly metricas = signal<MetricaBanco[]>([]);
+  readonly lendoMetricas = signal(false);
+  readonly mostrarIgnoradas = signal(false);
+  readonly metricasVisiveis = computed(() => this.metricas().filter(m => this.mostrarIgnoradas() || !m.ignorado));
+  readonly ignoradas = computed(() => this.metricas().filter(m => m.ignorado).length);
   private temporizador?: ReturnType<typeof setTimeout>;
 
   readonly filtrados = computed(() => {
@@ -131,6 +142,64 @@ export class BancosDadosComponent implements OnInit, OnDestroy {
   selecionar(codBanco: number) {
     this.selecionado.set(codBanco);
     this.esconderSenha();
+    this.carregarMetricas(codBanco);
+  }
+
+  // ---------------------------------------------------------------- métricas (F-3b)
+
+  private carregarMetricas(codBanco: number) {
+    this.metricas.set([]);
+    this.service.metricasBanco(codBanco).subscribe({
+      next: m => {
+        if (this.selecionado() === codBanco) this.metricas.set(m);
+      },
+      error: () => {},
+    });
+  }
+
+  lerMetricas(b: Banco) {
+    this.lendoMetricas.set(true);
+    this.service
+      .lerMetricasBanco(b.codBanco)
+      .pipe(finalize(() => this.lendoMetricas.set(false)))
+      .subscribe({
+        next: m => {
+          this.metricas.set(m);
+          this.service.banco(b.codBanco).subscribe({ next: x => this.aplicar(x), error: () => {} });
+          this.toast.success('Métricas lidas agora.');
+        },
+        error: () => {},
+      });
+  }
+
+  ajustarMetrica(b: Banco, m: MetricaBanco) {
+    this.dialog
+      .open<MetricaBancoDialogComponent, MetricaDialogData, MetricaBanco>(MetricaBancoDialogComponent, {
+        width: '560px',
+        maxWidth: '96vw',
+        data: { codBanco: b.codBanco, metrica: m },
+      })
+      .afterClosed()
+      .subscribe(salva => {
+        if (!salva) return;
+        this.metricas.update(l => l.map(x => (x.codMetrica === salva.codMetrica ? salva : x)));
+        this.toast.success(salva.ignorado ? 'Métrica ignorada: não alerta mais.' : 'Limite salvo: vale na próxima leitura.');
+      });
+  }
+
+  classeNivel(nivel: NivelMetrica | null, ignorado = false) {
+    if (ignorado) return 'sit--desconhecido';
+    switch (nivel) {
+      case 'OK':
+        return 'sit--ok';
+      case 'ATENCAO':
+        return 'sit--alerta';
+      case 'CRITICO':
+      case 'EXTREMO':
+        return 'sit--fora';
+      default:
+        return 'sit--desconhecido';
+    }
   }
 
   private aplicar(b: Banco) {

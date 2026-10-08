@@ -5,7 +5,7 @@ import { ServidorDto } from '@core';
 import { ChamadoCard, TomChamado } from './chamado-card';
 import { PainelEventosService } from './painel-eventos.service';
 import { idadeTexto, numero } from './painel-formato';
-import { ChamadoPainel, ProblemaPainel, SessaoLockPainel, SistemaImpactado } from './painel.models';
+import { BancoPainel, ChamadoPainel, ProblemaPainel, SessaoLockPainel, SistemaImpactado } from './painel.models';
 import { RodizioPaginas } from './painel-rodizio';
 import { PainelService } from './painel.service';
 
@@ -20,6 +20,9 @@ const DISCO_ALERTA = 80;
 
 /** Acima disso sobra menos de 10%: mesmo ponto em que o backend gera ERRO. */
 const DISCO_CRITICO = 90;
+
+/** Bancos: lidos a cada 15 s (a situação muda a cada 30 s). */
+const BANCOS_INTERVALO_MS = 15_000;
 
 /** Lock só aparece na TV depois de alguns minutos parado. */
 const LOCK_MINUTOS_MINIMO = 3;
@@ -69,6 +72,8 @@ export class PainelIncidente implements OnInit, OnDestroy {
   readonly chamados = signal<ChamadoPainel[]>([]);
   readonly servidores = signal<ServidorDto[]>([]);
   readonly locks = signal<SessaoLockPainel[]>([]);
+  /** Bancos com problema (F-3b, D-66). */
+  readonly bancos = signal<BancoPainel[]>([]);
   readonly problemas = signal<ProblemaPainel[]>([]);
   readonly lockMaisLongo = signal(0);
   readonly novos = signal<ReadonlySet<string>>(new Set());
@@ -121,7 +126,7 @@ export class PainelIncidente implements OnInit, OnDestroy {
   );
 
   readonly temMonitoramento = computed(
-    () => this.problemas().length > 0 || this.servidores().length > 0 || this.totalLocks() > 0
+    () => this.problemas().length > 0 || this.servidores().length > 0 || this.totalLocks() > 0 || this.bancos().length > 0
   );
   readonly problemasVisiveis = computed(() => this.problemas().slice(0, MAX_PROBLEMAS));
   readonly problemasOcultos = computed(() => Math.max(0, this.problemas().length - MAX_PROBLEMAS));
@@ -148,6 +153,7 @@ export class PainelIncidente implements OnInit, OnDestroy {
   private carregandoChamados = false;
   private carregandoServidores = false;
   private carregandoLocks = false;
+  private bancosLidosEm = 0;
   private carregandoImpactos = false;
 
   ngOnInit(): void {
@@ -175,6 +181,7 @@ export class PainelIncidente implements OnInit, OnDestroy {
       this.carregarServidores(),
       this.carregarLocks(),
       this.carregarImpactos(),
+      this.carregarBancos(),
     ]);
 
     if (resultados.every(Boolean)) this.eventos.registrarCarga();
@@ -447,6 +454,24 @@ export class PainelIncidente implements OnInit, OnDestroy {
     const inicio = new Date(problema.desde).getTime();
     if (!isFinite(inicio)) return '';
     return idadeTexto(Math.max(0, Math.trunc((Date.now() - inicio) / 60000)));
+  }
+
+  // ───────────────────────── bancos (F-3b) ─────────────────────────
+
+  /**
+   * A situação dos bancos muda a cada 30 s (job): lê a cada 15 s, não a cada 2 s como o resto. Falha aqui não segura
+   * o relógio do painel (o bloco só some quando a leitura volta vazia).
+   */
+  private async carregarBancos(): Promise<boolean> {
+    const agora = Date.now();
+    if (agora - this.bancosLidosEm < BANCOS_INTERVALO_MS) return true;
+    this.bancosLidosEm = agora;
+    try {
+      this.bancos.set(await firstValueFrom(this.painelService.bancos()));
+    } catch (erro) {
+      console.error('Painel: falha ao carregar os bancos', erro);
+    }
+    return true;
   }
 
   // ───────────────────────── locks ─────────────────────────

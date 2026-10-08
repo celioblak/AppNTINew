@@ -25,6 +25,8 @@ import {
   FinalidadeAcesso,
   FormaAcesso,
   ImportacaoInstancia,
+  MetricaBanco,
+  MetricaEdicao,
   ROTULO_FINALIDADE,
   ROTULO_FORMA_ACESSO,
   ROTULO_SITUACAO_BANCO,
@@ -119,7 +121,12 @@ export interface BancoDialogData {
         <div class="linha inteira">
           <mat-slide-toggle [(ngModel)]="form.ativo">Ativo</mat-slide-toggle>
           <mat-slide-toggle [(ngModel)]="form.monitorado">Monitorado</mat-slide-toggle>
+          <mat-slide-toggle [(ngModel)]="form.backupRman">Backup pelo RMAN</mat-slide-toggle>
         </div>
+        <p class="dica inteira">
+          Desligue "Backup pelo RMAN" se o backup é feito por outra ferramenta (snapshot, export) ou no standby: sem isso o banco
+          alerta "backup atrasado".
+        </p>
       </div>
     </mat-dialog-content>
     <mat-dialog-actions>
@@ -145,6 +152,7 @@ export class BancoDialogComponent {
     apagarSenha: false,
     ativo: this.data.banco?.ativo ?? true,
     monitorado: this.data.banco?.monitorado ?? true,
+    backupRman: this.data.banco?.backupRman ?? true,
   };
 
   salvar() {
@@ -660,5 +668,79 @@ export class ImportarInstanciasDialogComponent implements OnInit {
       .importarInstancias(this.data.banco.codBanco)
       .pipe(finalize(() => this.importando.set(false)))
       .subscribe({ next: b => this.ref.close(b), error: () => {} });
+  }
+}
+
+// ===================================================================================================== métrica
+
+export interface MetricaDialogData {
+  codBanco: number;
+  metrica: MetricaBanco;
+}
+
+/** Limite próprio da linha e "ignorar" (docs/infraestrutura.md, R-95). Vazio = o padrão de Configurações › Parâmetros. */
+@Component({
+  selector: 'app-metrica-banco-dialog',
+  imports: [FormsModule, MatButtonModule, MatCheckboxModule, MatDialogModule, MatFormFieldModule, MatInputModule],
+  template: `
+    <h2 mat-dialog-title>{{ data.metrica.rotulo }}{{ data.metrica.objeto !== '-' ? ' · ' + data.metrica.objeto : '' }}</h2>
+    <mat-dialog-content>
+      <p class="dica">Agora: {{ data.metrica.valor }}</p>
+      @if (data.metrica.unidadeLimite; as unidade) {
+        <p class="dica">
+          Vazio = o padrão de Configurações › Parâmetros (grupo "Banco de dados").
+          @if (espaco) {
+            No espaço o limite é <b>% livre</b>: o nível só sobe quando o % livre e os GB livres (do parâmetro) ficam abaixo juntos.
+          }
+        </p>
+        <div class="grade">
+          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+            <mat-label>Atenção ({{ unidade }})</mat-label>
+            <input matInput type="number" min="0" [(ngModel)]="form.limiteAtencao" />
+          </mat-form-field>
+          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+            <mat-label>Crítico ({{ unidade }})</mat-label>
+            <input matInput type="number" min="0" [(ngModel)]="form.limiteCritico" />
+          </mat-form-field>
+        </div>
+      }
+      <mat-checkbox [(ngModel)]="form.ignorado">Ignorar: continua lida, mas não alerta nem aparece no painel</mat-checkbox>
+      <p class="dica">
+        Use para o que é de propósito (ex.: tablespace de um sistema desativado, objeto inválido sem uso). Ignorar os objetos inválidos
+        vale para a base inteira: um inválido novo nela também não alerta.
+      </p>
+    </mat-dialog-content>
+    <mat-dialog-actions>
+      <button mat-button mat-dialog-close>Cancelar</button>
+      <button mat-flat-button (click)="salvar()" [disabled]="salvando()">Salvar</button>
+    </mat-dialog-actions>
+  `,
+  styles: ESTILOS,
+  changeDetection: ChangeDetectionStrategy.OnPush,
+})
+export class MetricaBancoDialogComponent {
+  readonly data = inject<MetricaDialogData>(MAT_DIALOG_DATA);
+  private readonly ref = inject(MatDialogRef<MetricaBancoDialogComponent, MetricaBanco>);
+  private readonly service = inject(InfraestruturaService);
+  readonly salvando = signal(false);
+  readonly espaco = this.data.metrica.tipo === 'TABLESPACE' || this.data.metrica.tipo === 'ASM';
+
+  form: MetricaEdicao = {
+    limiteAtencao: this.data.metrica.limiteAtencao,
+    limiteCritico: this.data.metrica.limiteCritico,
+    ignorado: this.data.metrica.ignorado,
+  };
+
+  salvar() {
+    const vazio = (v: number | null) => (v === null || (v as unknown) === '' ? null : Number(v));
+    this.salvando.set(true);
+    this.service
+      .salvarMetricaBanco(this.data.codBanco, this.data.metrica.codMetrica, {
+        limiteAtencao: vazio(this.form.limiteAtencao),
+        limiteCritico: vazio(this.form.limiteCritico),
+        ignorado: this.form.ignorado,
+      })
+      .pipe(finalize(() => this.salvando.set(false)))
+      .subscribe({ next: m => this.ref.close(m), error: () => {} });
   }
 }

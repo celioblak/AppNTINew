@@ -40,6 +40,11 @@
             </span>
             <small class="item__info">{{ rotulo(b) }}{{ b.nomeAmbiente ? ' · ' + b.nomeAmbiente : '' }}</small>
             <small class="item__info">{{ b.dataModelo ? b.modelo : 'Modelo ainda não lido' }}</small>
+            @if (b.metricasCriticas || b.metricasAtencao) {
+              <small class="item__info" [class.texto-alerta]="b.metricasCriticas > 0">
+                {{ b.metricasCriticas ? b.metricasCriticas + ' métrica(s) crítica(s)' : '' }}{{ b.metricasCriticas && b.metricasAtencao ? ' · ' : '' }}{{ b.metricasAtencao ? b.metricasAtencao + ' em atenção' : '' }}
+              </small>
+            }
           </button>
         } @empty {
           <p class="vazio">
@@ -60,7 +65,7 @@
           <mat-icon class="cabecalho__icone">storage</mat-icon>
           <div class="cabecalho__titulo">
             <h2>{{ b.nome }} @if (!b.ativo) { <span class="tag">Inativo</span> } <span class="selo">{{ rotulo(b) }}</span></h2>
-            <span>{{ b.modelo }}{{ b.nomeAmbiente ? ' · ' + b.nomeAmbiente : '' }}</span>
+            <span>{{ b.modelo }}{{ b.nomeAmbiente ? ' · ' + b.nomeAmbiente : '' }}{{ b.dataGuard ? ' · Data Guard: ' + b.dataGuard : '' }}</span>
           </div>
           <button mat-flat-button (click)="testar(b)"><mat-icon>play_arrow</mat-icon> Testar</button>
           <button mat-stroked-button (click)="abrirBanco(b)"><mat-icon>edit</mat-icon> Editar</button>
@@ -135,6 +140,62 @@
             <p class="nota">Sem acesso (usuário, senha ou grant) não conta como parada: fica "sem dados".</p>
           </article>
         </div>
+
+        <!-- Métricas (F-3b) -->
+        <div class="servicos__topo">
+          <h3>Métricas ({{ metricasVisiveis().length }})</h3>
+          @if (b.dataMetricas) { <small class="nota">tablespaces, FRA, ASM e backup lidos em {{ b.dataMetricas | date: 'dd/MM HH:mm' }}</small> }
+          <span class="espaco"></span>
+          @if (ignoradas()) {
+            <mat-slide-toggle [checked]="mostrarIgnoradas()" (change)="mostrarIgnoradas.set($event.checked)">Ignoradas ({{ ignoradas() }})</mat-slide-toggle>
+          }
+          <button mat-stroked-button (click)="lerMetricas(b)" [disabled]="lendoMetricas() || !b.temSenha"
+                  matTooltip="Conecta e lê todas agora (o monitoramento lê sessões, Data Guard e lock a cada 30 s; inválidos a cada 3 min; o resto a cada 15 min)">
+            <mat-icon>refresh</mat-icon> Ler agora
+          </button>
+        </div>
+        @if (lendoMetricas()) { <mat-progress-bar mode="indeterminate" /> }
+        @if (metricasVisiveis().length) {
+          <table class="tabela-instancias tabela-metricas">
+            <tr>
+              <th></th>
+              <th>Métrica</th>
+              <th>Objeto</th>
+              <th>Valor</th>
+              <th>Nível</th>
+              <th>Lido</th>
+              <th></th>
+            </tr>
+            @for (m of metricasVisiveis(); track m.codMetrica) {
+              <tr class="{{ classeNivel(m.nivel, m.ignorado) }}" [class.metrica--ignorada]="m.ignorado">
+                <td><i class="ponto"></i></td>
+                <td><b>{{ m.rotulo }}</b></td>
+                <td>{{ m.objeto === '-' ? '' : m.objeto }}</td>
+                <td>
+                  {{ m.valor }}
+                  @if (m.detalhe && m.tipo === 'INVALIDOS') { <div class="nota">{{ m.detalhe }}</div> }
+                  @if (m.orientacao && m.nivel !== 'OK' && !m.ignorado) { <div class="orientacao-metrica">{{ m.orientacao }}</div> }
+                </td>
+                <td>
+                  {{ m.ignorado ? 'Ignorada' : m.nivel ? rotuloNivel[m.nivel] : '—' }}
+                  @if (m.limiteAtencao !== null || m.limiteCritico !== null) {
+                    <small class="nota" matTooltip="Limite próprio desta linha">limite próprio</small>
+                  }
+                </td>
+                <td><small>{{ m.dataLeitura | date: 'dd/MM HH:mm' }}</small></td>
+                <td><button mat-icon-button matTooltip="Limite próprio ou ignorar" (click)="ajustarMetrica(b, m)"><mat-icon>tune</mat-icon></button></td>
+              </tr>
+            }
+          </table>
+        } @else {
+          <p class="nota">
+            @if (b.temSenha) {
+              Nenhuma métrica lida ainda: o monitoramento lê na próxima volta (ou use "Ler agora"). Grant que falta aparece nas pendências.
+            } @else {
+              As métricas aparecem depois do usuário de monitoramento (botão "Script do usuário").
+            }
+          </p>
+        }
 
         <!-- Pontos de acesso -->
         <div class="servicos__topo">

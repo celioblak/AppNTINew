@@ -5,7 +5,7 @@ import { catchError, Observable, of } from 'rxjs';
 import { semTratamentoDeErro } from '@core';
 import { environment } from '@env/environment';
 import { ServidorDto } from '@core';
-import { ChamadosResposta, ImpactosResposta, LocksResposta, RequisicaoResposta } from './painel.models';
+import { BancoPainel, ChamadosResposta, ImpactosResposta, LocksResposta, RequisicaoResposta } from './painel.models';
 
 /**
  * Endpoints do painel de TV. Todos estão liberados sem autenticação no backend
@@ -52,6 +52,11 @@ export class PainelService {
   /** Servidores/serviços fora do ar e os sistemas que cada um derruba. */
   impactos(): Observable<ImpactosResposta> {
     return this.get<ImpactosResposta>('impactos');
+  }
+
+  /** Bancos de dados com problema agora (F-3b): só os que precisam de atenção. */
+  bancos(): Observable<BancoPainel[]> {
+    return this.get<BancoPainel[]>('bancos');
   }
 
   /** Sessões Oracle em lock. */

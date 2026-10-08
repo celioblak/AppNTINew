@@ -71,3 +71,26 @@
 .vazio {
   color: var(--i-fraco);
 }
+
+// Métricas (F-3b)
+.tabela-metricas {
+  td {
+    vertical-align: top;
+  }
+
+  .nota {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--i-fraco);
+  }
+}
+
+.orientacao-metrica {
+  margin-top: 2px;
+  font-size: 0.75rem;
+  color: var(--i-fraco);
+}
+
+.metrica--ignorada {
+  opacity: 0.6;
+}

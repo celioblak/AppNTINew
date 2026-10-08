@@ -88,6 +88,18 @@ export interface ProblemaPainel {
   sistemas: SistemaImpactado[];
 }
 
+/** Banco com problema agora (F-3b, D-66): fora, parcial, sem acesso, métrica crítica, Data Guard ou inválidos. */
+export interface BancoPainel {
+  codBanco: number;
+  nome: string;
+  ambiente: string | null;
+  cor: string | null;
+  situacao: string | null;
+  /** "critico" (fora ou métrica crítica) ou "alerta". */
+  nivel: 'critico' | 'alerta';
+  problemas: string[];
+}
+
 export interface ImpactosResposta {
   atualizadoEm: string | number;
   problemas: ProblemaPainel[];

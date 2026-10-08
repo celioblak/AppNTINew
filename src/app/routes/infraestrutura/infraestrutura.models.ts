@@ -584,7 +584,49 @@ export interface Banco {
   sistemas: SistemaUsoBanco[];
   pendencias: Pendencia[];
   disponibilidade: Disponibilidade | null;
+  /** F-3b: o backup é pelo RMAN (a métrica de backup vale). */
+  backupRman: boolean;
+  /** Data Guard lido (ex.: "primário · 1 standby recebendo"); nulo = sem Data Guard. */
+  dataGuard: string | null;
+  metricasAtencao: number;
+  metricasCriticas: number;
+  dataMetricas: string | null;
 }
+
+export type NivelMetrica = 'OK' | 'ATENCAO' | 'CRITICO' | 'EXTREMO';
+
+/** Métrica do banco (F-3b, aba Métricas). */
+export interface MetricaBanco {
+  codMetrica: number;
+  tipo: string;
+  rotulo: string;
+  objeto: string;
+  valor: string | null;
+  percentual: number | null;
+  nivel: NivelMetrica | null;
+  detalhe: string | null;
+  orientacao: string | null;
+  limiteAtencao: number | null;
+  limiteCritico: number | null;
+  /** Unidade do limite próprio; nulo = a linha só aceita "ignorar". */
+  unidadeLimite: string | null;
+  ignorado: boolean;
+  dataLeitura: string | null;
+  dataAlerta: string | null;
+}
+
+export interface MetricaEdicao {
+  limiteAtencao: number | null;
+  limiteCritico: number | null;
+  ignorado: boolean;
+}
+
+export const ROTULO_NIVEL_METRICA: Record<NivelMetrica, string> = {
+  OK: 'OK',
+  ATENCAO: 'Atenção',
+  CRITICO: 'Crítico',
+  EXTREMO: 'Extremo',
+};
 
 export interface BancoEdicao {
   nome: string;
@@ -595,6 +637,7 @@ export interface BancoEdicao {
   apagarSenha: boolean;
   ativo: boolean;
   monitorado: boolean;
+  backupRman: boolean;
 }
 
 export interface EntradaTns {

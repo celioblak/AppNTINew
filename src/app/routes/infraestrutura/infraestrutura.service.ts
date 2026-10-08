@@ -7,6 +7,8 @@ import {
   AcessoEdicao,
   Ambiente,
   Banco,
+  MetricaBanco,
+  MetricaEdicao,
   BancoEdicao,
   BancoOpcao,
   EntradaTns,
@@ -271,6 +273,21 @@ export class InfraestruturaService {
 
   esquecerInstancia(codBanco: number, codInstancia: number) {
     return this.http.delete<Banco>(`${this.api}/bancos/${codBanco}/instancias/${codInstancia}`);
+  }
+
+  // ---- Métricas do banco (F-3b) ----
+
+  metricasBanco(codBanco: number) {
+    return this.http.get<MetricaBanco[]>(`${this.api}/bancos/${codBanco}/metricas`);
+  }
+
+  /** "Ler agora": conecta e lê todas as métricas, fora do intervalo. */
+  lerMetricasBanco(codBanco: number) {
+    return this.http.post<MetricaBanco[]>(`${this.api}/bancos/${codBanco}/metricas/ler`, {});
+  }
+
+  salvarMetricaBanco(codBanco: number, codMetrica: number, dados: MetricaEdicao) {
+    return this.http.put<MetricaBanco>(`${this.api}/bancos/${codBanco}/metricas/${codMetrica}`, dados);
   }
 
   /** Bancos para escolher no sistema (conciliação). */
