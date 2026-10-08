@@ -43,6 +43,9 @@ const MS_DESTAQUE_NOVO = 6000;
 /** Servidores listados no bloco de monitoramento. */
 const MAX_SERVIDORES = 4;
 
+/** Bancos com problema listados; o resto vira "+ N não listados". */
+const MAX_BANCOS = 2;
+
 /** Locks detalhados; o resto vira contagem no resumo. */
 const MAX_LOCKS = 3;
 
@@ -70,10 +73,11 @@ export class PainelIncidente implements OnInit, OnDestroy {
   private readonly eventos = inject(PainelEventosService);
 
   readonly chamados = signal<ChamadoPainel[]>([]);
-  readonly servidores = signal<ServidorDto[]>([]);
   readonly locks = signal<SessaoLockPainel[]>([]);
   /** Bancos com problema (F-3b, D-66). */
   readonly bancos = signal<BancoPainel[]>([]);
+  readonly bancosVisiveis = computed(() => this.bancos().slice(0, MAX_BANCOS));
+  readonly bancosOcultos = computed(() => Math.max(0, this.bancos().length - MAX_BANCOS));
   readonly problemas = signal<ProblemaPainel[]>([]);
   readonly lockMaisLongo = signal(0);
   readonly novos = signal<ReadonlySet<string>>(new Set());
@@ -128,6 +132,22 @@ export class PainelIncidente implements OnInit, OnDestroy {
   readonly temMonitoramento = computed(
     () => this.problemas().length > 0 || this.servidores().length > 0 || this.totalLocks() > 0 || this.bancos().length > 0
   );
+  /** Todos os servidores em atenção ou crítico, críticos primeiro. */
+  private readonly servidoresTodos = signal<ServidorDto[]>([]);
+  /**
+   * Os que cabem no painel. Com críticos enchendo as vagas, a última fica para o primeiro em atenção: antes, com 4
+   * críticos, nenhum em atenção aparecia.
+   */
+  readonly servidores = computed(() => {
+    const todos = this.servidoresTodos();
+    const criticos = todos.filter(s => this.nivelServidor(s) === 'critico');
+    const atencao = todos.filter(s => this.nivelServidor(s) !== 'critico');
+    if (atencao.length > 0 && criticos.length >= MAX_SERVIDORES) return [...criticos.slice(0, MAX_SERVIDORES - 1), atencao[0]];
+    return todos.slice(0, MAX_SERVIDORES);
+  });
+  readonly servidoresCriticos = computed(() => this.servidoresTodos().filter(s => this.nivelServidor(s) === 'critico').length);
+  readonly servidoresAtencao = computed(() => this.servidoresTodos().length - this.servidoresCriticos());
+  readonly servidoresOcultos = computed(() => this.servidoresTodos().length - this.servidores().length);
   readonly problemasVisiveis = computed(() => this.problemas().slice(0, MAX_PROBLEMAS));
   readonly problemasOcultos = computed(() => Math.max(0, this.problemas().length - MAX_PROBLEMAS));
 
@@ -289,14 +309,13 @@ export class PainelIncidente implements OnInit, OnDestroy {
 
       // Crítico primeiro (mais relevante), depois atenção; dentro do nível, a ordem da consulta (load, disco).
       const peso = (s: ServidorDto) => (this.nivelServidor(s) === 'critico' ? 0 : this.nivelServidor(s) === 'alerta' ? 1 : 2);
-      this.servidores.set(
+      this.servidoresTodos.set(
         lista
           .filter(s => !!s)
           .filter(s => this.emAtencao(s))
           .map((s, i) => ({ s, i }))
           .sort((x, y) => peso(x.s) - peso(y.s) || x.i - y.i)
           .map(x => x.s)
-          .slice(0, MAX_SERVIDORES)
       );
 
       return true;

@@ -37,7 +37,8 @@
 
     > section.secao-encolhe {
       flex: 0 1 auto;
-      min-height: 0;
+      // Pelo menos o cabeçalho (com a contagem) e um card: antes a seção sumia com a coluna cheia.
+      min-height: clamp(110px, 18vh, 260px);
       overflow: hidden;
     }
   }

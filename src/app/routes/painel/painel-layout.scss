@@ -24,9 +24,10 @@
   --pn-neutro: #4a5568;
   // Locks em roxo: vermelho, âmbar e azul já são as faixas dos chamados.
   // Quanto mais tempo em lock, mais forte o tom.
-  --pn-lock-recente: #b9a3e8;
-  --pn-lock-atencao: #9466e0;
-  --pn-lock-critico: #7b3fd1;
+  // Locks: três tons bem diferentes (eram três roxos parecidos, iguais de longe na TV).
+  --pn-lock-recente: #8f8aa6;
+  --pn-lock-atencao: #b56cff;
+  --pn-lock-critico: #ff3dbb;
 
   position: fixed;
   inset: 0;

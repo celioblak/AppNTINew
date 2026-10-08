@@ -103,9 +103,12 @@
         <section>
           <header class="secao">
             <h2 class="secao__titulo">Bancos de dados</h2>
+            @if (bancosOcultos() > 0) {
+              <span class="locks__ocultos">+ {{ bancosOcultos() }} não listados</span>
+            }
           </header>
           <div class="impactos">
-            @for (banco of bancos(); track banco.codBanco) {
+            @for (banco of bancosVisiveis(); track banco.codBanco) {
               <article class="impacto impacto--{{ banco.nivel === 'critico' ? 'critico' : 'alto' }}">
                 <div class="impacto__topo">
                   <span class="impacto__icone" aria-hidden="true">🛢️</span>
@@ -176,6 +179,16 @@
         <section class="secao-encolhe">
           <header class="secao">
             <h2 class="secao__titulo">Servidores</h2>
+            <!-- Contagem no cabeçalho: fica visível mesmo quando a lista corta (D-55: só ambientes com alerta). -->
+            @if (servidoresCriticos() > 0) {
+              <span class="etiqueta etiqueta--critico">{{ servidoresCriticos() }} {{ servidoresCriticos() === 1 ? 'CRÍTICO' : 'CRÍTICOS' }}</span>
+            }
+            @if (servidoresAtencao() > 0) {
+              <span class="etiqueta etiqueta--alerta">{{ servidoresAtencao() }} ATENÇÃO</span>
+            }
+            @if (servidoresOcultos() > 0) {
+              <span class="locks__ocultos">+ {{ servidoresOcultos() }} não listados</span>
+            }
           </header>
 
           <div class="servidores">
