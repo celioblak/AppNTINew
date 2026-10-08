@@ -233,3 +233,35 @@
     transform: translate(4px, 3px);
   }
 }
+
+// Avisos ao vivo (pedido de 08/10/2026): mais largos, com o fundo pela gravidade, e do lado esquerdo (o dos chamados):
+// à direita cobriam os problemas, os servidores e os locks.
+.avisos {
+  right: auto;
+  left: clamp(12px, 2vw, 32px);
+  width: min(48vw, 960px);
+  max-width: none;
+}
+
+.aviso {
+  padding: clamp(12px, 1.8vh, 24px) clamp(16px, 1.6vw, 28px);
+  border-left-width: 12px;
+  box-shadow: 0 10px 32px rgb(0 0 0 / 60%);
+
+  strong {
+    color: var(--pn-texto);
+    opacity: 0.85;
+  }
+
+  &--info {
+    background: color-mix(in srgb, var(--pn-info) 30%, var(--pn-superficie-alta));
+  }
+
+  &--alerta {
+    background: color-mix(in srgb, var(--pn-atencao) 30%, var(--pn-superficie-alta));
+  }
+
+  &--erro {
+    background: color-mix(in srgb, var(--pn-critico) 35%, var(--pn-superficie-alta));
+  }
+}

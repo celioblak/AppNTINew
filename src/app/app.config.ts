@@ -18,7 +18,8 @@ import { FORMLY_CONFIG, FormlyModule, provideFormlyCore } from '@ngx-formly/core
 import { FormlyMaterialModule, withFormlyMaterial } from '@ngx-formly/material';
 import { provideTranslateService, TranslateService } from '@ngx-translate/core';
 import { provideTranslateHttpLoader } from '@ngx-translate/http-loader';
-import { provideHotToastConfig } from '@ngxpert/hot-toast';
+import { HotToastService, provideHotToastConfig } from '@ngxpert/hot-toast';
+import { HotToastComFechamento } from './shared/services/toast-com-fechamento.service';
 import { NgxPermissionsModule } from 'ngx-permissions';
 
 import {
@@ -47,6 +48,8 @@ export const appConfig: ApplicationConfig = {
       withComponentInputBinding()
     ),
     provideHotToastConfig(),
+    // Avisos que não fechavam sozinhos: fecha pela referência depois do tempo (rede de segurança).
+    { provide: HotToastService, useClass: HotToastComFechamento },
     provideTranslateService({
       loader: provideTranslateHttpLoader({ prefix: 'i18n/', suffix: '.json' }),
     }),
