@@ -1,3 +1,5 @@
+<mat-tab-group class="abas-cadastro" animationDuration="0ms" mat-stretch-tabs="false" mat-align-tabs="start">
+<mat-tab label="Usuários">
 <div class="container-fluid" [class.mobile]="isMobile">
   <!-- Filtros -->
   <div class="filter-container" [class.mobile-layout]="isMobile">
@@ -55,6 +57,21 @@
     </mat-card-content>
   </mat-card>
 </div>
+</mat-tab>
+
+<!-- De-para: nome do responsável dos tickets MV → usuário do AppNTI (docs/de-para-usuarios-mv.md) -->
+<mat-tab>
+  <ng-template mat-tab-label>
+    Usuários MV
+    @if (pendentesMv > 0) {
+      <span class="aba-pendentes" matTooltip="Nomes de responsável sem vínculo">{{ pendentesMv }}</span>
+    }
+  </ng-template>
+  <ng-template matTabContent>
+    <app-usuarios-mv [usuarios]="usuarios" (pendentesChange)="pendentesMv = $event" />
+  </ng-template>
+</mat-tab>
+</mat-tab-group>
 
 <!-- Coluna: Perfil -->
 <ng-template #perfilTpl let-row>

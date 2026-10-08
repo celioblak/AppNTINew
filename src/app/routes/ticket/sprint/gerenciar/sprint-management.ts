@@ -22,6 +22,7 @@ import jsPDF from 'jspdf';
 
 // Serviços e modelos (ajuste os paths conforme sua estrutura)
 import { Sprint, SprintTicket } from '@core';
+import { SprintCabecalhoComponent, SprintIndicador } from '../cabecalho/sprint-cabecalho.component';
 import { SprintService } from '../sprintService';
 import { DashboardService } from '../dashboard/dashboard.service';
 
@@ -44,7 +45,8 @@ import { DashboardService } from '../dashboard/dashboard.service';
     MatDividerModule,
     MatInputModule,
     MatFormFieldModule,
-    MatTooltipModule
+    MatTooltipModule,
+    SprintCabecalhoComponent
   ]
 })
 export class GerenciamentoSprint implements OnInit, OnDestroy {
@@ -61,6 +63,8 @@ export class GerenciamentoSprint implements OnInit, OnDestroy {
   totalTickets: number = 0;
   ticketsConcluidos: number = 0;
   ticketsNaoEntregues: number = 0;
+  /** Números exibidos no cabeçalho da sprint — recalculados em atualizarEstatisticas(). */
+  indicadoresSprint: SprintIndicador[] = [];
   ticketsPendentes: number = 0;
 
   indiceSprintAtual: number = 0;
@@ -229,6 +233,12 @@ export class GerenciamentoSprint implements OnInit, OnDestroy {
       return status === 'NAO_ENTREGUE';
     }).length;
     this.ticketsPendentes = this.totalTickets - this.ticketsConcluidos - this.ticketsNaoEntregues;
+    this.indicadoresSprint = [
+      { rotulo: 'Total', valor: this.totalTickets },
+      { rotulo: 'Concluídos', valor: this.ticketsConcluidos, tom: 'sucesso' },
+      { rotulo: 'Não entregues', valor: this.ticketsNaoEntregues, tom: 'perigo' },
+      { rotulo: 'Pendentes', valor: this.ticketsPendentes, tom: 'alerta' },
+    ];
   }
 
   //sprintAnterior
@@ -398,6 +408,16 @@ export class GerenciamentoSprint implements OnInit, OnDestroy {
     return dataObj.toLocaleDateString('pt-BR', {
       day: '2-digit', month: '2-digit', year: 'numeric'
     });
+  }
+
+  /** Rótulo curto do status de entrega para o combo do card (o valor gravado não muda). */
+  getStatusRotulo(status?: string | null): string {
+    switch (status) {
+      case 'PENDENTE':     return 'Pendente';
+      case 'ENTREGUE':     return 'Entregue';
+      case 'NAO_ENTREGUE': return 'Não entregue';
+      default:             return status || '—';
+    }
   }
 
   getCriticidadeRotulo(criticidade: number): string {

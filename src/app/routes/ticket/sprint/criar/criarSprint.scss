@@ -1,3 +1,5 @@
+@use '@angular/material' as mat;
+
 /* ============================================
    CRIAR SPRINT - LAYOUT OTIMIZADO
    ============================================ */
@@ -1177,5 +1179,186 @@
   :host ::ng-deep .ticket-criticidade-compact .compact-field {
     width: 55px !important;
     min-width: 55px !important;
+  }
+}
+
+// Responsável do ticket no rodapé do card
+.ticket-list-item .ticket-responsavel {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  min-width: 0;
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px dashed var(--mat-sys-outline-variant, rgba(0, 0, 0, 0.12));
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--mat-sys-on-surface-variant, rgba(0, 0, 0, 0.6));
+
+  span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  mat-icon {
+    font-size: 13px;
+    width: 13px;
+    height: 13px;
+    flex-shrink: 0;
+  }
+
+  &.vazio {
+    font-style: italic;
+    opacity: 0.7;
+  }
+}
+
+/* ============================================
+   SEÇÃO SUPERIOR COMPACTA
+   "Informações da Sprint" e "Seleção de Tickets" ocupando o mínimo de
+   altura, para sobrar espaço às listas de tickets.
+   ============================================ */
+.top-section {
+  gap: 12px;
+
+  .form-section {
+    padding: 12px 16px;
+
+    h2 {
+      margin-bottom: 8px;
+      font-size: 15px;
+    }
+  }
+
+  // Campos com 40px de altura (padrão 56px) — só nesta seção
+  @include mat.form-field-overrides((
+    container-height: 40px,
+    container-vertical-padding: 8px,
+  ));
+}
+
+// Nome | Início | Fim na mesma linha; Objetivo ocupa a linha de baixo inteira
+.info-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(140px, 1fr) minmax(140px, 1fr);
+  gap: 8px 12px;
+  width: 100%;
+
+  .campo-nome,
+  .campo-data,
+  .campo-objetivo {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .campo-objetivo {
+    grid-column: 1 / -1;
+
+    textarea {
+      resize: vertical;
+      min-height: 20px;
+    }
+  }
+
+  .contador-objetivo {
+    padding-left: 8px;
+    font-size: 11px;
+    color: var(--mat-sys-on-surface-variant, rgba(0, 0, 0, 0.6));
+    white-space: nowrap;
+  }
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr 1fr;
+
+    .campo-nome {
+      grid-column: 1 / -1;
+    }
+  }
+}
+
+// Título da seção com os contadores (Total / Selecionados / Disponíveis) ao lado
+.secao-titulo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  margin-bottom: 8px;
+
+  h2 {
+    margin: 0 !important;
+  }
+}
+
+.form-section.filters-section .tickets-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  width: auto;
+  margin: 0;
+}
+
+.summary-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  border: 1px solid var(--mat-sys-outline-variant, rgba(0, 0, 0, 0.12));
+  background: var(--mat-sys-surface-container-highest, #f5f5f5);
+  color: var(--mat-sys-on-surface-variant, rgba(0, 0, 0, 0.6));
+  font-size: 11px;
+  white-space: nowrap;
+
+  strong {
+    font-size: 12px;
+    color: var(--mat-sys-primary, #3f51b5);
+  }
+}
+
+// Busca em cima; chips de prioridade + "limpar" (só ícone) na linha de baixo
+.filters-section .filtros-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+
+  .search-field {
+    width: 100%;
+    margin-bottom: 0;
+  }
+
+  .chips-container {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .filtro-button {
+    padding: 3px 10px;
+  }
+
+  .limpar-filtros-btn {
+    margin-left: auto;
+    width: 32px;
+    height: 32px;
+    padding: 4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    mat-icon {
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+    }
+
+    ::ng-deep .mat-mdc-button-touch-target {
+      width: 32px;
+      height: 32px;
+    }
   }
 }

@@ -201,10 +201,12 @@
                   </span>
                 </div>
 
+                <!-- Compacto: Load e Disco lado a lado, a nota na mesma linha do valor (o card ocupava espaço demais). -->
+                <div class="servidor__indicadores">
                 <div class="indicador">
                   <div class="indicador__cabecalho">
                     <span>Load</span>
-                    <b>{{ loadTexto(servidor) }}</b>
+                    <span class="indicador__valor"><b>{{ loadTexto(servidor) }}</b> <span class="indicador__nota">{{ cpusTexto(servidor) }}</span></span>
                   </div>
                   <div class="barra">
                     <div
@@ -212,14 +214,13 @@
                       [style.width.%]="larguraLoad(servidor)"
                     ></div>
                   </div>
-                  <span class="indicador__nota">{{ cpusTexto(servidor) }}</span>
                 </div>
 
                 @if (servidor.usodisco) {
                   <div class="indicador">
                     <div class="indicador__cabecalho">
                       <span>Disco{{ servidor.discolocal ? ' ' + servidor.discolocal : '' }}</span>
-                      <b>{{ servidor.usodisco }}</b>
+                      <span class="indicador__valor"><b>{{ servidor.usodisco }}</b> <span class="indicador__nota">{{ 100 - usoDisco(servidor.usodisco) }}% livre</span></span>
                     </div>
                     <div class="barra">
                       <div
@@ -227,9 +228,9 @@
                         [style.width.%]="usoDisco(servidor.usodisco)"
                       ></div>
                     </div>
-                    <span class="indicador__nota">{{ 100 - usoDisco(servidor.usodisco) }}% livre</span>
                   </div>
                 }
+                </div>
               </article>
             }
           </div>

@@ -14,6 +14,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MtxSelectModule } from '@ng-matero/extensions/select';
 import { ActivatedRoute, Router } from '@angular/router';
 import { HotToastService } from '@ngxpert/hot-toast';
 import { Observable, Subject, debounceTime, distinctUntilChanged, filter, finalize, interval, map, switchMap, tap } from 'rxjs';
@@ -50,6 +51,9 @@ import {
   RemoverReservasDialogComponent,
   RemoverReservasDialogData,
   RemoverReservasResultado,
+  TrocarAgrupamentoDialogComponent,
+  TrocarAgrupamentoDialogData,
+  TrocarAgrupamentoResultado,
 } from '../compartilhado/acoes-dialogs';
 import { BarraHomologacaoComponent } from '../compartilhado/barra-homologacao';
 import { HistoricoDialogComponent, HistoricoDialogData } from '../compartilhado/historico-dialog';
@@ -80,14 +84,17 @@ import { HomologacaoService } from '../homologacao.service';
 import { EventoTempoReal, HomologacaoTempoRealService } from '../homologacao-tempo-real.service';
 import { AcompanhamentoComponent } from './acompanhamento';
 
-type Filtro = 'TODOS' | 'MEUS' | 'LIVRES' | 'PENDENTES' | 'REPROVADOS' | 'BLOQUEADOS' | 'RETESTE' | 'DIVERGENTES' | 'CRITICOS' | 'FORA';
+type Filtro = 'TODOS' | 'MEUS' | 'LIVRES' | 'PENDENTES' | 'APROVADOS' | 'REPROVADOS' | 'IMPEDITIVOS' | 'SEM_TICKET' | 'BLOQUEADOS' | 'RETESTE' | 'DIVERGENTES' | 'CRITICOS' | 'FORA';
 
 const FILTROS: { chave: Filtro; rotulo: string }[] = [
   { chave: 'TODOS', rotulo: 'Todos' },
   { chave: 'MEUS', rotulo: 'Meus' },
   { chave: 'LIVRES', rotulo: 'Livres' },
   { chave: 'PENDENTES', rotulo: 'Pendentes' },
+  { chave: 'APROVADOS', rotulo: 'Aprovados' },
   { chave: 'REPROVADOS', rotulo: 'Reprovados' },
+  { chave: 'IMPEDITIVOS', rotulo: 'Impeditivos' },
+  { chave: 'SEM_TICKET', rotulo: 'Reprovados sem ticket' },
   { chave: 'BLOQUEADOS', rotulo: 'Bloqueados' },
   { chave: 'RETESTE', rotulo: 'Reteste' },
   { chave: 'DIVERGENTES', rotulo: 'Divergentes' },
@@ -117,6 +124,7 @@ const RAJADA_MS = 400;
     MatSelectModule,
     MatTabsModule,
     MatTooltipModule,
+    MtxSelectModule,
     EtiquetaComponent,
     BarraHomologacaoComponent,
     AcompanhamentoComponent,
@@ -168,10 +176,42 @@ export class HomologacaoDetalheComponent implements OnInit {
   /** Filtro por módulo (D-13): código do módulo; nulo = todos. */
   readonly filtroModulo = signal<number | null>(null);
 
-  /** Com filtro, sistema, módulo ou pesquisa ligados, some o que não corresponde: itens, agrupamentos, módulos e sistemas inteiros. */
+  /** Filtro por usuário: itens com a pessoa (reservados ou atribuídos) ou que ela testou; nulo = todos. */
+  readonly filtroUsuario = signal<number | null>(null);
+
+  /** Com filtro, sistema, módulo, usuário ou pesquisa ligados, some o que não corresponde: itens, agrupamentos, módulos e sistemas. */
   readonly filtrando = computed(
-    () => this.filtro() !== 'TODOS' || !!this.texto().trim() || this.filtroModulo() !== null || this.filtroSistema() !== null
+    () =>
+      this.filtro() !== 'TODOS' ||
+      !!this.texto().trim() ||
+      this.filtroModulo() !== null ||
+      this.filtroSistema() !== null ||
+      this.filtroUsuario() !== null ||
+      this.soModulosSemTeste()
   );
+
+  /** Quem aparece no filtro: responsáveis, quem reservou agrupamento e quem testou (resultado vigente), por nome. */
+  readonly opcoesUsuario = computed(() => {
+    const h = this.detalhe();
+    const nomes = new Map<number, string>();
+    for (const i of h?.itens ?? []) {
+      if (i.codResponsavel && i.nomeResponsavel) nomes.set(i.codResponsavel, i.nomeResponsavel);
+      if (i.codAutor && i.nomeAutor) nomes.set(i.codAutor, i.nomeAutor);
+    }
+    for (const a of h?.agrupamentos ?? []) {
+      if (a.codReserva && a.nomeReserva) nomes.set(a.codReserva, a.nomeReserva);
+    }
+    const eu = this.eu()?.codUsuario;
+    return [...nomes.entries()]
+      .map(([codUsuario, nome]) => ({ codUsuario, nome, rotulo: codUsuario === eu ? `${nome} (você)` : nome }))
+      .sort((a, b) => a.nome.localeCompare(b.nome));
+  });
+
+  /** O item é do usuário escolhido: está com ele ou foi testado por ele (o resultado vigente é dele). */
+  private doUsuario(i: ItemHom) {
+    const u = this.filtroUsuario();
+    return u === null || i.codResponsavel === u || i.codAutor === u;
+  }
 
   /** Módulos dos sistemas que trabalham com módulos (só os do sistema escolhido, se houver), para o filtro. */
   readonly opcoesModulo = computed(() =>
@@ -189,9 +229,32 @@ export class HomologacaoDetalheComponent implements OnInit {
   }
 
   /** Sistemas › módulos (quando o sistema trabalha com módulos) › agrupamentos › itens depois do filtro e da busca. */
+  /** Só os módulos ainda sem nenhum teste registrado (sem itens criados ou com itens ainda não testados). */
+  readonly soModulosSemTeste = signal(false);
+
+  /**
+   * Módulos (dos sistemas que trabalham com módulos, respeitando o filtro de sistema) sem nenhum resultado registrado nos
+   * itens do escopo: nem aprovado/reprovado/não se aplica, nem bloqueado ou em reteste. Inclui os que nem têm item.
+   */
+  readonly modulosSemTeste = computed(() => {
+    const sistema = this.filtroSistema();
+    const chaves = new Set<string>();
+    for (const s of this.detalhe()?.sistemas ?? []) {
+      if (!s.trabalhaModulo || (sistema !== null && s.codHomologacaoSistema !== sistema)) continue;
+      for (const m of s.modulos) {
+        const c = m.contagem;
+        if (m.codModulo !== null && m.ativo && c.concluidos + c.bloqueados + c.reteste === 0) {
+          chaves.add(`${s.codHomologacaoSistema}:${m.codModulo}`);
+        }
+      }
+    }
+    return chaves;
+  });
+
   readonly arvore = computed(() => {
     const h = this.detalhe();
     if (!h) return [];
+    if (this.soModulosSemTeste()) return this.arvoreModulosSemTeste();
     const termo = normalizarTexto(this.texto().trim());
     const modulo = this.filtroModulo();
     const nomesModulo = new Map(h.sistemas.flatMap(s => s.modulos).map(m => [m.codModulo, m.nome]));
@@ -202,7 +265,7 @@ export class HomologacaoDetalheComponent implements OnInit {
     const arvore = h.sistemas.filter(s => sistema === null || s.codHomologacaoSistema === sistema).map(s => {
       const agrupamentos = h.agrupamentos
         .filter(a => a.codHomologacaoSistema === s.codHomologacaoSistema && (modulo === null || a.codModulo === modulo))
-        .map(a => ({ agrupamento: a, codModulo: a.codModulo, itens: h.itens.filter(i => i.codAgrupamento === a.codAgrupamento && this.passaFiltro(i) && casa(i, a)) }))
+        .map(a => ({ agrupamento: a, codModulo: a.codModulo, itens: h.itens.filter(i => i.codAgrupamento === a.codAgrupamento && this.passaFiltro(i) && this.doUsuario(i) && casa(i, a)) }))
         // Agrupamento vazio só aparece sem filtro e se não tiver item nenhum (recém-criado); com tudo fora do escopo, some.
         .filter(g => g.itens.length || (!this.filtrando() && !h.itens.some(i => i.codAgrupamento === g.agrupamento.codAgrupamento)));
       const modulos = s.trabalhaModulo
@@ -213,11 +276,38 @@ export class HomologacaoDetalheComponent implements OnInit {
     return this.filtrando() ? arvore.filter(g => g.total) : arvore;
   });
 
+  /**
+   * Árvore só com os módulos sem teste: cada módulo aparece mesmo sem item (a tela diz "nenhum item criado"), com os
+   * agrupamentos e itens que ele tiver — o filtro de módulo e a pesquisa continuam valendo.
+   */
+  private arvoreModulosSemTeste() {
+    const h = this.detalhe()!;
+    const termo = normalizarTexto(this.texto().trim());
+    const modulo = this.filtroModulo();
+    const semTeste = this.modulosSemTeste();
+    return h.sistemas
+      .filter(s => s.trabalhaModulo)
+      .map(s => {
+        const modulos = s.modulos
+          .filter(m => semTeste.has(`${s.codHomologacaoSistema}:${m.codModulo}`) && (modulo === null || m.codModulo === modulo))
+          .filter(m => !termo || normalizarTexto(m.nome).includes(termo))
+          .map(m => ({
+            modulo: m,
+            nome: m.nome,
+            agrupamentos: h.agrupamentos
+              .filter(a => a.codHomologacaoSistema === s.codHomologacaoSistema && a.codModulo === m.codModulo)
+              .map(a => ({ agrupamento: a, codModulo: a.codModulo, itens: h.itens.filter(i => i.codAgrupamento === a.codAgrupamento && !i.foraEscopo) })),
+          }));
+        return { sistema: s, modulos, total: modulos.length };
+      })
+      .filter(g => g.total);
+  }
+
   readonly contagemFiltros = computed(() => {
     const h = this.detalhe();
-    const conta: Record<Filtro, number> = { TODOS: 0, MEUS: 0, LIVRES: 0, PENDENTES: 0, REPROVADOS: 0, BLOQUEADOS: 0, RETESTE: 0, DIVERGENTES: 0, CRITICOS: 0, FORA: 0 };
+    const conta: Record<Filtro, number> = { TODOS: 0, MEUS: 0, LIVRES: 0, PENDENTES: 0, APROVADOS: 0, REPROVADOS: 0, IMPEDITIVOS: 0, SEM_TICKET: 0, BLOQUEADOS: 0, RETESTE: 0, DIVERGENTES: 0, CRITICOS: 0, FORA: 0 };
     const sistema = this.filtroSistema();
-    for (const i of (h?.itens ?? []).filter(x => sistema === null || x.codHomologacaoSistema === sistema)) {
+    for (const i of (h?.itens ?? []).filter(x => (sistema === null || x.codHomologacaoSistema === sistema) && this.doUsuario(x))) {
       for (const f of FILTROS) {
         if (this.passaFiltro(i, f.chave, false)) conta[f.chave]++;
       }
@@ -322,8 +412,15 @@ export class HomologacaoDetalheComponent implements OnInit {
         return !i.codResponsavel;
       case 'PENDENTES':
         return !concluido(r);
+      case 'APROVADOS':
+        return r === 'APROVADO';
       case 'REPROVADOS':
         return r === 'REPROVADO';
+      case 'IMPEDITIVOS':
+        return r === 'REPROVADO' && (this.geral() ? i.meuImpeditivoGeral : i.impeditivo);
+      // O ticket do fabricante é do resultado da distribuição (o teste geral não tem ticket).
+      case 'SEM_TICKET':
+        return i.resultado === 'REPROVADO' && !i.ticketFabricante?.trim();
       case 'BLOQUEADOS':
         return r === 'BLOQUEADO';
       case 'RETESTE':
@@ -361,10 +458,26 @@ export class HomologacaoDetalheComponent implements OnInit {
 
   // ------------------------------------------------------------------ o que cada um pode fazer
 
+  /** Resultado do item na trilha mostrada (distribuição ou a minha homologação geral). */
+  private resultadoNaTrilha(i: ItemHom) {
+    return this.geral() ? i.meuResultadoGeral : i.resultado;
+  }
+
+  /** Registrar: item ainda sem resultado concluído (livre, meu, bloqueado ou em reteste). Já testado → "Retestar". */
   podeRegistrar(i: ItemHom) {
     const eu = this.eu();
-    if (!this.emAndamento() || !eu?.participa || i.foraEscopo) return false;
+    if (!this.emAndamento() || !eu?.participa || i.foraEscopo || concluido(this.resultadoNaTrilha(i))) return false;
     return this.geral() ? eu.geral : !i.codResponsavel || i.codResponsavel === eu.codUsuario;
+  }
+
+  /**
+   * Retestar: item já testado volta pendente, com o motivo, para registrar de novo. Na distribuição, qualquer participante
+   * (quem testou pode estar de férias ou ter saído da equipe) — o item passa para quem retesta; na geral, a minha trilha.
+   */
+  podeRetestar(i: ItemHom) {
+    const eu = this.eu();
+    if (!this.emAndamento() || !eu?.participa || i.foraEscopo || !concluido(this.resultadoNaTrilha(i))) return false;
+    return !this.geral() || eu.geral;
   }
 
   podeReservar(i: ItemHom) {
@@ -375,11 +488,10 @@ export class HomologacaoDetalheComponent implements OnInit {
     return this.aberta() && i.codResponsavel === this.eu()?.codUsuario && !concluido(i.resultado);
   }
 
-  /** Reteste: gestão, quem registrou o resultado vigente ou o responsável pelo item (participando). */
+  /** Pedir reteste (gestão): o item volta pendente para o mesmo responsável, sem passar para quem pediu. */
   podePedirReteste(i: ItemHom) {
     const eu = this.eu();
-    if (!this.emAndamento() || !eu || !i.resultado || i.resultado === 'RETESTE' || i.foraEscopo) return false;
-    return eu.gestao || (eu.participa && (i.codAutor === eu.codUsuario || i.codResponsavel === eu.codUsuario));
+    return this.emAndamento() && !!eu?.gestao && !this.geral() && !i.foraEscopo && concluido(i.resultado);
   }
 
   /** Item incluído só nesta homologação: renomeia a gestão ou quem incluiu. */
@@ -542,8 +654,30 @@ export class HomologacaoDetalheComponent implements OnInit {
   }
 
   pedirReteste(item: ItemHom) {
-    this.pedirMotivo('Pedir reteste', `"${item.titulo}" volta pendente na distribuição, com o mesmo responsável.`, 'Por que testar de novo', 'Pedir reteste', motivo =>
-      this.executar(this.service.pedirReteste(item.codItem, motivo), 'Reteste pedido.')
+    this.pedirMotivo(
+      'Pedir reteste ao responsável',
+      `"${item.titulo}" volta pendente na distribuição, com ${item.nomeResponsavel ?? 'o mesmo responsável'}. Quem testou é avisado.`,
+      'Por que testar de novo',
+      'Pedir reteste',
+      motivo => this.executar(this.service.pedirReteste(item.codItem, motivo), 'Reteste pedido.')
+    );
+  }
+
+  /** Testar de novo: o item volta pendente (na distribuição, passa para mim) e aparece "Registrar". */
+  retestar(item: ItemHom) {
+    const eu = this.eu()!;
+    const geral = this.geral();
+    const descricao = geral
+      ? `Seu resultado de "${item.titulo}" na homologação geral volta pendente para você registrar de novo.`
+      : `"${item.titulo}" volta pendente para você registrar de novo` +
+        (item.codResponsavel && item.codResponsavel !== eu.codUsuario ? ` — passa para você (estava com ${item.nomeResponsavel})` : '') +
+        `. O resultado atual (${RESULTADO_INFO[item.resultado!].rotulo}${item.nomeAutor ? ', de ' + item.nomeAutor : ''}) fica no histórico` +
+        (item.codAutor && item.codAutor !== eu.codUsuario ? ' e quem testou é avisado.' : '.');
+    this.pedirMotivo('Retestar', descricao, 'Por que testar de novo (ex.: o fabricante corrigiu, registrei errado)', 'Retestar', motivo =>
+      this.executar(
+        this.service.pedirReteste(item.codItem, motivo, geral ? 'GERAL' : 'DISTRIBUICAO', true),
+        'Item em reteste: registre o novo resultado.'
+      )
     );
   }
 
@@ -558,6 +692,24 @@ export class HomologacaoDetalheComponent implements OnInit {
   /** Excluir item incluído na homologação, mesmo com histórico: administrador ou responsável. */
   podeExcluirItem(i: ItemHom) {
     return this.aberta() && !!this.eu()?.podeExcluir && i.origem === 'INCLUIDO';
+  }
+
+  /** Trocar sistema / módulo do agrupamento: administrador ou responsável, havendo outro sistema ou módulos para escolher. */
+  podeTrocarAgrupamento(a: AgrupamentoHom) {
+    const h = this.detalhe();
+    if (!this.aberta() || !this.eu()?.podeExcluir || !h) return false;
+    return h.sistemas.length > 1 || !!h.sistemas.find(s => s.codHomologacaoSistema === a.codHomologacaoSistema)?.trabalhaModulo;
+  }
+
+  trocarAgrupamento(a: AgrupamentoHom) {
+    this.dialog
+      .open<TrocarAgrupamentoDialogComponent, TrocarAgrupamentoDialogData, TrocarAgrupamentoResultado>(TrocarAgrupamentoDialogComponent, {
+        data: { homologacao: this.detalhe()!, agrupamento: a },
+      })
+      .afterClosed()
+      .subscribe(r => {
+        if (r) this.executar(this.service.moverAgrupamento(a.codAgrupamento, r.codHomologacaoSistema, r.codModulo), `Agrupamento "${a.nome}" trocado.`);
+      });
   }
 
   podeExcluirAgrupamento(a: AgrupamentoHom) {

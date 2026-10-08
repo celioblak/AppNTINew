@@ -384,17 +384,38 @@ table.itens {
   margin-left: auto;
 }
 
+// Larguras pensadas para os nomes reais (módulo vem como "Sistema › Módulo"); em tela estreita a barra quebra linha.
 .filtro-sistema {
-  width: 220px;
+  width: 260px;
+  max-width: 100%;
   margin-left: auto;
 }
 
 .filtro-modulo {
-  width: 260px;
+  width: 400px;
+  max-width: 100%;
   margin-left: auto;
 }
 
-.filtro-sistema + .filtro-modulo {
+// Opções dos filtros pesquisáveis (mtx-select): o texto quebra linha em vez de cortar com "…". A lista abre no <body>
+// com a largura do campo (definida pelo componente); o modelo da opção é deste template, então este estilo vale lá.
+.opcao-filtro {
+  display: block;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.filtro-usuario {
+  width: 300px;
+  max-width: 100%;
+  margin-left: auto;
+}
+
+// Os seletores ficam juntos à direita: só o primeiro deles empurra para a direita.
+.filtro-sistema + .filtro-usuario,
+.filtro-sistema + .filtro-modulo,
+.filtro-usuario + .filtro-modulo {
   margin-left: 0;
 }
 
@@ -415,4 +436,72 @@ table.itens {
 
 .agrupamento--modulo {
   margin-left: 16px;
+}
+
+// Filtro "Módulos sem teste": a situação do módulo numa linha discreta, abaixo do cabeçalho dele.
+.modulo-vazio {
+  margin: 2px 0 4px 24px;
+  font-size: .8rem;
+  color: var(--mat-sys-on-surface-variant, rgba(0, 0, 0, .6));
+}
+
+// ---------------------------------------------------------------- zebra: sistemas e módulos
+// Duas tonalidades alternadas para ver onde um sistema (ou módulo) termina e o próximo começa.
+$zebra-a: var(--mat-sys-primary, #1976d2);
+$zebra-b: var(--mat-sys-tertiary, #00897b);
+
+.sistema {
+  border-top: 4px solid color-mix(in srgb, #{$zebra-a} 70%, transparent);
+
+  > .secao__titulo {
+    padding: 4px 8px;
+    margin: -4px -8px 0;
+    background: color-mix(in srgb, #{$zebra-a} 8%, transparent);
+    border-radius: 6px;
+  }
+}
+
+.sistema--zebra {
+  border-top-color: color-mix(in srgb, #{$zebra-b} 70%, transparent);
+
+  > .secao__titulo {
+    background: color-mix(in srgb, #{$zebra-b} 8%, transparent);
+  }
+}
+
+// Módulo = um bloco com faixa lateral e fundo leve; ímpares numa tonalidade, pares na outra.
+.modulo-bloco--cor {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 4px 8px 8px;
+  margin-top: 6px;
+  background: color-mix(in srgb, #{$zebra-a} 5%, transparent);
+  border-left: 4px solid color-mix(in srgb, #{$zebra-a} 60%, transparent);
+  border-radius: 8px;
+
+  .modulo__cab {
+    padding-left: 0;
+    margin-top: 0;
+    background: transparent;
+  }
+
+  .agrupamento--modulo {
+    margin-left: 8px;
+  }
+}
+
+.modulo-bloco--cor.modulo-bloco--zebra {
+  background: color-mix(in srgb, #{$zebra-b} 6%, transparent);
+  border-left-color: color-mix(in srgb, #{$zebra-b} 60%, transparent);
+}
+
+// Agrupamentos em zebra neutra (cinza bem leve, sem competir com as cores dos módulos): um sim, outro não.
+.agrupamento {
+  padding: 2px 6px 4px;
+  border-radius: 6px;
+}
+
+.agrupamento--zebra {
+  background: color-mix(in srgb, var(--mat-sys-on-surface, #000) 5%, transparent);
 }

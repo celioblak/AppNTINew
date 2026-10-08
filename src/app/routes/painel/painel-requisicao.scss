@@ -60,8 +60,8 @@ $cores-situacao: (
 .secao {
   display: flex;
   flex: 0 0 auto;
-  align-items: center;
   gap: 12px;
+  align-items: center;
 
   &__titulo {
     margin: 0;
@@ -72,38 +72,38 @@ $cores-situacao: (
 
   &__contador {
     padding: 0 10px;
-    border-radius: 999px;
-    background: var(--pn-superficie-alta);
-    color: var(--pn-texto-fraco);
     font-size: clamp(0.9rem, 1.6vh, 1.5rem);
-    font-variant-numeric: tabular-nums;
     font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--pn-texto-fraco);
+    background: var(--pn-superficie-alta);
+    border-radius: 999px;
   }
 }
 
 // Indicador de página: texto legível de longe + bolinhas mostrando quantas faltam.
 .paginacao {
   display: flex;
-  align-items: center;
-  margin-left: auto;
   gap: 8px;
+  align-items: center;
   padding: 3px 12px;
+  margin-left: auto;
+  background: var(--pn-superficie-alta);
   border: 1px solid var(--pn-borda);
   border-radius: 999px;
-  background: var(--pn-superficie-alta);
 
   &__texto {
-    color: var(--pn-texto);
     font-size: clamp(0.8rem, 1.5vh, 1.4rem);
-    font-variant-numeric: tabular-nums;
     font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--pn-texto);
   }
 
   &__ponto {
     width: clamp(6px, 0.9vh, 11px);
     height: clamp(6px, 0.9vh, 11px);
-    border-radius: 50%;
     background: var(--pn-neutro);
+    border-radius: 50%;
 
     &--ativo {
       background: var(--pn-info);
@@ -119,13 +119,13 @@ $cores-situacao: (
   flex-wrap: wrap;
   gap: clamp(10px, 1.5vw, 28px);
   padding: 0 2px;
-  color: var(--pn-texto-fraco);
   font-size: clamp(0.7rem, 1.3vh, 1.2rem);
+  color: var(--pn-texto-fraco);
 
   &__item {
     display: flex;
-    align-items: center;
     gap: 6px;
+    align-items: center;
   }
 
   &__cor {
@@ -164,24 +164,24 @@ $cores-situacao: (
   align-items: center;
   justify-content: center;
   padding: clamp(6px, 1vh, 14px) 4px;
+  text-align: center;
+  background: var(--pn-superficie);
   border-top: 5px solid var(--cor-situacao, var(--pn-neutro));
   border-radius: 6px;
-  background: var(--pn-superficie);
-  text-align: center;
 
   &__numero {
-    color: var(--cor-situacao, var(--pn-texto));
     font-size: clamp(1.5rem, 4vh, 3.4rem);
-    font-variant-numeric: tabular-nums;
     font-weight: 800;
+    font-variant-numeric: tabular-nums;
     line-height: 1;
+    color: var(--cor-situacao, var(--pn-texto));
   }
 
   &__rotulo {
     padding-top: 6px;
-    color: var(--pn-texto-fraco);
     font-size: clamp(0.65rem, 1.2vh, 1.1rem);
     font-weight: 600;
+    color: var(--pn-texto-fraco);
   }
 
   // Depende de alguém agir: ganha fundo tingido além da cor da borda.

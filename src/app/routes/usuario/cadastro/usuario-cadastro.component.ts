@@ -17,6 +17,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
+import { MatTabsModule } from '@angular/material/tabs';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MtxGridColumn, MtxGridModule } from '@ng-matero/extensions/grid';
 import { HotToastService } from '@ngxpert/hot-toast';
@@ -24,6 +25,8 @@ import { HotToastService } from '@ngxpert/hot-toast';
 import { ConfirmDialogComponent } from '@shared/components/confirm-dialog/confirm-dialog.component';
 import { UsuarioCadastro, UsuarioCadastroService } from './usuario-cadastro.service';
 import { UsuarioFormDialogComponent } from './usuario-form-dialog.component';
+import { UsuariosMvComponent } from './usuarios-mv/usuarios-mv.component';
+import { UsuariosMvService } from './usuarios-mv/usuarios-mv.service';
 
 @Component({
   selector: 'app-usuario-cadastro',
@@ -43,7 +46,9 @@ import { UsuarioFormDialogComponent } from './usuario-form-dialog.component';
     MatMenuModule,
     MatSlideToggleModule,
     MatTooltipModule,
+    MatTabsModule,
     MtxGridModule,
+    UsuariosMvComponent,
   ],
 })
 export class UsuarioCadastroComponent implements OnInit {
@@ -51,6 +56,10 @@ export class UsuarioCadastroComponent implements OnInit {
   private readonly dialog = inject(MatDialog);
   private readonly toast = inject(HotToastService);
   private readonly cdr = inject(ChangeDetectorRef);
+  private readonly usuariosMvService = inject(UsuariosMvService);
+
+  /** Nomes de responsável dos tickets MV sem vínculo (número na aba "Usuários MV"). */
+  pendentesMv = 0;
 
   // Dados
   usuarios: UsuarioCadastro[] = [];
@@ -120,6 +129,7 @@ export class UsuarioCadastroComponent implements OnInit {
           this.usuarios = [...lista].sort((a, b) => a.nome.localeCompare(b.nome));
           this.carregando = false;
           this.aplicarFiltro();
+          this.atualizarPendentesMv();
         },
         error: () => {
           this.carregando = false;
@@ -127,6 +137,17 @@ export class UsuarioCadastroComponent implements OnInit {
           this.cdr.detectChanges();
         },
       });
+  }
+
+  /** Salvar usuário pode vincular pendentes no backend (nome novo ou corrigido), por isso recarrega. */
+  private atualizarPendentesMv(): void {
+    this.usuariosMvService.quantidadePendentes().subscribe({
+      next: qtd => {
+        this.pendentesMv = qtd;
+        this.cdr.detectChanges();
+      },
+      error: () => (this.pendentesMv = 0),
+    });
   }
 
   onFiltroChange(): void {

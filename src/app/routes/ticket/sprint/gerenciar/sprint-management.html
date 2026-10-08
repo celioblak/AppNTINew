@@ -22,124 +22,68 @@
   <!-- Conteúdo principal -->
   <div *ngIf="!carregando && !erro" class="content">
 
-    <!-- Card da sprint selecionada -->
-    <div *ngIf="sprintSelecionada" class="sprint-card">
-      <mat-card>
-        <mat-card-header>
-          <mat-card-title>
-            <span class="sprint-id">#{{ sprintSelecionada.id }}</span>
-            Sprint: {{ sprintSelecionada.nome }}
-            <span> {{ formatarData(sprintSelecionada.dataInicio) }} -
-            {{ formatarData(sprintSelecionada.dataFim) }}</span>
-          </mat-card-title>
-        </mat-card-header>
+    <!-- Cabeçalho da sprint (compartilhado com o Dashboard de Sprint) -->
+    <app-sprint-cabecalho *ngIf="sprintSelecionada"
+                          [sprint]="sprintSelecionada"
+                          [indice]="indiceSprintAtual"
+                          [total]="sprints.length"
+                          [temAnterior]="temAnterior()"
+                          [temProxima]="temProxima()"
+                          [desabilitado]="carregandoTickets"
+                          [indicadores]="indicadoresSprint"
+                          [percentual]="calcularPercentual()"
+                          (anterior)="sprintAnterior()"
+                          (proxima)="proximaSprint()">
 
-        <mat-card-content>
-          <!-- Navegação -->
-          <div class="sprint-navigation">
-            <button mat-button (click)="sprintAnterior()"
-                    [disabled]="!temAnterior() || carregandoTickets"
-                    class="nav-button anterior">
-              <mat-icon>chevron_left</mat-icon> Anterior
-            </button>
-            <span class="sprint-counter">
-              {{ indiceSprintAtual + 1 }} de {{ sprints.length }}
-            </span>
-            <button mat-button (click)="proximaSprint()"
-                    [disabled]="!temProxima() || carregandoTickets"
-                    class="nav-button proxima">
-              Próxima <mat-icon>chevron_right</mat-icon>
-            </button>
-          </div>
+      <!-- Linha de ações: filtro | concluir/reabrir | exportações -->
+      <mat-form-field appearance="outline" class="filtro-tickets" subscriptSizing="dynamic">
+        <mat-label>Filtrar tickets</mat-label>
+        <mat-icon matPrefix>search</mat-icon>
+        <input matInput
+               [(ngModel)]="filtroTexto"
+               (input)="aplicarFiltro()"
+               placeholder="Título, ID ou responsável"
+               autocomplete="off">
+        <button *ngIf="filtroTexto" mat-icon-button matSuffix
+                (click)="filtroTexto = ''; aplicarFiltro()"
+                aria-label="Limpar filtro">
+          <mat-icon>close</mat-icon>
+        </button>
+      </mat-form-field>
 
-          <mat-divider class="divider"></mat-divider>
-
-          <!-- Filtro + Status da Sprint -->
-          <div class="status-edit-section">
-            <mat-form-field appearance="outline" class="filtro-tickets">
-              <mat-label>Filtrar tickets</mat-label>
-              <input matInput
-                     [(ngModel)]="filtroTexto"
-                     (input)="aplicarFiltro()"
-                     placeholder="Título, ID ou responsável"
-                     autocomplete="off">
-              <button *ngIf="filtroTexto" mat-icon-button matSuffix
-                      (click)="filtroTexto = ''; aplicarFiltro()"
-                      aria-label="Limpar filtro">
-                <mat-icon>close</mat-icon>
-              </button>
-            </mat-form-field>
-
-            <div class="status-label">
-              <mat-icon>flag</mat-icon>
-              <span>Status da Sprint: {{retornaStatus(sprintSelecionada.status)}}</span>
-            </div>
-
-            <div class="status-control">
-              <!-- span recebe o tooltip: botão desabilitado não dispara eventos de mouse -->
-              <span *ngIf="sprintSelecionada.status!='CONCLUIDA'" [matTooltip]="mensagemBloqueioConclusao">
-                <button mat-raised-button color="primary"
-                        [disabled]="ticketsPendentes > 0 || carregandoTickets || atualizandoSprint"
-                        (click)="fecharSprint()">
-                  <mat-icon>add</mat-icon>
-                  Concluir
-                </button>
-              </span>
-              <button *ngIf="sprintSelecionada.status=='CONCLUIDA'" mat-raised-button color="primary" (click)="reabrirSprint()">
-                <mat-icon>add</mat-icon>
-                Reabrir
-              </button>
-              <mat-spinner *ngIf="atualizandoSprint" diameter="20" class="inline-spinner"></mat-spinner>
-            </div>
-          </div>
-        </mat-card-content>
-      </mat-card>
-    </div>
-
-    <!-- Estatísticas -->
-    <div *ngIf="sprintSelecionada" class="summary-card">
-      <mat-card>
-        <mat-card-content>
-          <div class="stats-grid">
-            <div class="stat-item">
-              <div class="stat-value">{{ totalTickets }}</div>
-              <div class="stat-label">Total Tickets</div>
-            </div>
-            <div class="stat-item">
-              <div class="stat-value success">{{ ticketsConcluidos }}</div>
-              <div class="stat-label">Concluídos</div>
-            </div>
-            <div class="stat-item">
-              <div class="stat-value danger">{{ ticketsNaoEntregues }}</div>
-              <div class="stat-label">Não Entregues</div>
-            </div>
-            <div class="stat-item">
-              <div class="stat-value warning">{{ ticketsPendentes }}</div>
-              <div class="stat-label">Pendentes</div>
-            </div>
-            <div class="stat-item">
-              <div class="stat-value">{{ calcularPercentual() }}%</div>
-              <div class="stat-label">Progresso</div>
-            </div>
-          </div>
-        </mat-card-content>
-      </mat-card>
-    </div>
-
-
-    <!-- Botões de exportação -->
-    <div *ngIf="sprintSelecionada && !carregandoTickets" class="export-section">
-      <button mat-raised-button color="primary" (click)="exportarPDF()" [disabled]="exportando">
-        <mat-icon>picture_as_pdf</mat-icon> Exportar como PDF
+      <!-- span recebe o tooltip: botão desabilitado não dispara eventos de mouse -->
+      <span *ngIf="sprintSelecionada.status != 'CONCLUIDA'" [matTooltip]="mensagemBloqueioConclusao">
+        <button mat-flat-button color="primary" class="acao-btn"
+                [disabled]="ticketsPendentes > 0 || carregandoTickets || atualizandoSprint"
+                (click)="fecharSprint()">
+          <mat-icon>done_all</mat-icon> Concluir sprint
+        </button>
+      </span>
+      <button *ngIf="sprintSelecionada.status == 'CONCLUIDA'" mat-flat-button color="primary" class="acao-btn"
+              [disabled]="atualizandoSprint"
+              (click)="reabrirSprint()">
+        <mat-icon>replay</mat-icon> Reabrir sprint
       </button>
-      <button mat-stroked-button color="primary" (click)="copiarTickets()" style="margin-left: 8px;">
-        <mat-icon>content_copy</mat-icon> Copiar Tickets
-      </button>
-      <button mat-stroked-button color="primary" (click)="baixarTicketsTxt()" style="margin-left: 8px;">
-        <mat-icon>description</mat-icon> Baixar TXT
-      </button>
-      <mat-spinner *ngIf="exportando" diameter="24" style="display: inline-block; margin-left: 16px; vertical-align: middle;"></mat-spinner>
-    </div>
+      <mat-spinner *ngIf="atualizandoSprint" diameter="20"></mat-spinner>
+
+      <span class="espaco"></span>
+
+      <ng-container *ngIf="!carregandoTickets">
+        <button mat-stroked-button color="primary" class="acao-btn"
+                (click)="exportarPDF()" [disabled]="exportando" matTooltip="Exportar como PDF">
+          <mat-icon>picture_as_pdf</mat-icon> PDF
+        </button>
+        <button mat-stroked-button color="primary" class="acao-btn"
+                (click)="copiarTickets()" matTooltip="Copiar tickets">
+          <mat-icon>content_copy</mat-icon> Copiar
+        </button>
+        <button mat-stroked-button color="primary" class="acao-btn"
+                (click)="baixarTicketsTxt()" matTooltip="Baixar tickets em TXT">
+          <mat-icon>description</mat-icon> TXT
+        </button>
+        <mat-spinner *ngIf="exportando" diameter="20"></mat-spinner>
+      </ng-container>
+    </app-sprint-cabecalho>
 
     <!-- Carregando tickets -->
     <div *ngIf="carregandoTickets" class="loading">
@@ -175,36 +119,35 @@
                     <div class="ticket-title">{{ ticket.ticket.titulo || 'Sem título' }}</div>
 
                     <div class="ticket-edit-area">
-                      <div class="edit-field">
+                      <div class="edit-field" [matTooltip]="'Status: ' + getStatusRotulo(ticket.statusEntrega)" matTooltipShowDelay="400">
                         <mat-icon>assignment</mat-icon>
-                        <mat-select [(ngModel)]="ticket.statusEntrega"
+                        <mat-select [(ngModel)]="ticket.statusEntrega" [panelWidth]="null" panelClass="combo-card-panel"
                                     [disabled]="atualizandoTicketId === ticket.ticket.id"
                                     placeholder="Status">
                           <mat-option *ngFor="let st of statusTicketOptions" [value]="st">
-                            {{ st }}
+                            {{ getStatusRotulo(st) }}
                           </mat-option>
                         </mat-select>
                       </div>
 
-                      <div class="edit-field">
+                      <div class="edit-field" [matTooltip]="'Gravidade: ' + getCriticidadeRotulo(ticket.criticidade || 0)" matTooltipShowDelay="400">
                         <mat-icon>priority_high</mat-icon>
-                        <mat-select [(ngModel)]="ticket.criticidade"
+                        <mat-select [(ngModel)]="ticket.criticidade" [panelWidth]="null" panelClass="combo-card-panel"
                                     [disabled]="atualizandoTicketId === ticket.ticket.id"
-                                    placeholder="Prioridade">
+                                    placeholder="Gravidade">
                           <mat-option *ngFor="let opt of criticidadeOptions" [value]="opt.valor">
                             {{ opt.rotulo }}
                           </mat-option>
                         </mat-select>
                       </div>
 
-                      <button mat-raised-button color="primary"
+                      <button mat-icon-button color="primary"
                               (click)="atualizarTicket(ticket)"
                               [disabled]="atualizandoTicketId === ticket.ticket.id"
+                              matTooltip="Salvar status e prioridade"
                               class="update-btn">
-                        <mat-icon>save</mat-icon>
-                        <span *ngIf="atualizandoTicketId !== ticket.ticket.id">Atualizar</span>
-                        <mat-spinner *ngIf="atualizandoTicketId === ticket.ticket.id"
-                                     diameter="18" class="btn-spinner"></mat-spinner>
+                        <mat-icon *ngIf="atualizandoTicketId !== ticket.ticket.id">save</mat-icon>
+                        <mat-spinner *ngIf="atualizandoTicketId === ticket.ticket.id" diameter="16"></mat-spinner>
                       </button>
                     </div>
 
@@ -212,6 +155,11 @@
                       <span *ngIf="ticket.ticket.dataTicket" class="date">
                         <mat-icon>event</mat-icon> {{ formatarData(ticket.ticket.dataTicket) }}
                       </span>
+                    </div>
+                    <div class="ticket-responsavel" [class.vazio]="!ticket.ticket.responsavel"
+                         [title]="ticket.ticket.responsavel || ''">
+                      <mat-icon>person</mat-icon>
+                      <span>{{ ticket.ticket.responsavel || 'Sem responsável' }}</span>
                     </div>
                   </div>
                 </div>
@@ -248,36 +196,35 @@
                     <div class="ticket-title">{{ ticket.ticket.titulo || 'Sem título' }}</div>
 
                     <div class="ticket-edit-area">
-                      <div class="edit-field">
+                      <div class="edit-field" [matTooltip]="'Status: ' + getStatusRotulo(ticket.statusEntrega)" matTooltipShowDelay="400">
                         <mat-icon>assignment</mat-icon>
-                        <mat-select [(ngModel)]="ticket.statusEntrega"
+                        <mat-select [(ngModel)]="ticket.statusEntrega" [panelWidth]="null" panelClass="combo-card-panel"
                                     [disabled]="atualizandoTicketId === ticket.ticket.id"
                                     placeholder="Status">
                           <mat-option *ngFor="let st of statusTicketOptions" [value]="st">
-                            {{ st }}
+                            {{ getStatusRotulo(st) }}
                           </mat-option>
                         </mat-select>
                       </div>
 
-                      <div class="edit-field">
+                      <div class="edit-field" [matTooltip]="'Gravidade: ' + getCriticidadeRotulo(ticket.criticidade || 0)" matTooltipShowDelay="400">
                         <mat-icon>priority_high</mat-icon>
-                        <mat-select [(ngModel)]="ticket.criticidade"
+                        <mat-select [(ngModel)]="ticket.criticidade" [panelWidth]="null" panelClass="combo-card-panel"
                                     [disabled]="atualizandoTicketId === ticket.ticket.id"
-                                    placeholder="Prioridade">
+                                    placeholder="Gravidade">
                           <mat-option *ngFor="let opt of criticidadeOptions" [value]="opt.valor">
                             {{ opt.rotulo }}
                           </mat-option>
                         </mat-select>
                       </div>
 
-                      <button mat-raised-button color="primary"
+                      <button mat-icon-button color="primary"
                               (click)="atualizarTicket(ticket)"
                               [disabled]="atualizandoTicketId === ticket.ticket.id"
+                              matTooltip="Salvar status e prioridade"
                               class="update-btn">
-                        <mat-icon>save</mat-icon>
-                        <span *ngIf="atualizandoTicketId !== ticket.ticket.id">Atualizar</span>
-                        <mat-spinner *ngIf="atualizandoTicketId === ticket.ticket.id"
-                                     diameter="18" class="btn-spinner"></mat-spinner>
+                        <mat-icon *ngIf="atualizandoTicketId !== ticket.ticket.id">save</mat-icon>
+                        <mat-spinner *ngIf="atualizandoTicketId === ticket.ticket.id" diameter="16"></mat-spinner>
                       </button>
                     </div>
 
@@ -285,6 +232,11 @@
                       <span *ngIf="ticket.ticket.dataTicket" class="date">
                         <mat-icon>event</mat-icon> {{ formatarData(ticket.ticket.dataTicket) }}
                       </span>
+                    </div>
+                    <div class="ticket-responsavel" [class.vazio]="!ticket.ticket.responsavel"
+                         [title]="ticket.ticket.responsavel || ''">
+                      <mat-icon>person</mat-icon>
+                      <span>{{ ticket.ticket.responsavel || 'Sem responsável' }}</span>
                     </div>
                   </div>
                 </div>
@@ -321,19 +273,19 @@
                     <div class="ticket-title">{{ ticket.ticket.titulo || 'Sem título' }}</div>
 
                     <div class="ticket-edit-area">
-                      <div class="edit-field">
+                      <div class="edit-field" [matTooltip]="'Status: ' + getStatusRotulo(ticket.statusEntrega)" matTooltipShowDelay="400">
                         <mat-icon>assignment</mat-icon>
-                        <mat-select [(ngModel)]="ticket.statusEntrega"
+                        <mat-select [(ngModel)]="ticket.statusEntrega" [panelWidth]="null" panelClass="combo-card-panel"
                                     [disabled]="atualizandoTicketId === ticket.ticket.id">
                           <mat-option *ngFor="let st of statusTicketOptions" [value]="st">
-                            {{ st }}
+                            {{ getStatusRotulo(st) }}
                           </mat-option>
                         </mat-select>
                       </div>
 
-                      <div class="edit-field">
+                      <div class="edit-field" [matTooltip]="'Gravidade: ' + getCriticidadeRotulo(ticket.criticidade || 0)" matTooltipShowDelay="400">
                         <mat-icon>priority_high</mat-icon>
-                        <mat-select [(ngModel)]="ticket.criticidade"
+                        <mat-select [(ngModel)]="ticket.criticidade" [panelWidth]="null" panelClass="combo-card-panel"
                                     [disabled]="atualizandoTicketId === ticket.ticket.id">
                           <mat-option *ngFor="let opt of criticidadeOptions" [value]="opt.valor">
                             {{ opt.rotulo }}
@@ -341,14 +293,13 @@
                         </mat-select>
                       </div>
 
-                      <button mat-raised-button color="primary"
+                      <button mat-icon-button color="primary"
                               (click)="atualizarTicket(ticket)"
                               [disabled]="atualizandoTicketId === ticket.ticket.id"
+                              matTooltip="Salvar status e prioridade"
                               class="update-btn">
-                        <mat-icon>save</mat-icon>
-                        <span *ngIf="atualizandoTicketId !== ticket.ticket.id">Atualizar</span>
-                        <mat-spinner *ngIf="atualizandoTicketId === ticket.ticket.id"
-                                     diameter="18" class="btn-spinner"></mat-spinner>
+                        <mat-icon *ngIf="atualizandoTicketId !== ticket.ticket.id">save</mat-icon>
+                        <mat-spinner *ngIf="atualizandoTicketId === ticket.ticket.id" diameter="16"></mat-spinner>
                       </button>
                     </div>
 
@@ -359,6 +310,11 @@
                       <span *ngIf="ticket.dataEntregaReal" class="date delivered">
                         <mat-icon>check_circle</mat-icon> {{ formatarData(ticket.dataEntregaReal) }}
                       </span>
+                    </div>
+                    <div class="ticket-responsavel" [class.vazio]="!ticket.ticket.responsavel"
+                         [title]="ticket.ticket.responsavel || ''">
+                      <mat-icon>person</mat-icon>
+                      <span>{{ ticket.ticket.responsavel || 'Sem responsável' }}</span>
                     </div>
                   </div>
                 </div>

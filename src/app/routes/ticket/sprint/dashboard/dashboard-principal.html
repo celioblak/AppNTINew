@@ -23,64 +23,19 @@
   <!-- Conteúdo principal - Container FLEX sem scroll -->
   <div *ngIf="!carregando && !erro" class="dashboard-content">
 
-    <!-- Card de estatísticas com navegação -->
-    <div *ngIf="sprintSelecionada" class="summary-card">
-      <mat-card>
-        <mat-card-header>
-          <mat-card-title>
-            Sprint: {{ sprintSelecionada.nome }}
-            <span class="sprint-status">{{ sprintSelecionada.status || 'Sem status' }}</span>
-          </mat-card-title>
-          <mat-card-subtitle>
-            {{ formatarData(sprintSelecionada.dataInicio) }} - {{ formatarData(sprintSelecionada.dataFim) }}
-          </mat-card-subtitle>
-        </mat-card-header>
-
-        <mat-card-content>
-          <div class="stats-grid">
-            <div class="stat-item">
-              <div class="stat-value">{{ totalTickets }}</div>
-              <div class="stat-label">Total Tickets</div>
-            </div>
-            <div class="stat-item">
-              <div class="stat-value success">{{ ticketsConcluidos }}</div>
-              <div class="stat-label">Concluídos</div>
-            </div>
-            <div class="stat-item">
-              <div class="stat-value warning">{{ ticketsPendentes }}</div>
-              <div class="stat-label">Pendentes</div>
-            </div>
-            <div class="stat-item">
-              <div class="stat-value">{{ calcularPercentual() }}%</div>
-              <div class="stat-label">Percentual de Entrega</div>
-            </div>
-          </div>
-
-          <!-- Navegação entre sprints simplificada -->
-          <div class="sprint-navigation" *ngIf="sprints.length > 0">
-            <button mat-button (click)="sprintAnterior()"
-                    [disabled]="!temAnterior() || carregandoTickets"
-                    class="nav-button anterior">
-              <mat-icon>chevron_left</mat-icon>
-              Anterior
-            </button>
-
-            <div class="sprint-info">
-              <span class="sprint-counter">
-                {{ indiceSprintAtual + 1 }} de {{ sprints.length }}
-              </span>
-            </div>
-
-            <button mat-button (click)="proximaSprint()"
-                    [disabled]="!temProxima() || carregandoTickets"
-                    class="nav-button proxima">
-              Próxima
-              <mat-icon>chevron_right</mat-icon>
-            </button>
-          </div>
-        </mat-card-content>
-      </mat-card>
-    </div>
+    <!-- Cabeçalho da sprint (compartilhado com o Gerencial de Sprint) -->
+    <app-sprint-cabecalho *ngIf="sprintSelecionada"
+                          [sprint]="sprintSelecionada"
+                          [indice]="indiceSprintAtual"
+                          [total]="sprints.length"
+                          [temAnterior]="temAnterior()"
+                          [temProxima]="temProxima()"
+                          [desabilitado]="carregandoTickets"
+                          [indicadores]="indicadoresSprint"
+                          [percentual]="calcularPercentual()"
+                          (anterior)="sprintAnterior()"
+                          (proxima)="proximaSprint()">
+    </app-sprint-cabecalho>
 
     <!-- Carregando tickets -->
     <div *ngIf="carregandoTickets" class="loading">
@@ -129,6 +84,11 @@
                           <mat-icon>check</mat-icon>
                           {{ formatarData(ticket.dataEntregaReal) }}
                         </div>
+                      </div>
+                      <div class="ticket-responsavel" [class.vazio]="!ticket.ticket.responsavel"
+                           [title]="ticket.ticket.responsavel || ''">
+                        <mat-icon>person</mat-icon>
+                        <span>{{ ticket.ticket.responsavel || 'Sem responsável' }}</span>
                       </div>
                     </div>
                   </div>
@@ -183,6 +143,11 @@
                           <mat-icon>check</mat-icon>
                           {{ formatarData(ticket.dataEntregaReal) }}
                         </div>
+                      </div>
+                      <div class="ticket-responsavel" [class.vazio]="!ticket.ticket.responsavel"
+                           [title]="ticket.ticket.responsavel || ''">
+                        <mat-icon>person</mat-icon>
+                        <span>{{ ticket.ticket.responsavel || 'Sem responsável' }}</span>
                       </div>
                     </div>
                   </div>

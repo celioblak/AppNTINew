@@ -60,25 +60,25 @@
 .secao {
   display: flex;
   flex: 0 0 auto;
-  align-items: baseline;
   gap: 12px;
+  align-items: baseline;
 
   &__titulo {
     margin: 0;
-    color: var(--pn-texto);
     font-size: clamp(1.1rem, 2.2vh, 2.2rem);
     font-weight: 700;
+    color: var(--pn-texto);
     letter-spacing: 0.5px;
   }
 
   &__contador {
     padding: 0 10px;
-    border-radius: 999px;
-    background: var(--pn-superficie-alta);
-    color: var(--pn-texto-fraco);
     font-size: clamp(0.9rem, 1.6vh, 1.5rem);
-    font-variant-numeric: tabular-nums;
     font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--pn-texto-fraco);
+    background: var(--pn-superficie-alta);
+    border-radius: 999px;
   }
 
 }
@@ -86,26 +86,26 @@
 // Indicador de página: texto legível de longe + bolinhas mostrando quantas faltam.
 .paginacao {
   display: flex;
-  align-items: center;
-  margin-left: auto;
   gap: 8px;
+  align-items: center;
   padding: 3px 12px;
+  margin-left: auto;
+  background: var(--pn-superficie-alta);
   border: 1px solid var(--pn-borda);
   border-radius: 999px;
-  background: var(--pn-superficie-alta);
 
   &__texto {
-    color: var(--pn-texto);
     font-size: clamp(0.8rem, 1.5vh, 1.4rem);
-    font-variant-numeric: tabular-nums;
     font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--pn-texto);
   }
 
   &__ponto {
     width: clamp(6px, 0.9vh, 11px);
     height: clamp(6px, 0.9vh, 11px);
-    border-radius: 50%;
     background: var(--pn-neutro);
+    border-radius: 50%;
 
     &--ativo {
       background: var(--pn-info);
@@ -121,13 +121,13 @@
   flex-wrap: wrap;
   gap: clamp(10px, 1.5vw, 28px);
   padding: 0 2px;
-  color: var(--pn-texto-fraco);
   font-size: clamp(0.7rem, 1.3vh, 1.2rem);
+  color: var(--pn-texto-fraco);
 
   &__item {
     display: flex;
-    align-items: center;
     gap: 6px;
+    align-items: center;
   }
 
   &__cor {
@@ -163,25 +163,25 @@
 
 // Mesmo formato das etiquetas de nível, na cor dos locks.
 .etiqueta--lock {
+  color: #fff;
   background: var(--pn-lock-critico);
-  color: #ffffff;
 }
 
 .vazio {
   display: flex;
   flex: 1 1 auto;
   flex-direction: column;
+  gap: 12px;
   align-items: center;
   justify-content: center;
-  gap: 12px;
+  color: var(--pn-texto-fraco);
   border: 2px dashed var(--pn-borda);
   border-radius: 10px;
-  color: var(--pn-texto-fraco);
 
   &__icone {
-    color: var(--pn-ok);
     font-size: clamp(3rem, 10vh, 8rem);
     line-height: 1;
+    color: var(--pn-ok);
   }
 
   &__texto {
@@ -192,17 +192,17 @@
 .servidores {
   display: flex;
   flex-direction: column;
-  gap: clamp(6px, 1vh, 14px);
+  gap: clamp(4px, 0.6vh, 10px);
 }
 
 .servidor {
   display: flex;
   flex-direction: column;
-  gap: clamp(4px, 0.8vh, 10px);
-  padding: clamp(8px, 1.2vh, 16px) clamp(10px, 1vw, 18px);
-  border-left: 8px solid var(--pn-neutro);
-  border-radius: 6px;
+  gap: clamp(2px, 0.4vh, 6px);
+  padding: clamp(4px, 0.6vh, 10px) clamp(8px, 0.8vw, 14px);
   background: var(--pn-superficie);
+  border-left: 6px solid var(--pn-neutro);
+  border-radius: 6px;
 
   &--alerta {
     border-left-color: var(--pn-atencao);
@@ -214,74 +214,90 @@
 
   &__topo {
     display: flex;
+    gap: 10px;
     align-items: center;
     justify-content: space-between;
-    gap: 10px;
   }
 
   &__nome {
-    font-size: clamp(1rem, 2vh, 1.9rem);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: clamp(0.9rem, 1.6vh, 1.5rem);
     font-weight: 700;
+    white-space: nowrap;
+  }
+
+  // Load e Disco lado a lado (uma linha) em vez de empilhados.
+  &__indicadores {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: clamp(4px, 0.4vh, 8px) clamp(8px, 1vw, 16px);
   }
 }
 
 .etiqueta {
   padding: 2px 10px;
-  border-radius: 4px;
   font-size: clamp(0.7rem, 1.2vh, 1.1rem);
   font-weight: 800;
   letter-spacing: 1px;
+  border-radius: 4px;
 
   &--ok {
+    color: var(--pn-ok);
     background: rgb(53 193 125 / 25%);
     background: color-mix(in srgb, var(--pn-ok) 25%, transparent);
-    color: var(--pn-ok);
   }
 
   &--alerta {
+    color: var(--pn-atencao);
     background: rgb(242 181 68 / 25%);
     background: color-mix(in srgb, var(--pn-atencao) 25%, transparent);
-    color: var(--pn-atencao);
   }
 
   &--critico {
+    color: var(--pn-critico);
     background: rgb(239 83 80 / 28%);
     background: color-mix(in srgb, var(--pn-critico) 28%, transparent);
-    color: var(--pn-critico);
   }
 }
 
 .indicador {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 2px;
+  min-width: 0;
 
   &__cabecalho {
     display: flex;
+    gap: 6px;
     align-items: baseline;
     justify-content: space-between;
+    font-size: clamp(0.75rem, 1.2vh, 1.1rem);
     color: var(--pn-texto-fraco);
-    font-size: clamp(0.8rem, 1.4vh, 1.3rem);
 
     b {
-      color: var(--pn-texto);
-      font-size: clamp(0.95rem, 1.8vh, 1.7rem);
+      font-size: clamp(0.85rem, 1.5vh, 1.4rem);
       font-variant-numeric: tabular-nums;
+      color: var(--pn-texto);
     }
   }
 
+  &__valor {
+    white-space: nowrap;
+  }
+
   &__nota {
-    color: var(--pn-texto-fraco);
-    font-size: clamp(0.7rem, 1.2vh, 1.1rem);
+    font-size: clamp(0.65rem, 1.05vh, 1rem);
     font-variant-numeric: tabular-nums;
+    color: var(--pn-texto-fraco);
   }
 }
 
 .barra {
-  height: clamp(8px, 1.2vh, 16px);
-  border-radius: 999px;
-  background: var(--pn-superficie-alta);
+  height: clamp(5px, 0.8vh, 11px);
   overflow: hidden;
+  background: var(--pn-superficie-alta);
+  border-radius: 999px;
 
   &__valor {
     height: 100%;
@@ -308,29 +324,29 @@
 
   &__resumo {
     display: flex;
-    align-items: baseline;
     gap: 12px;
+    align-items: baseline;
     padding: clamp(6px, 1vh, 14px) clamp(10px, 1vw, 18px);
-    border-radius: 6px;
     background: var(--pn-superficie);
+    border-radius: 6px;
   }
 
   &__numero {
-    color: var(--pn-lock-recente);
     font-size: clamp(1.8rem, 4.5vh, 4rem);
-    font-variant-numeric: tabular-nums;
     font-weight: 800;
+    font-variant-numeric: tabular-nums;
     line-height: 1;
+    color: var(--pn-lock-recente);
   }
 
   &__texto {
-    color: var(--pn-texto-fraco);
     font-size: clamp(0.85rem, 1.6vh, 1.5rem);
+    color: var(--pn-texto-fraco);
   }
 
   &__ocultos {
-    color: var(--pn-texto-fraco);
     font-size: clamp(0.75rem, 1.3vh, 1.2rem);
+    color: var(--pn-texto-fraco);
     text-align: right;
   }
 }
@@ -340,20 +356,20 @@
   grid-template-columns: 1fr auto;
   gap: 2px 12px;
   padding: clamp(4px, 0.8vh, 10px) clamp(10px, 1vw, 18px);
+  background: var(--pn-superficie);
   border-left: 5px solid var(--pn-lock-recente);
   border-radius: 4px;
-  background: var(--pn-superficie);
 
   // Além da borda, o fundo vai ficando mais roxo: de longe a diferença entre
   // as faixas aparece mesmo quando a borda fina não é notada.
   &--alerta {
-    border-left-color: var(--pn-lock-atencao);
     background: color-mix(in srgb, var(--pn-lock-atencao) 22%, var(--pn-superficie));
+    border-left-color: var(--pn-lock-atencao);
   }
 
   &--critico {
-    border-left-color: var(--pn-lock-critico);
     background: color-mix(in srgb, var(--pn-lock-critico) 55%, var(--pn-superficie));
+    border-left-color: var(--pn-lock-critico);
 
     .lock__detalhe {
       color: var(--pn-texto);
@@ -369,13 +385,13 @@
     grid-row: span 2;
     align-self: center;
     font-size: clamp(0.95rem, 1.8vh, 1.6rem);
-    font-variant-numeric: tabular-nums;
     font-weight: 700;
+    font-variant-numeric: tabular-nums;
   }
 
   &__detalhe {
-    color: var(--pn-texto-fraco);
     font-size: clamp(0.7rem, 1.3vh, 1.2rem);
+    color: var(--pn-texto-fraco);
   }
 }
 
@@ -394,13 +410,13 @@
   flex-direction: column;
   gap: clamp(4px, 0.7vh, 8px);
   padding: clamp(8px, 1.2vh, 16px) clamp(10px, 1vw, 18px);
+  background: var(--pn-superficie);
   border-left: 8px solid var(--pn-neutro);
   border-radius: 6px;
-  background: var(--pn-superficie);
 
   &--critico {
-    border-left-color: var(--pn-critico);
     background: color-mix(in srgb, var(--pn-critico) 14%, var(--pn-superficie));
+    border-left-color: var(--pn-critico);
     animation: impacto-pulso 2.4s ease-in-out infinite;
   }
 
@@ -410,8 +426,8 @@
 
   &__topo {
     display: flex;
-    align-items: center;
     gap: 8px;
+    align-items: center;
   }
 
   &__icone {
@@ -420,11 +436,11 @@
   }
 
   &__rotulo {
-    color: var(--pn-texto-fraco);
     font-size: clamp(0.7rem, 1.3vh, 1.15rem);
     font-weight: 800;
-    letter-spacing: 1px;
+    color: var(--pn-texto-fraco);
     text-transform: uppercase;
+    letter-spacing: 1px;
   }
 
   &--critico &__rotulo {
@@ -437,9 +453,9 @@
 
   &__desde {
     margin-left: auto;
-    color: var(--pn-texto-fraco);
     font-size: clamp(0.7rem, 1.3vh, 1.15rem);
     font-variant-numeric: tabular-nums;
+    color: var(--pn-texto-fraco);
   }
 
   &__nome {
@@ -449,16 +465,16 @@
   }
 
   &__servidor {
-    color: var(--pn-texto-fraco);
     font-size: 0.7em;
     font-weight: 600;
+    color: var(--pn-texto-fraco);
   }
 
   &__descricao {
     overflow: hidden;
-    color: var(--pn-texto-fraco);
-    font-size: clamp(0.75rem, 1.4vh, 1.25rem);
     text-overflow: ellipsis;
+    font-size: clamp(0.75rem, 1.4vh, 1.25rem);
+    color: var(--pn-texto-fraco);
     white-space: nowrap;
   }
 
@@ -470,30 +486,30 @@
   }
 
   &__sem-sistema {
-    color: var(--pn-texto-fraco);
     font-size: clamp(0.7rem, 1.2vh, 1.1rem);
     font-style: italic;
+    color: var(--pn-texto-fraco);
   }
 }
 
 .sistema-chip {
   display: inline-flex;
-  align-items: baseline;
   gap: 8px;
+  align-items: baseline;
   padding: 3px 10px;
+  font-size: clamp(0.8rem, 1.5vh, 1.35rem);
+  background: var(--pn-superficie-alta);
   border: 1px solid var(--pn-borda);
   border-radius: 999px;
-  background: var(--pn-superficie-alta);
-  font-size: clamp(0.8rem, 1.5vh, 1.35rem);
 
   span {
-    color: var(--pn-texto-fraco);
     font-size: 0.85em;
+    color: var(--pn-texto-fraco);
   }
 
   &--total {
-    border-color: var(--pn-critico);
     background: color-mix(in srgb, var(--pn-critico) 30%, var(--pn-superficie));
+    border-color: var(--pn-critico);
 
     span {
       color: var(--pn-texto);

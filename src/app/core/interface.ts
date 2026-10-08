@@ -612,6 +612,8 @@ export interface TicketChamado {
   dataTicket: string;
   slaContrato: SlaContrato;
   responsavel: string;
+  /** Usuário do AppNTI responsável, pelo de-para de usuários MV (null = sem vínculo). */
+  codUsuarioResp?: number | null;
   extId: string;
   dtUpdate: string;
   dtResolvido?: string | Date | null;
@@ -806,6 +808,7 @@ export interface Ticket {
   tipo?: string;
   prioridade?: string;
   criticidade?: number;      // vem do SprintTicket
+  responsavel?: string;      // vem do TicketChamado
 }
 
 export interface TicketFiltro {

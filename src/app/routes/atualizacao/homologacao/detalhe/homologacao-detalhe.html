@@ -165,32 +165,73 @@
                 {{ mostrarFora() ? 'Ocultar' : 'Mostrar' }} fora do escopo <span class="qtd">{{ contagemFiltros().FORA }}</span>
               </button>
             }
+            @if (modulosSemTeste().size) {
+              <button
+                type="button"
+                class="filtro"
+                [class.filtro--ativo]="soModulosSemTeste()"
+                [attr.aria-pressed]="soModulosSemTeste()"
+                matTooltip="Módulos sem nenhum teste registrado: sem itens criados ou com itens ainda não testados"
+                (click)="soModulosSemTeste.set(!soModulosSemTeste())">
+                <mat-icon inline>view_module</mat-icon> Módulos sem teste <span class="qtd">{{ modulosSemTeste().size }}</span>
+              </button>
+            }
             @if (h.sistemas.length > 1) {
               <mat-form-field appearance="outline" subscriptSizing="dynamic" class="filtro-sistema">
                 <mat-label>Sistema</mat-label>
-                <mat-select [ngModel]="filtroSistema()" (ngModelChange)="trocarFiltroSistema($event)">
-                  <mat-option [value]="null">Todos os sistemas</mat-option>
-                  @for (s of h.sistemas; track s.codHomologacaoSistema) {
-                    <mat-option [value]="s.codHomologacaoSistema">{{ s.nome }}</mat-option>
-                  }
-                </mat-select>
+                <!-- Pesquisável: digitar filtra a lista (sem diferenciar acento e maiúscula); o X volta para todos. -->
+                <mtx-select
+                  [items]="h.sistemas"
+                  bindLabel="nome"
+                  bindValue="codHomologacaoSistema"
+                  [searchable]="true"
+                  [clearable]="true"
+                  placeholder="Todos os sistemas"
+                  notFoundText="Nenhum sistema"
+                  [ngModel]="filtroSistema()"
+                  (ngModelChange)="trocarFiltroSistema($event ?? null)">
+                  <ng-template ng-option-tmp let-item="item"><span class="opcao-filtro">{{ item.nome }}</span></ng-template>
+                </mtx-select>
+              </mat-form-field>
+            }
+            @if (opcoesUsuario().length) {
+              <mat-form-field appearance="outline" subscriptSizing="dynamic" class="filtro-usuario" matTooltip="Itens com a pessoa (reservados ou atribuídos) ou que ela testou">
+                <mat-label>Usuário</mat-label>
+                <mtx-select
+                  [items]="opcoesUsuario()"
+                  bindLabel="rotulo"
+                  bindValue="codUsuario"
+                  [searchable]="true"
+                  [clearable]="true"
+                  placeholder="Todos os usuários"
+                  notFoundText="Ninguém com esse nome"
+                  [ngModel]="filtroUsuario()"
+                  (ngModelChange)="filtroUsuario.set($event ?? null)">
+                  <ng-template ng-option-tmp let-item="item"><span class="opcao-filtro">{{ item.rotulo }}</span></ng-template>
+                </mtx-select>
               </mat-form-field>
             }
             @if (opcoesModulo().length) {
               <mat-form-field appearance="outline" subscriptSizing="dynamic" class="filtro-modulo">
                 <mat-label>Módulo</mat-label>
-                <mat-select [ngModel]="filtroModulo()" (ngModelChange)="filtroModulo.set($event)">
-                  <mat-option [value]="null">Todos os módulos</mat-option>
-                  @for (m of opcoesModulo(); track m.codModulo) {
-                    <mat-option [value]="m.codModulo">{{ m.rotulo }}</mat-option>
-                  }
-                </mat-select>
+                <mtx-select
+                  [items]="opcoesModulo()"
+                  bindLabel="rotulo"
+                  bindValue="codModulo"
+                  [searchable]="true"
+                  [clearable]="true"
+                  placeholder="Todos os módulos"
+                  notFoundText="Nenhum módulo"
+                  [ngModel]="filtroModulo()"
+                  (ngModelChange)="filtroModulo.set($event ?? null)">
+                  <ng-template ng-option-tmp let-item="item"><span class="opcao-filtro">{{ item.rotulo }}</span></ng-template>
+                </mtx-select>
               </mat-form-field>
             }
           </div>
 
-          @for (g of arvore(); track g.sistema.codHomologacaoSistema) {
-            <section class="secao sistema" [class.sistema--vazio]="!g.total">
+          @for (g of arvore(); track g.sistema.codHomologacaoSistema; let iSistema = $index) {
+            <section class="secao sistema" [class.sistema--vazio]="!g.total" [class.sistema--zebra]="iSistema % 2 === 1">
               <h3 class="secao__titulo">
                 {{ g.sistema.nome }}
                 <span class="suave">{{ g.sistema.versaoAtual ? g.sistema.versaoAtual + ' → ' : '' }}{{ g.sistema.versaoNova || 'sem versão no ambiente' }}</span>
@@ -211,7 +252,9 @@
                 <!-- Sistema sem itens: uma linha só, sem ocupar a tela. -->
                 <span class="suave">{{ g.sistema.falta || 'Sem itens: inclua itens nesta homologação ou escolha um roteiro padrão no cadastro.' }}</span>
               }
-              @for (m of g.modulos; track m.nome) {
+              @for (m of g.modulos; track m.nome; let iModulo = $index) {
+              <!-- Cada módulo num bloco com cor própria: dá para ver onde um termina e o outro começa. -->
+              <div class="modulo-bloco" [class.modulo-bloco--cor]="g.sistema.trabalhaModulo" [class.modulo-bloco--zebra]="iModulo % 2 === 1">
               @if (g.sistema.trabalhaModulo) {
                 <div class="modulo__cab">
                   <mat-icon inline>view_module</mat-icon>
@@ -243,8 +286,16 @@
                   }
                 </div>
               }
-              @for (ag of m.agrupamentos; track ag.agrupamento.codAgrupamento) {
-                <div class="agrupamento" [class.agrupamento--modulo]="g.sistema.trabalhaModulo">
+              @if (g.sistema.trabalhaModulo && !m.agrupamentos.length) {
+                <!-- Só no filtro "Módulos sem teste": módulo ainda sem nenhum item nesta homologação. -->
+                <p class="modulo-vazio">
+                  Nenhum item criado neste módulo{{ aberta() && (h.eu.podeIncluirSoNesta || h.eu.roteiros) ? ' — use "Incluir item" e escolha um agrupamento dele (ou crie um no +).' : '.' }}
+                </p>
+              } @else if (soModulosSemTeste() && m.modulo) {
+                <p class="modulo-vazio">{{ m.modulo.contagem.total }} {{ m.modulo.contagem.total === 1 ? 'item ainda não testado' : 'itens ainda não testados' }}.</p>
+              }
+              @for (ag of m.agrupamentos; track ag.agrupamento.codAgrupamento; let iAg = $index) {
+                <div class="agrupamento" [class.agrupamento--modulo]="g.sistema.trabalhaModulo" [class.agrupamento--zebra]="iAg % 2 === 1">
                   <div class="agrupamento__cab">
                     <strong>{{ ag.agrupamento.nome }}</strong>
                     @if (ag.agrupamento.tela) {
@@ -277,6 +328,9 @@
                         @if (h.eu.gestao) {
                           <button mat-menu-item type="button" (click)="atribuir(null, ag.agrupamento)"><mat-icon>assignment_ind</mat-icon> Atribuir agrupamento…</button>
                           <button mat-menu-item type="button" (click)="removerReservas({ agrupamento: ag.agrupamento })"><mat-icon>remove_circle_outline</mat-icon> Remover reservas…</button>
+                        }
+                        @if (podeTrocarAgrupamento(ag.agrupamento)) {
+                          <button mat-menu-item type="button" (click)="trocarAgrupamento(ag.agrupamento)"><mat-icon>swap_horiz</mat-icon> Trocar sistema / módulo…</button>
                         }
                         @if (podeExcluirAgrupamento(ag.agrupamento)) {
                           <button mat-menu-item type="button" class="perigo" (click)="excluirAgrupamento(ag.agrupamento)"><mat-icon>delete</mat-icon> Excluir agrupamento…</button>
@@ -368,7 +422,11 @@
                               }
                             </td>
                             <td class="acoes">
-                              @if (podeRegistrar(i)) {
+                              @if (podeRetestar(i)) {
+                                <button mat-stroked-button type="button" class="registrar" (click)="retestar(i)" matTooltip="Já testado: volta pendente, com o motivo, para registrar de novo">
+                                  Retestar
+                                </button>
+                              } @else if (podeRegistrar(i)) {
                                 <button mat-flat-button type="button" class="registrar" (click)="registrar(i)">Registrar</button>
                               } @else if (podeReservar(i)) {
                                 <button mat-stroked-button type="button" (click)="reservar(i)">Reservar</button>
@@ -392,7 +450,7 @@
                                   <button mat-menu-item type="button" (click)="editarItem(i)"><mat-icon>edit</mat-icon> Editar item…</button>
                                 }
                                 @if (podePedirReteste(i)) {
-                                  <button mat-menu-item type="button" (click)="pedirReteste(i)"><mat-icon>replay</mat-icon> Pedir reteste…</button>
+                                  <button mat-menu-item type="button" (click)="pedirReteste(i)"><mat-icon>replay</mat-icon> Pedir reteste ao responsável…</button>
                                 }
                                 @if (h.eu.gestao && aberta()) {
                                   <button mat-menu-item type="button" (click)="alterarEscopo(i)">
@@ -418,6 +476,7 @@
                   </div>
                 </div>
               }
+              </div>
               }
             </section>
           } @empty {

@@ -36,10 +36,10 @@
   // Margem de segurança: TV corta as bordas (overscan).
   gap: clamp(8px, 1.5vh, 18px);
   padding: clamp(10px, 2.2vh, 28px) clamp(12px, 2vw, 32px);
-  background: var(--pn-fundo);
-  color: var(--pn-texto);
-  font-family: 'Segoe UI', system-ui, -apple-system, Roboto, sans-serif;
   overflow: hidden;
+  font-family: 'Segoe UI', system-ui, -apple-system, Roboto, sans-serif;
+  color: var(--pn-texto);
+  background: var(--pn-fundo);
 
   // Deriva lenta e imperceptível: evita pixel parado por meses na mesma posição.
   animation: painel-deriva 900s ease-in-out infinite alternate;
@@ -53,17 +53,17 @@
   &--classico {
     gap: 0;
     padding: 0;
-    background: #f1f1fd;
-    color: #1b1b1f;
     font-family: Verdana, Geneva, sans-serif;
+    color: #1b1b1f;
+    background: #f1f1fd;
     animation: none;
 
     .rodape {
       height: 32px;
       padding: 0 12px;
-      border: 0;
-      background: #22223b;
       color: #f4f4f8;
+      background: #22223b;
+      border: 0;
     }
   }
 }
@@ -71,8 +71,8 @@
 .topo {
   display: flex;
   flex: 0 0 auto;
-  align-items: center;
   gap: clamp(12px, 2vw, 32px);
+  align-items: center;
 
   &__titulo {
     margin: 0;
@@ -83,29 +83,29 @@
 
   &__estado {
     display: flex;
-    align-items: center;
     gap: 8px;
+    align-items: center;
     padding: 4px 12px;
-    border-radius: 999px;
-    background: var(--pn-superficie);
-    color: var(--pn-texto-fraco);
     font-size: clamp(0.8rem, 1.5vh, 1.4rem);
     font-variant-numeric: tabular-nums;
+    color: var(--pn-texto-fraco);
+    background: var(--pn-superficie);
+    border-radius: 999px;
 
     // Dado parado é falha silenciosa: precisa saltar aos olhos.
     &--velho {
+      font-weight: 700;
+      color: var(--pn-atencao);
       background: rgb(242 181 68 / 22%);
       background: color-mix(in srgb, var(--pn-atencao) 22%, var(--pn-superficie));
-      color: var(--pn-atencao);
-      font-weight: 700;
     }
   }
 
   &__relogio {
     margin-left: auto;
     font-size: clamp(1.6rem, 4.5vh, 4.5rem);
-    font-variant-numeric: tabular-nums;
     font-weight: 300;
+    font-variant-numeric: tabular-nums;
     line-height: 1;
   }
 }
@@ -113,19 +113,19 @@
 .tarja {
   flex: 0 0 auto;
   padding: clamp(4px, 0.8vh, 10px);
-  border-radius: 6px;
-  background: var(--pn-critico);
-  color: #fff;
   font-size: clamp(0.85rem, 1.6vh, 1.5rem);
   font-weight: 700;
+  color: #fff;
   text-align: center;
+  background: var(--pn-critico);
+  border-radius: 6px;
 }
 
 .ponto {
   width: clamp(8px, 1.2vh, 14px);
   height: clamp(8px, 1.2vh, 14px);
-  border-radius: 50%;
   background: var(--pn-neutro);
+  border-radius: 50%;
 
   &--conectado {
     background: var(--pn-ok);
@@ -144,12 +144,12 @@
 .rodape {
   display: flex;
   flex: 0 0 auto;
-  align-items: center;
   gap: 12px;
+  align-items: center;
   padding-top: clamp(4px, 0.8vh, 10px);
-  border-top: 1px solid var(--pn-borda);
-  color: var(--pn-texto-fraco);
   font-size: clamp(0.7rem, 1.3vh, 1.2rem);
+  color: var(--pn-texto-fraco);
+  border-top: 1px solid var(--pn-borda);
 
   &__estado {
     font-weight: bold;
@@ -159,8 +159,8 @@
   &__log {
     flex: 1 1 auto;
     overflow: hidden;
-    white-space: nowrap;
     text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   &__atualizacao {
@@ -182,18 +182,18 @@
 
 .aviso {
   padding: clamp(8px, 1.2vh, 16px) clamp(12px, 1.2vw, 22px);
-  border-left: 8px solid transparent;
-  border-radius: 8px;
-  background: var(--pn-superficie-alta);
-  box-shadow: 0 8px 24px rgb(0 0 0 / 45%);
-  color: var(--pn-texto);
   font-size: clamp(1rem, 2vh, 1.9rem);
   line-height: 1.25;
+  color: var(--pn-texto);
+  background: var(--pn-superficie-alta);
+  border-left: 8px solid transparent;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 45%);
 
   strong {
     display: block;
-    color: var(--pn-texto-fraco);
     font-size: clamp(0.75rem, 1.4vh, 1.3rem);
+    color: var(--pn-texto-fraco);
     text-transform: uppercase;
   }
 

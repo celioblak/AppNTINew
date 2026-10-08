@@ -12,6 +12,7 @@ import { HotToastService } from '@ngxpert/hot-toast';
 import { ExpedienteTelegram } from '@shared/components/expediente-telegram/expediente-telegram';
 
 import { UsuarioCadastro, UsuarioCadastroService } from './usuario-cadastro.service';
+import { UsuariosMvService } from './usuarios-mv/usuarios-mv.service';
 
 interface DadosDialogUsuario {
   modo: 'adicionar' | 'editar';
@@ -123,6 +124,27 @@ interface DadosDialogUsuario {
         }
       </form>
 
+      <!-- Nomes no MV (de-para de usuários MV, docs/de-para-usuarios-mv.md T-02): só leitura -->
+      @if (data.modo === 'editar' && data.usuario.codUsuario != null) {
+        <div class="nomes-mv">
+          <span class="nomes-mv__titulo" matTooltip="Nome do responsável que chega nos tickets MV e é deste usuário. Gerenciado na aba Usuários MV.">
+            Nomes no MV
+          </span>
+          @if (nomesMv === null) {
+            <span class="nomes-mv__vazio">carregando...</span>
+          } @else if (nomesMv.length === 0) {
+            <span class="nomes-mv__vazio">
+              Nenhum — tickets MV não chegam para este usuário. Confira o nome acima (igual ao do MV vincula sozinho)
+              ou vincule na aba Usuários MV.
+            </span>
+          } @else {
+            @for (n of nomesMv; track n) {
+              <span class="nomes-mv__chip">{{ n }}</span>
+            }
+          }
+        </div>
+      }
+
       @if (data.modo === 'editar' && data.usuario.codUsuario != null) {
         <mat-expansion-panel class="expediente">
           <mat-expansion-panel-header>
@@ -174,6 +196,26 @@ interface DadosDialogUsuario {
       .expediente {
         margin-top: 12px;
       }
+      .nomes-mv {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 6px;
+        margin-top: 8px;
+        font-size: 12px;
+      }
+      .nomes-mv__titulo {
+        font-weight: 500;
+        color: var(--mat-sys-on-surface-variant);
+      }
+      .nomes-mv__vazio {
+        color: var(--mat-sys-on-surface-variant);
+      }
+      .nomes-mv__chip {
+        padding: 1px 8px;
+        border-radius: 10px;
+        background: var(--mat-sys-surface-container-highest);
+      }
       .expediente__dica {
         margin: 0 0 8px;
         font-size: 12px;
@@ -198,6 +240,10 @@ export class UsuarioFormDialogComponent {
   readonly data = inject<DadosDialogUsuario>(MAT_DIALOG_DATA);
 
   salvando = false;
+
+  /** Nomes MV vinculados ao usuário (null = carregando). */
+  nomesMv: string[] | null = null;
+  private readonly usuariosMvService = inject(UsuariosMvService);
 
   readonly form = this.fb.group({
     nome: ['', [Validators.required, Validators.maxLength(120)]],
@@ -239,6 +285,13 @@ export class UsuarioFormDialogComponent {
 
     if (this.data.modo === 'editar') {
       this.form.get('login')!.disable();
+
+      if (u.codUsuario != null) {
+        this.usuariosMvService.nomesDoUsuario(u.codUsuario).subscribe({
+          next: nomes => (this.nomesMv = nomes ?? []),
+          error: () => (this.nomesMv = []),
+        });
+      }
 
       // Recarrega o registro completo (matrícula/GLPI/Telegram nem sempre vêm na lista)
       if (u.codUsuario != null) {

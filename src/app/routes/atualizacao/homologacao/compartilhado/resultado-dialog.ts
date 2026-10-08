@@ -67,10 +67,8 @@ const OPCOES: Resultado[] = ['APROVADO', 'REPROVADO', 'BLOQUEADO', 'NAO_SE_APLIC
       </section>
 
       @if (anterior(); as a) {
-        <p class="aviso">
-          Já registrado: <strong>{{ info[a].rotulo }}</strong>. O novo registro passa a valer e o anterior fica no histórico —
-          explique na observação o que muda.
-        </p>
+        <!-- Só Bloqueado chega aqui com resultado: o já testado passa antes por "Retestar". -->
+        <p class="aviso">Estava <strong>{{ info[a].rotulo }}</strong>: o novo registro passa a valer e o anterior fica no histórico.</p>
       }
 
       <div class="opcoes" role="radiogroup" aria-label="Resultado">
@@ -342,7 +340,7 @@ export class ResultadoDialogComponent {
       case 'NAO_SE_APLICA':
         return 'Por que não se aplica a esta versão';
       default:
-        return this.anterior() ? 'O que muda em relação ao registro anterior' : 'Observação (opcional)';
+        return 'Observação (opcional)';
     }
   });
 
@@ -351,7 +349,7 @@ export class ResultadoDialogComponent {
     const r = this.resultado();
     if (!r) return 'Escolha o resultado.';
     const obs = this.observacao().trim();
-    if ((r !== 'APROVADO' || this.anterior()) && !obs) return 'Preencha a observação.';
+    if (r !== 'APROVADO' && !obs) return 'Preencha a observação.';
     if (r === 'REPROVADO' && !this.arquivos().length) return 'Anexe pelo menos uma evidência.';
     return '';
   });

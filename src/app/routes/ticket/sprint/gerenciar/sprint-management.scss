@@ -380,16 +380,26 @@
     color: var(--mat-sys-on-surface);
   }
 
+  // Status e gravidade lado a lado + botão salvar (só ícone) no fim da mesma
+  // linha — a área de edição ocupa uma única linha do card.
   .ticket-edit-area {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
+    container-type: inline-size;   // permite reagir à largura do card (ver @container abaixo)
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+    column-gap: 6px;
+    align-items: center;
     margin-top: 2px;
 
+    // Card estreito: some com os ícones da frente para sobrar espaço ao texto do combo
+    @container (max-width: 250px) {
+      .edit-field mat-icon { display: none; }
+    }
+
     .edit-field {
+      min-width: 0;
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 4px;
 
       mat-icon {
         font-size: 15px;
@@ -401,40 +411,64 @@
 
       mat-select {
         flex: 1;
+        min-width: 0;   // texto longo (ex.: NAO_ENTREGUE) corta com "…" em vez de alargar
         background: var(--mat-sys-surface);
         border-radius: 4px;
-        padding: 2px 8px;
+        padding: 2px 6px;
         border: 1px solid var(--mat-sys-outline-variant);
         font-size: 12px;
         min-height: unset;
 
         ::ng-deep .mat-mdc-select-trigger {
+          display: flex;
+          align-items: center;
           height: 22px !important;
           min-height: 22px !important;
+          min-width: 0;
         }
         ::ng-deep .mat-mdc-select-value,
         ::ng-deep .mat-mdc-select-arrow-wrapper {
           font-size: 12px !important;
         }
+        // Texto do valor sempre em uma linha: corta com "…" em vez de quebrar
+        ::ng-deep .mat-mdc-select-value {
+          flex: 1;
+          min-width: 0;
+          overflow: hidden;
+        }
+        ::ng-deep .mat-mdc-select-value-text,
+        ::ng-deep .mat-mdc-select-min-line,
+        ::ng-deep .mat-mdc-select-placeholder {
+          display: block;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          line-height: 22px;
+        }
+        // Seta do combo mais estreita (padrão reserva 24px)
+        ::ng-deep .mat-mdc-select-arrow-wrapper {
+          flex-shrink: 0;
+          width: 14px;
+          justify-content: flex-end;
+        }
       }
     }
 
     .update-btn {
+      align-self: center;
+      width: 32px;
+      height: 32px;
+      padding: 4px;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 4px;
-      padding: 2px 10px;
-      font-size: 12px;
-      line-height: 1;
-      min-height: 30px;
-      min-width: 88px;
-      align-self: flex-end;
 
-      mat-icon { font-size: 16px; width: 16px; height: 16px; }
+      mat-icon { font-size: 18px; width: 18px; height: 18px; }
 
-      .btn-spinner {
-        margin: 0 auto;
+      // Área de toque do mat-icon-button padrão (48px) não pode alargar o card
+      ::ng-deep .mat-mdc-button-touch-target {
+        width: 32px;
+        height: 32px;
       }
     }
   }
@@ -587,6 +621,79 @@
     .status-control {
       max-width: 100% !important;
       width: 100%;
+    }
+  }
+}
+
+// Responsável do ticket no rodapé do card
+.ticket-card .ticket-responsavel {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  min-width: 0;
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px dashed var(--mat-sys-outline-variant, rgba(0, 0, 0, 0.12));
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--mat-sys-on-surface-variant, rgba(0, 0, 0, 0.6));
+
+  span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  mat-icon {
+    font-size: 13px;
+    width: 13px;
+    height: 13px;
+    flex-shrink: 0;
+  }
+
+  &.vazio {
+    font-style: italic;
+    opacity: 0.7;
+  }
+}
+
+// Lista aberta dos combos do card: o painel cresce até caber a opção mais longa
+// ([panelWidth]="null") e cada opção fica em uma linha, compacta.
+::ng-deep .combo-card-panel {
+  min-width: 140px !important;
+
+  .mat-mdc-option {
+    min-height: 32px;
+    font-size: 12px;
+    white-space: nowrap;
+
+    .mdc-list-item__primary-text {
+      white-space: nowrap;
+    }
+  }
+}
+
+// ── Linha de ações projetada no <app-sprint-cabecalho> ──
+app-sprint-cabecalho {
+  .filtro-tickets {
+    flex: 0 1 300px;
+    min-width: 200px;
+  }
+
+  .espaco {
+    flex: 1;
+  }
+
+  .acao-btn {
+    height: 34px;
+    padding: 0 12px;
+    font-size: 13px;
+
+    mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
     }
   }
 }

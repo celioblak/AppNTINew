@@ -249,17 +249,11 @@ export class ClassificacaoTicketComponent implements OnInit, AfterViewInit {
       filtrados = filtrados.filter((t) => t.desatualizado);
     }
 
-    // Filtro local: responsável — compara pelo nome do usuário selecionado,
-    // pois ticket.responsavel é uma string de nome (mesma lógica do snMeus no backend)
+    // Filtro local: responsável — pelo usuário gravado no ticket via de-para de
+    // usuários MV (mesma regra do snMeus no backend)
     if (this.filtros.responsavelId !== '') {
-      const usuarioSelecionado = this.usuarios.find(
-        (u) => u['codUsuario'] === +this.filtros.responsavelId
-      );
-      if (usuarioSelecionado) {
-        filtrados = filtrados.filter(
-          (t) => t.responsavel?.toLowerCase() === usuarioSelecionado['nome']?.toLowerCase()
-        );
-      }
+      const codUsuario = +this.filtros.responsavelId;
+      filtrados = filtrados.filter((t) => t.codUsuarioResp === codUsuario);
     }
 
     // Mantém ordenação: desatualizados primeiro → dataMovimento decrescente

@@ -226,7 +226,8 @@ private carregarSprint(): void {
         descricao: ticket.descricao,
         tipo: this.extrairTipoDoTicket(ticket), // se houver campo tipo no seu modelo
         prioridade: this.extrairPrioridade(ticket), // se houver
-        criticidade: st.criticidade
+        criticidade: st.criticidade,
+        responsavel: ticket.responsavel
       };
     });
   }

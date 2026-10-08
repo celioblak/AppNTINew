@@ -1,4 +1,4 @@
-import { HttpBackend, HttpClient } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable, map } from 'rxjs';
 
@@ -28,23 +28,17 @@ export interface UsuarioCadastro {
 
 @Injectable({ providedIn: 'root' })
 export class UsuarioCadastroService {
-  /**
-   * HttpClient sem interceptors (igual UsuarioService.getAtivos): os endpoints de
-   * listagem retornam array puro, que o error-interceptor do projeto trataria
-   * como erro mesmo com status 200.
-   */
-  private readonly httpDireto = new HttpClient(inject(HttpBackend));
   private readonly http = inject(HttpClient);
   private readonly apiUrl = `${environment.ApiBaseUrl}usuario`;
 
   listar(): Observable<UsuarioCadastro[]> {
-    return this.httpDireto
+    return this.http
       .get<any[]>(`${this.apiUrl}/?incluirInativos=true`)
       .pipe(map(lista => (lista ?? []).map(u => this.normalizar(u))));
   }
 
   obter(id: number): Observable<UsuarioCadastro> {
-    return this.httpDireto.get<any>(`${this.apiUrl}/${id}`).pipe(map(u => this.normalizar(u)));
+    return this.http.get<any>(`${this.apiUrl}/${id}`).pipe(map(u => this.normalizar(u)));
   }
 
   criar(dto: UsuarioCadastro): Observable<any> {
@@ -60,7 +54,7 @@ export class UsuarioCadastroService {
   }
 
   existeLogin(login: string): Observable<boolean> {
-    return this.httpDireto.get<boolean>(`${this.apiUrl}/exists/login/${encodeURIComponent(login)}`);
+    return this.http.get<boolean>(`${this.apiUrl}/exists/login/${encodeURIComponent(login)}`);
   }
 
   /** Normaliza o JSON do backend (que mistura `snativo`/`snadmin` minúsculos com camelCase). */

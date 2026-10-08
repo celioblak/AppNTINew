@@ -1,0 +1,172 @@
+<div class="usuarios-mv">
+  <!-- Explicação + filtros -->
+  <div class="topo">
+    <p class="explicacao">
+      <mat-icon>info_outline</mat-icon>
+      O ticket MV chega só com o <strong>nome</strong> do responsável. Aqui cada nome é ligado a um usuário do
+      AppNTI — é por esse vínculo que saem os alertas, o "Meus tickets" e a análise de entrega da sprint.
+      Nome igual ao do cadastro é vinculado sozinho (<em>Automático</em>).
+    </p>
+
+    <div class="filtros">
+      <mat-form-field appearance="outline" class="busca" subscriptSizing="dynamic">
+        <mat-label>Buscar</mat-label>
+        <mat-icon matPrefix>search</mat-icon>
+        <input matInput [(ngModel)]="busca" placeholder="Nome no MV ou usuário" autocomplete="off" />
+        @if (busca) {
+          <button mat-icon-button matSuffix (click)="busca = ''" aria-label="Limpar busca">
+            <mat-icon>close</mat-icon>
+          </button>
+        }
+      </mat-form-field>
+
+      <mat-button-toggle-group [(ngModel)]="filtro" class="situacoes" hideSingleSelectionIndicator>
+        <mat-button-toggle value="TODOS">Todos <span class="qtd">{{ linhas.length }}</span></mat-button-toggle>
+        <mat-button-toggle value="PENDENTE" class="pendente">
+          Pendentes <span class="qtd">{{ contar('PENDENTE') }}</span>
+        </mat-button-toggle>
+        <mat-button-toggle value="AUTOMATICO">Automáticos <span class="qtd">{{ contar('AUTOMATICO') }}</span></mat-button-toggle>
+        <mat-button-toggle value="MANUAL">Vinculados <span class="qtd">{{ contar('MANUAL') }}</span></mat-button-toggle>
+        <mat-button-toggle value="SEM_APPNTI">Não usa o AppNTI <span class="qtd">{{ contar('SEM_APPNTI') }}</span></mat-button-toggle>
+      </mat-button-toggle-group>
+
+      <button mat-stroked-button color="primary" class="reprocessar" (click)="reprocessar()"
+              [disabled]="reprocessando || carregando"
+              matTooltip="Confere todos os tickets: cria os nomes que faltam, tenta vincular os pendentes e acerta o responsável gravado em cada ticket">
+        @if (reprocessando) { <mat-spinner diameter="16" /> } @else { <mat-icon>refresh</mat-icon> }
+        Reprocessar
+      </button>
+    </div>
+  </div>
+
+  <!-- Lista -->
+  <div class="lista">
+    @if (carregando) {
+      <div class="vazio"><mat-spinner diameter="32" /><span>Carregando...</span></div>
+    } @else if (linhasFiltradas.length === 0) {
+      <div class="vazio">
+        <mat-icon>person_outline</mat-icon>
+        <span>
+          @if (linhas.length === 0) {
+            Nenhum nome de responsável ainda. Os nomes aparecem aqui conforme os tickets MV chegam.
+          } @else {
+            Nenhum nome com esse filtro.
+          }
+        </span>
+      </div>
+    } @else {
+      <div class="cabecalho">
+        <span>Nome no MV</span>
+        <span>Situação</span>
+        <span>Usuário do AppNTI</span>
+        <span></span>
+      </div>
+
+      @for (l of linhasFiltradas; track l.codUsuarioMv) {
+        <div class="linha" [class]="'situacao-' + l.situacao.toLowerCase()"
+             [class.salvando]="salvandoId === l.codUsuarioMv">
+
+          <!-- Nome no MV + uso -->
+          <div class="nome-mv">
+            <span class="nome" [title]="l.nmMv">{{ l.nmMv }}</span>
+            <span class="uso">
+              {{ l.qtdTickets }} ticket(s)
+              @if (l.qtdAbertos) { · <strong>{{ l.qtdAbertos }} aberto(s)</strong> }
+              @if (l.ultimoTicket) { · último {{ l.ultimoTicket | date: 'dd/MM/yyyy' }} }
+            </span>
+          </div>
+
+          <!-- Situação -->
+          <div class="situacao">
+            <span class="chip" [matTooltip]="l.alteradoPor ? 'Por ' + l.alteradoPor + ' em ' + (l.alteradoEm | date: 'dd/MM/yyyy HH:mm') : ''">
+              <mat-icon>{{ icones[l.situacao] }}</mat-icon>{{ rotulos[l.situacao] }}
+            </span>
+          </div>
+
+          <!-- Usuário -->
+          <div class="usuario">
+            @if (mostraCampoUsuario(l)) {
+              <mat-form-field appearance="outline" class="campo-usuario" subscriptSizing="dynamic">
+                <mat-icon matPrefix>person</mat-icon>
+                <input matInput [(ngModel)]="textoUsuario[l.codUsuarioMv]"
+                       [matAutocomplete]="auto" placeholder="Vincular a um usuário..."
+                       [disabled]="salvandoId === l.codUsuarioMv" autocomplete="off" />
+                <mat-autocomplete #auto="matAutocomplete"
+                                  (optionSelected)="vincular(l, $event.option.value.codUsuario, $event.option.value.nome)">
+                  @for (u of opcoesUsuario(l); track u.codUsuario) {
+                    <mat-option [value]="u">{{ u.nome }} <span class="login">{{ u.login }}</span></mat-option>
+                  }
+                  @if (opcoesUsuario(l).length === 0) {
+                    <mat-option disabled>Nenhum usuário ativo com esse nome</mat-option>
+                  }
+                </mat-autocomplete>
+              </mat-form-field>
+
+              @if (l.sugestoes?.length) {
+                <div class="sugestoes">
+                  <span>Sugestão:</span>
+                  @for (s of l.sugestoes; track s.codUsuario) {
+                    <button mat-stroked-button type="button" class="sugestao"
+                            [disabled]="salvandoId === l.codUsuarioMv"
+                            (click)="vincular(l, s.codUsuario, s.nome)">
+                      <mat-icon>link</mat-icon>{{ s.nome }}
+                    </button>
+                  }
+                </div>
+              }
+            } @else if (l.situacao === 'SEM_APPNTI') {
+              <span class="sem-usuario">—</span>
+            } @else {
+              <span class="vinculado">
+                <mat-icon>person</mat-icon>{{ l.nomeUsuario }}
+                @if (l.usuarioAtivo === false) {
+                  <span class="inativo" matTooltip="Usuário inativo: não recebe alertas. Reative na aba Usuários ou vincule a outro usuário.">
+                    <mat-icon>warning</mat-icon> inativo
+                  </span>
+                }
+              </span>
+            }
+          </div>
+
+          <!-- Ações -->
+          <div class="acoes">
+            @if (salvandoId === l.codUsuarioMv) {
+              <mat-spinner diameter="20" />
+            } @else {
+              @switch (l.situacao) {
+                @case ('PENDENTE') {
+                  <button mat-icon-button (click)="marcarSemAppNti(l)"
+                          matTooltip="Não usa o AppNTI: pessoa que nunca terá usuário aqui. Sai dos pendentes e não avisa mais.">
+                    <mat-icon>block</mat-icon>
+                  </button>
+                }
+                @case ('SEM_APPNTI') {
+                  <button mat-icon-button (click)="voltarParaPendente(l)" matTooltip="Voltar para pendente">
+                    <mat-icon>undo</mat-icon>
+                  </button>
+                }
+                @default {
+                  @if (editandoId === l.codUsuarioMv) {
+                    <button mat-icon-button (click)="cancelarAlteracao()" matTooltip="Cancelar alteração">
+                      <mat-icon>close</mat-icon>
+                    </button>
+                  } @else {
+                    <button mat-icon-button color="primary" (click)="alterarUsuario(l)" matTooltip="Alterar usuário">
+                      <mat-icon>edit</mat-icon>
+                    </button>
+                  }
+                  <button mat-icon-button (click)="voltarParaPendente(l)" matTooltip="Desvincular (volta para pendente)">
+                    <mat-icon>link_off</mat-icon>
+                  </button>
+                  <button mat-icon-button (click)="marcarSemAppNti(l)" matTooltip="Não usa o AppNTI">
+                    <mat-icon>block</mat-icon>
+                  </button>
+                }
+              }
+            }
+          </div>
+        </div>
+      }
+    }
+  </div>
+</div>

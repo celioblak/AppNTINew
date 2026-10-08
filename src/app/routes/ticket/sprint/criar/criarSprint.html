@@ -14,40 +14,25 @@
       <div class="form-section info-section">
         <h2>Informações da Sprint</h2>
 
-        <!-- Nome da Sprint -->
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Nome da Sprint</mat-label>
-          <input matInput
-                 formControlName="nome"
-                 placeholder="Ex: Sprint 1 - Melhorias do Sistema"
-                 maxlength="100"
-                 required>
-          <mat-error *ngIf="form.get('nome')?.hasError('required')">
-            Nome da sprint é obrigatório
-          </mat-error>
-          <mat-error *ngIf="form.get('nome')?.hasError('maxlength')">
-            O nome deve ter no máximo 100 caracteres
-          </mat-error>
-        </mat-form-field>
+        <div class="info-grid">
+          <!-- Nome da Sprint -->
+          <mat-form-field appearance="outline" class="campo-nome" subscriptSizing="dynamic">
+            <mat-label>Nome da Sprint</mat-label>
+            <input matInput
+                   formControlName="nome"
+                   placeholder="Ex: Sprint 1 - Melhorias do Sistema"
+                   maxlength="100"
+                   required>
+            <mat-error *ngIf="form.get('nome')?.hasError('required')">
+              Nome da sprint é obrigatório
+            </mat-error>
+            <mat-error *ngIf="form.get('nome')?.hasError('maxlength')">
+              O nome deve ter no máximo 100 caracteres
+            </mat-error>
+          </mat-form-field>
 
-        <!-- Objetivo da Sprint -->
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Objetivo da Sprint</mat-label>
-          <textarea matInput
-                    formControlName="objetivo"
-                    placeholder="Descreva o objetivo principal desta sprint..."
-                    rows="2"
-                    maxlength="500"></textarea>
-          <mat-hint align="end">{{ form.get('objetivo')?.value?.length || 0 }}/500</mat-hint>
-          <mat-error *ngIf="form.get('objetivo')?.hasError('maxlength')">
-            O objetivo deve ter no máximo 500 caracteres
-          </mat-error>
-        </mat-form-field>
-
-        <!-- Datas da Sprint -->
-        <div class="date-row">
           <!-- Data de Início -->
-          <mat-form-field appearance="outline" class="half-width">
+          <mat-form-field appearance="outline" class="campo-data" subscriptSizing="dynamic">
             <mat-label>Data de Início</mat-label>
             <input matInput
                    [matDatepicker]="inicioPicker"
@@ -62,7 +47,7 @@
           </mat-form-field>
 
           <!-- Data de Fim -->
-          <mat-form-field appearance="outline" class="half-width">
+          <mat-form-field appearance="outline" class="campo-data" subscriptSizing="dynamic">
             <mat-label>Data de Fim</mat-label>
             <input matInput
                    [matDatepicker]="fimPicker"
@@ -78,35 +63,38 @@
               Data de fim não pode ser anterior à data de início
             </mat-error>
           </mat-form-field>
+
+          <!-- Objetivo da Sprint -->
+          <mat-form-field appearance="outline" class="campo-objetivo" subscriptSizing="dynamic">
+            <mat-label>Objetivo da Sprint</mat-label>
+            <textarea matInput
+                      formControlName="objetivo"
+                      placeholder="Descreva o objetivo principal desta sprint..."
+                      rows="1"
+                      maxlength="500"></textarea>
+            <span matTextSuffix class="contador-objetivo">{{ form.get('objetivo')?.value?.length || 0 }}/500</span>
+            <mat-error *ngIf="form.get('objetivo')?.hasError('maxlength')">
+              O objetivo deve ter no máximo 500 caracteres
+            </mat-error>
+          </mat-form-field>
         </div>
       </div>
 
       <!-- Seção 2: Filtros -->
       <div class="form-section filters-section">
-        <h2>Seleção de Tickets</h2>
-
-        <!-- Resumo -->
-        <div class="section-header">
+        <div class="secao-titulo">
+          <h2>Seleção de Tickets</h2>
           <div class="tickets-summary">
-            <div class="summary-card">
-              <div class="summary-label">Total de Tickets</div>
-              <div class="summary-value">{{ todosTickets.length }}</div>
-            </div>
-            <div class="summary-card">
-              <div class="summary-label">Selecionados</div>
-              <div class="summary-value">{{ ticketsSelecionados.length }}</div>
-            </div>
-            <div class="summary-card">
-              <div class="summary-label">Disponíveis</div>
-              <div class="summary-value">{{ ticketsDisponiveis.length }}</div>
-            </div>
+            <span class="summary-chip">Total de Tickets <strong>{{ todosTickets.length }}</strong></span>
+            <span class="summary-chip">Selecionados <strong>{{ ticketsSelecionados.length }}</strong></span>
+            <span class="summary-chip">Disponíveis <strong>{{ ticketsDisponiveis.length }}</strong></span>
           </div>
         </div>
 
         <!-- Filtros -->
         <div class="filtros-container">
           <!-- Campo de busca -->
-          <mat-form-field appearance="outline" class="search-field">
+          <mat-form-field appearance="outline" class="search-field" subscriptSizing="dynamic">
             <mat-label>Buscar tickets</mat-label>
             <input matInput placeholder="Digite para buscar..."
                    [formControl]="buscaControl">
@@ -114,46 +102,35 @@
           </mat-form-field>
 
           <!-- Filtros por prioridade -->
-          <div class="filtros-chips">
-            <div class="filtros-group">
-              <div class="filtro-group-header">
-                <div class="filtro-label">Prioridade</div>
-                <button type="button"
-                        class="limpar-filtros-btn"
-                        mat-stroked-button
-                        (click)="limparFiltros()">
-                  <mat-icon>clear_all</mat-icon>
-                  Limpar Filtros
-                </button>
-              </div>
-
-              <div class="chips-container">
-                <button type="button"
-                        class="filtro-button prioridade-alta"
-                        [class.active]="filtroPrioridade === 'ALTA'"
-                        (click)="aplicarFiltroPrioridade('ALTA')">
-                  <mat-icon class="priority-icon">arrow_upward</mat-icon>
-                  Alta
-                  <span class="badge-count">{{ contarTicketsPorPrioridade('ALTA') }}</span>
-                </button>
-                <button type="button"
-                        class="filtro-button prioridade-media"
-                        [class.active]="filtroPrioridade === 'MEDIA'"
-                        (click)="aplicarFiltroPrioridade('MEDIA')">
-                  <mat-icon class="priority-icon">remove</mat-icon>
-                  Média
-                  <span class="badge-count">{{ contarTicketsPorPrioridade('MEDIA') }}</span>
-                </button>
-                <button type="button"
-                        class="filtro-button prioridade-baixa"
-                        [class.active]="filtroPrioridade === 'BAIXA'"
-                        (click)="aplicarFiltroPrioridade('BAIXA')">
-                  <mat-icon class="priority-icon">arrow_downward</mat-icon>
-                  Baixa
-                  <span class="badge-count">{{ contarTicketsPorPrioridade('BAIXA') }}</span>
-                </button>
-              </div>
-            </div>
+          <div class="chips-container">
+            <button type="button"
+                    class="filtro-button prioridade-alta"
+                    [class.active]="filtroPrioridade === 'ALTA'"
+                    (click)="aplicarFiltroPrioridade('ALTA')">
+              <mat-icon class="priority-icon">arrow_upward</mat-icon>
+              Alta
+              <span class="badge-count">{{ contarTicketsPorPrioridade('ALTA') }}</span>
+            </button>
+            <button type="button"
+                    class="filtro-button prioridade-media"
+                    [class.active]="filtroPrioridade === 'MEDIA'"
+                    (click)="aplicarFiltroPrioridade('MEDIA')">
+              <mat-icon class="priority-icon">remove</mat-icon>
+              Média
+              <span class="badge-count">{{ contarTicketsPorPrioridade('MEDIA') }}</span>
+            </button>
+            <button type="button"
+                    class="filtro-button prioridade-baixa"
+                    [class.active]="filtroPrioridade === 'BAIXA'"
+                    (click)="aplicarFiltroPrioridade('BAIXA')">
+              <mat-icon class="priority-icon">arrow_downward</mat-icon>
+              Baixa
+              <span class="badge-count">{{ contarTicketsPorPrioridade('BAIXA') }}</span>
+            </button>
+            <button type="button" class="limpar-filtros-btn" mat-icon-button
+                    (click)="limparFiltros()" matTooltip="Limpar filtros">
+              <mat-icon>clear_all</mat-icon>
+            </button>
           </div>
         </div>
       </div>
@@ -222,6 +199,10 @@
                     <div *ngIf="ticket.descricao" class="ticket-descricao">
                       {{ ticket.descricao | slice:0:100 }}{{ ticket.descricao.length > 100 ? '...' : '' }}
                     </div>
+                    <div class="ticket-responsavel" [class.vazio]="!ticket.responsavel" [title]="ticket.responsavel || ''">
+                      <mat-icon>person</mat-icon>
+                      <span>{{ ticket.responsavel || 'Sem responsável' }}</span>
+                    </div>
                   </div>
 
                   <button type="button"  class="add-btn" mat-icon-button (click)="adicionarTicket(ticket); $event.stopPropagation()">
@@ -286,6 +267,10 @@
                     <!-- Descrição curta -->
                     <div *ngIf="ticket.descricao" class="ticket-descricao">
                       {{ ticket.descricao | slice:0:100 }}{{ ticket.descricao.length > 100 ? '...' : '' }}
+                    </div>
+                    <div class="ticket-responsavel" [class.vazio]="!ticket.responsavel" [title]="ticket.responsavel || ''">
+                      <mat-icon>person</mat-icon>
+                      <span>{{ ticket.responsavel || 'Sem responsável' }}</span>
                     </div>
                   </div>
 

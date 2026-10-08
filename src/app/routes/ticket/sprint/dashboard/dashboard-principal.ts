@@ -12,6 +12,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 
 import { DashboardService } from './dashboard.service';
 import { Sprint, SprintTicket, TicketSprintDetalhado } from '@core';
+import { SprintCabecalhoComponent, SprintIndicador } from '../cabecalho/sprint-cabecalho.component';
 
 @Component({
   selector: 'app-dashboard-principal',
@@ -25,7 +26,8 @@ import { Sprint, SprintTicket, TicketSprintDetalhado } from '@core';
     MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
-    MatSnackBarModule
+    MatSnackBarModule,
+    SprintCabecalhoComponent
   ]
 })
 export class DashboardPrincipalComponent implements OnInit, OnDestroy {
@@ -45,6 +47,8 @@ export class DashboardPrincipalComponent implements OnInit, OnDestroy {
   totalTickets: number = 0;
   ticketsConcluidos: number = 0;
   ticketsPendentes: number = 0;
+  /** Números exibidos no cabeçalho da sprint — recalculados em calcularEstatisticas(). */
+  indicadoresSprint: SprintIndicador[] = [];
 
   // Estados
   carregando: boolean = false;
@@ -159,6 +163,11 @@ export class DashboardPrincipalComponent implements OnInit, OnDestroy {
       return status === 'ENTREGUE' || status === 'CONCLUIDO' || status === 'FECHADO';
     }).length;
     this.ticketsPendentes = this.totalTickets - this.ticketsConcluidos;
+    this.indicadoresSprint = [
+      { rotulo: 'Total', valor: this.totalTickets },
+      { rotulo: 'Concluídos', valor: this.ticketsConcluidos, tom: 'sucesso' },
+      { rotulo: 'Pendentes', valor: this.ticketsPendentes, tom: 'alerta' },
+    ];
   }
 
   // Navegação entre sprints

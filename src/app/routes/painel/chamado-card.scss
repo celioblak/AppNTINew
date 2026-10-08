@@ -8,15 +8,22 @@
 .card {
   display: grid;
   grid-template-columns: auto 1fr auto;
-  align-items: center;
   gap: clamp(8px, 1.2vw, 20px);
+  align-items: center;
   height: 100%;
   padding: clamp(4px, 0.8vh, 12px) clamp(10px, 1.2vw, 22px);
+  overflow: hidden;
+  color: var(--pn-texto);
+  background: var(--pn-superficie);
   border-left: 8px solid var(--pn-neutro);
   border-radius: 6px;
-  background: var(--pn-superficie);
-  color: var(--pn-texto);
-  overflow: hidden;
+
+  /*
+   * Entrou agora na tela: um brilho para o olho achar a novidade. É transição, e
+   * não animação, para não disputar a propriedade `animation` com o efeito de
+   * entrada — o card nasce com o brilho e ele se apaga quando a classe sai.
+   */
+  transition: box-shadow 800ms ease-out;
 
   /*
    * O número é o que o pessoal digita no sistema para abrir o chamado, então
@@ -26,29 +33,29 @@
   &__id {
     min-width: 4ch;
     padding-right: clamp(8px, 1vw, 18px);
-    border-right: 2px solid var(--pn-borda);
-    color: var(--pn-texto);
     font-size: clamp(1rem, 2.1vh, 2.4rem);
-    font-variant-numeric: tabular-nums;
     font-weight: 800;
-    letter-spacing: 0.5px;
+    font-variant-numeric: tabular-nums;
+    color: var(--pn-texto);
     text-align: right;
+    letter-spacing: 0.5px;
+    border-right: 2px solid var(--pn-borda);
   }
 
   &__titulo {
     display: -webkit-box;
+    overflow: hidden;
+    -webkit-line-clamp: 2;
     font-size: clamp(1.05rem, 2.2vh, 2.5rem);
     font-weight: 600;
     line-height: 1.15;
     -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
-    overflow: hidden;
   }
 
   &__idade {
-    color: var(--pn-texto-fraco);
     font-size: clamp(0.85rem, 1.5vh, 1.5rem);
     font-variant-numeric: tabular-nums;
+    color: var(--pn-texto-fraco);
     white-space: nowrap;
   }
 
@@ -62,8 +69,8 @@
   }
 
   &--pendente {
-    border-left-color: var(--pn-atencao);
     background: var(--pn-superficie-alta);
+    border-left-color: var(--pn-atencao);
   }
 
   &--pausado {
@@ -72,17 +79,10 @@
   }
 
   &--reprovado {
-    border-left-color: var(--pn-critico);
     background: rgb(239 83 80 / 18%);
     background: color-mix(in srgb, var(--pn-critico) 18%, var(--pn-superficie));
+    border-left-color: var(--pn-critico);
   }
-
-  /*
-   * Entrou agora na tela: um brilho para o olho achar a novidade. É transição, e
-   * não animação, para não disputar a propriedade `animation` com o efeito de
-   * entrada — o card nasce com o brilho e ele se apaga quando a classe sai.
-   */
-  transition: box-shadow 800ms ease-out;
 
   &--novo {
     box-shadow: inset 0 0 0 3px var(--pn-texto);
@@ -98,9 +98,9 @@
  * fica parada; quem dispara a animação é a virada de página ou um chamado novo.
  */
 :host-context(.efeito-flip) .card {
+  transform-origin: top center;
   animation: card-flip 460ms cubic-bezier(0.2, 0.75, 0.3, 1) both;
   animation-delay: calc(var(--i, 0) * 45ms);
-  transform-origin: top center;
 }
 
 :host-context(.efeito-fade) .card {
@@ -109,7 +109,7 @@
 }
 
 @keyframes card-flip {
-  from {
+  0% {
     opacity: 0.15;
     transform: rotateX(-88deg);
   }
@@ -118,7 +118,7 @@
     opacity: 1;
   }
 
-  to {
+  100% {
     opacity: 1;
     transform: rotateX(0deg);
   }

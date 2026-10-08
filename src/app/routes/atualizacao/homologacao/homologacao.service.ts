@@ -20,6 +20,7 @@ import {
   ResultadoRequest,
   RoteiroPadrao,
   RoteiroResumo,
+  Trilha,
 } from './homologacao.models';
 
 @Injectable({ providedIn: 'root' })
@@ -147,8 +148,12 @@ export class HomologacaoService {
     return this.http.post<HomologacaoDetalhe>(`${this.api}/${cod}/entregas`, dados);
   }
 
-  pedirReteste(codItem: number, motivo: string) {
-    return this.http.post<HomologacaoDetalhe>(`${this.api}/itens/${codItem}/reteste`, { motivo });
+  /**
+   * Testar de novo um item já testado. assumir = "Retestar" (quem retesta passa a ser o responsável); sem assumir = pedido
+   * da gestão (mantém o responsável). Trilha GERAL = a própria homologação geral.
+   */
+  pedirReteste(codItem: number, motivo: string, trilha: Trilha = 'DISTRIBUICAO', assumir = false) {
+    return this.http.post<HomologacaoDetalhe>(`${this.api}/itens/${codItem}/reteste`, { motivo, trilha, assumir });
   }
 
   resolverDivergencia(codDivergencia: number, forma: ResolucaoDivergencia, comentario: string) {
@@ -171,6 +176,11 @@ export class HomologacaoService {
   /** Excluir item incluído na homologação, mesmo com histórico (exclusão lógica quando há resultados). */
   excluirItem(codItem: number, motivo: string) {
     return this.http.post<HomologacaoDetalhe>(`${this.api}/itens/${codItem}/excluir`, { motivo });
+  }
+
+  /** Trocar o agrupamento de sistema e/ou módulo, com itens, resultados e reservas (administrador ou responsável). */
+  moverAgrupamento(codAgrupamento: number, codHomologacaoSistema: number, codModulo: number | null) {
+    return this.http.post<HomologacaoDetalhe>(`${this.api}/agrupamentos/${codAgrupamento}/mover`, { codHomologacaoSistema, codModulo });
   }
 
   excluirAgrupamentoHomologacao(codAgrupamento: number, motivo: string) {

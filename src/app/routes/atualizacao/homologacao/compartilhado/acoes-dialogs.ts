@@ -12,6 +12,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 
 import { normalizarTexto } from '../../atualizacao.models';
 import {
+  AgrupamentoHom,
   CancelarRequest,
   DivergenciaHom,
   EditarItemRequest,
@@ -955,6 +956,105 @@ export class MoverItensDialogComponent {
     return this.sistema.trabalhaModulo ? porModulo(this.sistema.modulos, destinos) : [{ codModulo: null, nome: '', itens: destinos }];
   })();
   codAgrupamento: number | null = null;
+}
+
+// ================================================================== trocar agrupamento de sistema / módulo
+
+export interface TrocarAgrupamentoDialogData {
+  homologacao: HomologacaoDetalhe;
+  agrupamento: AgrupamentoHom;
+}
+
+export interface TrocarAgrupamentoResultado {
+  codHomologacaoSistema: number;
+  codModulo: number | null;
+}
+
+/** Leva o agrupamento (com itens, resultados e reservas) para outro sistema desta homologação e/ou outro módulo. */
+@Component({
+  selector: 'app-hom-trocar-agrupamento-dialog',
+  imports: [FormsModule, MatButtonModule, MatDialogModule, MatFormFieldModule, MatSelectModule],
+  template: `
+    <h2 mat-dialog-title>Trocar sistema / módulo</h2>
+    <mat-dialog-content class="campos">
+      <p class="dica">
+        "{{ a.nome }}" ({{ qtdItens }} {{ qtdItens === 1 ? 'item' : 'itens' }}) vai com itens, resultados, reservas e histórico. O parecer dos sistemas
+        envolvidos é recalculado.
+      </p>
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-label>Sistema</mat-label>
+        <mat-select [ngModel]="codHs()" (ngModelChange)="trocarSistema($event)">
+          @for (s of h.sistemas; track s.codHomologacaoSistema) {
+            <mat-option [value]="s.codHomologacaoSistema">{{ s.nome }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+      @if (sistema()?.trabalhaModulo) {
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <mat-label>Módulo</mat-label>
+          <mat-select [ngModel]="codModulo()" (ngModelChange)="codModulo.set($event)" placeholder="Escolha o módulo">
+            @for (m of modulos(); track m.codModulo) {
+              <mat-option [value]="m.codModulo">{{ m.nome }}{{ m.ativo ? '' : ' (inativo)' }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+        @if (a.doPadrao) {
+          <p class="dica">Veio do roteiro padrão: o módulo escolhido aqui vale nesta homologação, sem mudar o padrão.</p>
+        }
+      }
+      @if (repetido()) {
+        <p class="aviso">Já existe "{{ a.nome }}" {{ sistema()?.trabalhaModulo ? 'nesse módulo' : 'nesse sistema' }}: renomeie um dos dois antes.</p>
+      }
+    </mat-dialog-content>
+    <mat-dialog-actions align="end">
+      <button mat-button type="button" mat-dialog-close>Voltar</button>
+      <button mat-flat-button type="button" [disabled]="!valido()" (click)="confirmar()">Trocar</button>
+    </mat-dialog-actions>
+  `,
+  styles: ESTILO,
+  changeDetection: ChangeDetectionStrategy.OnPush,
+})
+export class TrocarAgrupamentoDialogComponent {
+  readonly data = inject<TrocarAgrupamentoDialogData>(MAT_DIALOG_DATA);
+  private readonly dialogRef = inject<MatDialogRef<TrocarAgrupamentoDialogComponent, TrocarAgrupamentoResultado>>(MatDialogRef);
+  readonly h = this.data.homologacao;
+  readonly a = this.data.agrupamento;
+  readonly qtdItens = this.h.itens.filter(i => i.codAgrupamento === this.a.codAgrupamento).length;
+
+  readonly codHs = signal(this.a.codHomologacaoSistema);
+  readonly codModulo = signal<number | null>(this.a.codModulo);
+  readonly sistema = computed(() => this.h.sistemas.find(s => s.codHomologacaoSistema === this.codHs()));
+  /** Módulos do sistema escolhido: os ativos e o atual (mesmo inativo). */
+  readonly modulos = computed(() =>
+    (this.sistema()?.modulos ?? []).filter(m => m.codModulo !== null && (m.ativo || m.codModulo === this.a.codModulo))
+  );
+  /** Mesmo nome no destino (no mesmo módulo, quando o sistema trabalha com módulos). */
+  readonly repetido = computed(() => {
+    const alvo = normalizarTexto(this.a.nome);
+    const comModulo = !!this.sistema()?.trabalhaModulo;
+    return this.h.agrupamentos.some(
+      x =>
+        x.codAgrupamento !== this.a.codAgrupamento &&
+        x.codHomologacaoSistema === this.codHs() &&
+        normalizarTexto(x.nome) === alvo &&
+        (!comModulo || x.codModulo === this.codModulo())
+    );
+  });
+
+  trocarSistema(codHs: number) {
+    this.codHs.set(codHs);
+    // Módulo é do sistema: ao trocar de sistema, escolhe de novo.
+    this.codModulo.set(codHs === this.a.codHomologacaoSistema ? this.a.codModulo : null);
+  }
+
+  valido() {
+    const mudou = this.codHs() !== this.a.codHomologacaoSistema || this.codModulo() !== this.a.codModulo;
+    return mudou && !this.repetido() && (!this.sistema()?.trabalhaModulo || this.codModulo() !== null);
+  }
+
+  confirmar() {
+    this.dialogRef.close({ codHomologacaoSistema: this.codHs(), codModulo: this.sistema()?.trabalhaModulo ? this.codModulo() : null });
+  }
 }
 
 // ================================================================== editar item "só nesta"

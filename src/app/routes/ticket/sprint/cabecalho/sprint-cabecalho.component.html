@@ -1,0 +1,51 @@
+<div class="sprint-cabecalho">
+  <div class="linha-principal">
+
+    <!-- Navegação: ◀ n de N ▶ (mesma posição nas duas telas) -->
+    <div class="navegacao">
+      <button mat-icon-button type="button" class="nav-btn"
+              (click)="anterior.emit()"
+              [disabled]="!temAnterior || desabilitado"
+              matTooltip="Sprint anterior">
+        <mat-icon>chevron_left</mat-icon>
+      </button>
+      <span class="contador">{{ indice + 1 }} de {{ total }}</span>
+      <button mat-icon-button type="button" class="nav-btn"
+              (click)="proxima.emit()"
+              [disabled]="!temProxima || desabilitado"
+              matTooltip="Próxima sprint">
+        <mat-icon>chevron_right</mat-icon>
+      </button>
+    </div>
+
+    <!-- Identificação -->
+    <div class="identificacao">
+      <div class="nome-linha">
+        <span class="sprint-id" *ngIf="sprint.id">#{{ sprint.id }}</span>
+        <span class="sprint-nome" [title]="sprint.nome">{{ sprint.nome }}</span>
+        <span class="status-badge" [ngClass]="statusClasse">{{ statusRotulo }}</span>
+      </div>
+      <div class="periodo">
+        <mat-icon>event</mat-icon>
+        {{ formatarData(sprint.dataInicio) }} – {{ formatarData(sprint.dataFim) }}
+      </div>
+    </div>
+
+    <!-- Indicadores -->
+    <div class="indicadores">
+      <div class="indicador" *ngFor="let ind of indicadores" [ngClass]="ind.tom ? 'tom-' + ind.tom : ''">
+        <span class="valor">{{ ind.valor }}</span>
+        <span class="rotulo">{{ ind.rotulo }}</span>
+      </div>
+    </div>
+
+    <!-- Progresso -->
+    <div class="progresso" [matTooltip]="percentualLimitado + '% entregue'">
+      <span class="percentual">{{ percentualLimitado }}%</span>
+      <div class="barra"><div class="preenchido" [style.width.%]="percentualLimitado"></div></div>
+    </div>
+  </div>
+
+  <!-- Linha de ações da tela (filtro, concluir, exportar...) -->
+  <div class="linha-acoes"><ng-content></ng-content></div>
+</div>
