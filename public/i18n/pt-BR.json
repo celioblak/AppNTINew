@@ -11,6 +11,7 @@
     "banco.script-agendamento": "Agendamento",
     "configuracao.notificacoes": "Notificações",
     "configuracao.parametros": "Parâmetros",
+    "configuracao.versao-banco": "Versão do banco",
     "infraestrutura": "Infraestrutura",
     "infraestrutura.ambientes": "Ambientes",
     "infraestrutura.servidores-servicos": "Servidores e Serviços",

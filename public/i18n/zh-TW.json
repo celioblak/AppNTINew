@@ -7,6 +7,7 @@
     "configuracao": "設定",
     "configuracao.notificacoes": "通知",
     "configuracao.parametros": "參數",
+    "configuracao.versao-banco": "資料庫版本",
     "infraestrutura": "基礎設施",
     "infraestrutura.ambientes": "環境",
     "infraestrutura.servidores-servicos": "伺服器與服務",

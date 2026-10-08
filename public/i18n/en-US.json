@@ -7,6 +7,7 @@
     "configuracao": "Settings",
     "configuracao.notificacoes": "Notifications",
     "configuracao.parametros": "Parameters",
+    "configuracao.versao-banco": "Database version",
     "infraestrutura": "Infrastructure",
     "infraestrutura.ambientes": "Environments",
     "infraestrutura.servidores-servicos": "Servers and Services",

@@ -7,6 +7,7 @@
     "configuracao": "配置",
     "configuracao.notificacoes": "通知",
     "configuracao.parametros": "参数",
+    "configuracao.versao-banco": "数据库版本",
     "infraestrutura": "基础设施",
     "infraestrutura.ambientes": "环境",
     "infraestrutura.servidores-servicos": "服务器与服务",
